@@ -273,7 +273,7 @@ function LobbyView({ players, onStart, enabledQs }: { players: Record<string, Pl
   return (
     <main className="lobby">
       <section className="qr-side">
-        <Qr text={url} size={340} />
+        <Qr text={url} />
         <div className="scan">
           <div className="en">Scan to join</div>
           <div className="ms">Imbas untuk menyertai</div>

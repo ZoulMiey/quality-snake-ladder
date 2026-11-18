@@ -64,12 +64,14 @@ button:disabled { cursor: default; }
 .error-bar { background: #fde2e2; color: var(--bad); }
 
 /* Lobby */
-.lobby { flex: 1; display: grid; grid-template-columns: minmax(300px, 420px) 1fr; gap: 32px; padding: 28px 36px; align-items: start; }
+.lobby { flex: 1; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 32px; padding: 20px 32px; align-items: start; }
 .qr-side { background: #fff; color: var(--ink); border-radius: 20px; padding: 22px; display: grid; justify-items: center; gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+/* The QR code is as big as the screen allows, so people can scan it from their seats. */
+.qr-side .qr { width: min(calc(100vh - 260px), 46vw); height: min(calc(100vh - 260px), 46vw); min-width: 240px; min-height: 240px; }
 .qr svg { width: 100%; height: 100%; display: block; }
-.scan .en { font-family: var(--display); font-weight: 800; font-size: 34px; line-height: 1; text-align: center; }
+.scan .en { font-family: var(--display); font-weight: 800; font-size: 40px; line-height: 1; text-align: center; }
 .scan .ms { text-align: center; color: var(--muted); font-size: 18px; }
-.url { font-weight: 700; font-size: 18px; background: var(--mint); padding: 4px 12px; border-radius: 8px; word-break: break-all; text-align: center; }
+.url { font-weight: 700; font-size: 22px; background: var(--mint); padding: 4px 12px; border-radius: 8px; word-break: break-all; text-align: center; }
 .lobby-head { display: flex; align-items: center; gap: 20px; }
 .lobby-head h2 { font-family: var(--display); font-size: 40px; margin: 0; }
 .lobby-head .count { background: rgba(255,255,255,.15); border-radius: 999px; padding: 0 14px; font-size: 28px; }
