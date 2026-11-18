@@ -64,8 +64,12 @@ export type PlayerState = {
 
 export type Player = { name: string; token: string; joinedAt: number };
 
+export type GameMode = "snake" | "kart";
+
 export type Game = {
   status: "lobby" | "playing" | "ended";
+  /** Which game the host picked: Snake & Ladder or Quality Cart. */
+  mode?: GameMode;
   engine: string | null;
   paused: boolean;
   pausedAt: number | null;

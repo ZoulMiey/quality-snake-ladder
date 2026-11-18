@@ -1,4 +1,8 @@
-# Quality Snake & Ladder
+# Quality Month Games
+
+Two live games in one app: **Snake & Ladder** and **Quality Cart** (a kart race). The host picks the game in the projector lobby.
+
+## Snake & Ladder
 
 A live 100-box Snake & Ladder quiz game for Quality Month 2026. Everyone plays at the same time on their phones, and the board is shown on the projector.
 
@@ -23,6 +27,20 @@ A live 100-box Snake & Ladder quiz game for Quality Month 2026. Everyone plays a
 
 The rules are in `src/lib/rules.ts` and the board (snakes and ladders) in `src/lib/board.ts`.
 
+## Quality Cart
+
+A top-down kart race on the projector; each player drives from their phone.
+
+- Tilt the phone left/right to steer (or hold the ◀ ▶ buttons). The cart drives forward by itself.
+- Questions pop up while driving (12 seconds): right = turbo, wrong or no answer = the cart slows down for a moment.
+- Drive through **Q boxes** to get an item, then tap the item button to use it:
+  🛡️ PPE Shield (blocks one hit) · ⚡ Kaizen Turbo · 🛢️ Oil spill (dropped behind you) · 📋 Audit (slows the leader).
+  Carts further back get more turbos and audits.
+- Cones and potholes spin you out; out-of-spec zones slow you down.
+- 3 laps (about 2½–3 minutes). The race ends when everyone finishes, or 60 seconds after the winner.
+
+The track is in `src/kart/track.ts`, the race rules in `src/kart/sim.ts` and the referee in `src/kart/engine.ts`.
+
 ## What is in here
 
 | Folder / file | What it is |
@@ -34,7 +52,8 @@ The rules are in `src/lib/rules.ts` and the board (snakes and ladders) in `src/l
 | `src/lib/board.ts` | Board size, snakes, ladders, final zone |
 | `src/lib/defaultQuestions.ts` | The starting question bank (63 questions, English + Malay) |
 | `database.rules.json` | Security rules for the Firebase Realtime Database |
-| `scripts/engine.test.ts` | Checks for the game rules (`npm test`) |
+| `scripts/engine.test.ts`, `scripts/kart.test.ts` | Checks for the game rules (`npm test`) |
+| `src/kart/` | Quality Cart: track, race rules, referee, projector view and phone controls |
 
 ## Important for the event
 

@@ -1,0 +1,322 @@
+// The Quality Cart referee. It runs in the projector window only: it moves the carts,
+// reads each phone's tilt, hands out questions and items, and writes what each phone needs to show.
+import { get, onValue, ref, set, update } from "firebase/database";
+import { db, serverNow } from "../lib/firebase.ts";
+import { pickQuestion, shuffleOptions } from "../lib/rules.ts";
+import { tokenById } from "../lib/tokens.ts";
+import type { FeedItem, Game, Player, Question } from "../lib/types.ts";
+import { COUNTDOWN_MS } from "../lib/engine.ts";
+import { ITEMS, answerEffect, effectOf, lapOf, newWorld, standings, step, useItem, type RaceEvent, type World } from "./sim.ts";
+
+export const CART_QUESTION_MS = 12_000;
+const RESULT_SHOW_MS = 2_200;
+/** After the first cart finishes, the others get this long to finish too. */
+const FINISH_WINDOW_S = 60;
+const TICK_MS = 33;
+const FEED_KEEP = 14;
+const TF_OPTS = [
+  { en: "True", ms: "Betul" },
+  { en: "False", ms: "Salah" },
+];
+
+/** The race the projector is drawing right now (shared with the screen in the same window). */
+export const live: { world: World | null } = { world: null };
+
+type QState = { open: boolean; qid: string; correctIdx: number; deadline: number; nextAt: number; seq: number };
+type Input = { s?: number; use?: number };
+
+export type CartMe = { rank: number; of: number; lap: number; item: string | null; fx: string | null; finished: boolean; time: number | null };
+export type CartQ = {
+  seq: number;
+  q: { id: string; type: "mc" | "tf"; q: { en: string; ms: string }; opts: { en: string; ms: string }[] } | null;
+  deadline: number;
+  result: { correct: boolean; timeout: boolean; correctIdx: number } | null;
+  until: number;
+};
+export type CartResult = { uid: string; rank: number; finished: boolean; time: number | null; lap: number };
+
+export class KartEngine {
+  private players: Record<string, Player> = {};
+  private pool: Question[] = [];
+  private used: Record<string, Record<string, true>> = {};
+  private qs: Record<string, QState> = {};
+  private inputs: Record<string, Input> = {};
+  private lastUse: Record<string, number> = {};
+  private lastMe: Record<string, string> = {};
+  private game: Game | null = null;
+  private feed: FeedItem[] = [];
+  private world: World | null = null;
+  private stops: (() => void)[] = [];
+  private timer: number | undefined;
+  private lastTick = 0;
+  private lastSync = 0;
+  private lastSnap = 0;
+  private feedDirty = false;
+  onEvent?: (e: RaceEvent | { type: "item"; uid: string; item: string }) => void;
+
+  constructor(readonly tabId: string) {}
+
+  async start() {
+    const [playersSnap, qSnap] = await Promise.all([get(ref(db, "players")), get(ref(db, "questions"))]);
+    this.players = playersSnap.val() ?? {};
+    this.pool = Object.values((qSnap.val() ?? {}) as Record<string, Question>).filter((q) => q.enabled);
+    if (!this.pool.length) throw new Error("There are no questions switched on. Open Questions and switch some on.");
+    const uids = Object.keys(this.players).sort((a, b) => (this.players[a].joinedAt ?? 0) - (this.players[b].joinedAt ?? 0));
+    if (!uids.length) throw new Error("Nobody has joined yet.");
+    const now = serverNow();
+    this.world = newWorld(uids);
+    this.used = {};
+    this.qs = Object.fromEntries(uids.map((u) => [u, { open: false, qid: "", correctIdx: 0, deadline: 0, nextAt: 4 + Math.random() * 5, seq: 0 }]));
+    this.feed = [{ at: now, uid: "", text: "🏁 The race has started! Good luck everyone.", tone: "info" }];
+    this.game = { status: "playing", mode: "kart", engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt: now + COUNTDOWN_MS, endedAt: null, winners: [] };
+    await update(ref(db), { game: this.game, feed: this.feed, kart: null, answers: null, private: null, used: null, state: null });
+    this.run();
+  }
+
+  /** Carry on a race after the projector page was reloaded. */
+  async resume() {
+    const all = (await get(ref(db))).val() ?? {};
+    this.players = all.players ?? {};
+    this.pool = Object.values((all.questions ?? {}) as Record<string, Question>).filter((q) => q.enabled);
+    this.feed = all.feed ?? [];
+    this.used = all.used ?? {};
+    const snap = all.private?.kartsim;
+    if (snap?.world) {
+      const w = snap.world as World;
+      this.world = { ...w, oils: w.oils ?? [], boxes: w.boxes ?? [], carts: (w.carts ?? []).map((c) => ({ ...c, hitCooldown: c.hitCooldown ?? {}, item: c.item ?? null })) };
+      this.qs = snap.qs ?? {};
+    } else {
+      this.world = newWorld(Object.keys(this.players));
+      this.qs = {};
+    }
+    for (const c of this.world.carts) this.qs[c.uid] ??= { open: false, qid: "", correctIdx: 0, deadline: 0, nextAt: this.world.t + 5, seq: 0 };
+    this.game = { ...(all.game as Game), engine: this.tabId };
+    await set(ref(db, "game/engine"), this.tabId);
+    this.run();
+  }
+
+  private run() {
+    this.stopListening();
+    live.world = this.world;
+    this.stops.push(
+      onValue(ref(db, "kart/input"), (s) => {
+        this.inputs = s.val() ?? {};
+        for (const [uid, inp] of Object.entries(this.inputs)) {
+          const use = inp.use ?? 0;
+          if (this.lastUse[uid] === undefined) this.lastUse[uid] = use;
+          else if (use > this.lastUse[uid]) {
+            this.lastUse[uid] = use;
+            this.useItem(uid);
+          }
+        }
+      }),
+      onValue(ref(db, "answers"), (s) => {
+        const answers = (s.val() ?? {}) as Record<string, { qid: string; choice: number }>;
+        for (const [uid, a] of Object.entries(answers)) this.onAnswer(uid, a);
+      }),
+      onValue(ref(db, "game"), (s) => {
+        const g = s.val() as Game | null;
+        if (!g || g.engine !== this.tabId) return this.stop();
+        this.game = g;
+      }),
+      onValue(ref(db, "players"), (s) => {
+        this.players = s.val() ?? {};
+        if (this.world) this.world.carts = this.world.carts.filter((c) => this.players[c.uid]);
+      }),
+    );
+    this.lastTick = performance.now();
+    this.timer = window.setInterval(() => this.tick(), TICK_MS);
+  }
+
+  private stopListening() {
+    this.stops.forEach((f) => f());
+    this.stops = [];
+    if (this.timer) clearInterval(this.timer);
+    this.timer = undefined;
+  }
+
+  stop() {
+    this.stopListening();
+  }
+
+  async pause() {
+    if (!this.game || this.game.paused) return;
+    this.game = { ...this.game, paused: true, pausedAt: serverNow() };
+    await update(ref(db, "game"), { paused: true, pausedAt: this.game.pausedAt });
+  }
+
+  async unpause() {
+    if (!this.game || !this.game.paused) return;
+    const shift = serverNow() - (this.game.pausedAt ?? serverNow());
+    const updates: Record<string, unknown> = { "game/paused": false, "game/pausedAt": null };
+    if (this.game.goAt && this.game.goAt > (this.game.pausedAt ?? 0)) updates["game/goAt"] = this.game.goAt + shift;
+    for (const [uid, q] of Object.entries(this.qs)) {
+      if (q.open) {
+        q.deadline += shift;
+        updates[`kart/q/${uid}/deadline`] = q.deadline;
+      }
+    }
+    this.game = { ...this.game, paused: false, pausedAt: null };
+    await update(ref(db), updates);
+  }
+
+  async endNow() {
+    await this.finish();
+  }
+
+  private tick() {
+    const nowMs = performance.now();
+    const dt = Math.min(0.1, (nowMs - this.lastTick) / 1000);
+    this.lastTick = nowMs;
+    const w = this.world;
+    if (!w || !this.game || this.game.status !== "playing" || this.game.paused) return;
+    const now = serverNow();
+    if (this.game.goAt && now < this.game.goAt) return;
+
+    const steer: Record<string, number> = {};
+    for (const [uid, inp] of Object.entries(this.inputs)) steer[uid] = Math.max(-1, Math.min(1, Number(inp.s) || 0));
+    for (const e of step(w, dt, steer)) this.onRaceEvent(e);
+
+    // Questions: one pops up every 6–12 seconds per cart while racing.
+    const updates: Record<string, unknown> = {};
+    for (const c of w.carts) {
+      const q = (this.qs[c.uid] ??= { open: false, qid: "", correctIdx: 0, deadline: 0, nextAt: w.t + 5, seq: 0 });
+      if (c.finished) {
+        if (q.open) {
+          q.open = false;
+          updates[`kart/q/${c.uid}`] = null;
+        }
+        continue;
+      }
+      if (q.open && now > q.deadline + 600) this.judge(c.uid, null, updates);
+      else if (!q.open && w.t >= q.nextAt && c.p > 0) this.ask(c.uid, now, updates);
+    }
+
+    if (nowMs - this.lastSync > 250) {
+      this.lastSync = nowMs;
+      const order = standings(w);
+      order.forEach((c, i) => {
+        const me: CartMe = {
+          rank: i + 1,
+          of: order.length,
+          lap: lapOf(c),
+          item: c.item,
+          fx: effectOf(w, c),
+          finished: c.finished,
+          time: c.finished ? Math.round(c.finishT * 10) / 10 : null,
+        };
+        const key = JSON.stringify(me);
+        if (this.lastMe[c.uid] !== key) {
+          this.lastMe[c.uid] = key;
+          updates[`kart/me/${c.uid}`] = me;
+        }
+      });
+      if (this.feedDirty) {
+        updates.feed = this.feed;
+        this.feedDirty = false;
+      }
+    }
+    if (nowMs - this.lastSnap > 1500) {
+      this.lastSnap = nowMs;
+      updates["private/kartsim"] = { world: w, qs: this.qs };
+    }
+    if (Object.keys(updates).length) void update(ref(db), updates).catch(() => {});
+
+    const allDone = w.carts.length > 0 && w.carts.every((c) => c.finished);
+    if (allDone || (w.firstFinishT !== null && w.t - w.firstFinishT > FINISH_WINDOW_S)) void this.finish();
+  }
+
+  private name(uid: string) {
+    const p = this.players[uid];
+    return `${tokenById(p?.token).emoji} ${p?.name ?? "Player"}`;
+  }
+
+  private pushFeed(text: string, tone: FeedItem["tone"] = "info") {
+    this.feed = [...this.feed, { at: serverNow(), uid: "", text, tone }].slice(-FEED_KEEP);
+    this.feedDirty = true;
+  }
+
+  private onRaceEvent(e: RaceEvent) {
+    this.onEvent?.(e);
+    if (e.type === "finish") {
+      const m = Math.floor(e.time / 60);
+      const s = Math.floor(e.time % 60);
+      this.pushFeed(`🏁 ${this.name(e.uid)} finished #${e.rank} (${m}:${String(s).padStart(2, "0")})`, "win");
+    } else if (e.type === "spin" && e.cause === "oil") this.pushFeed(`🛢️ ${this.name(e.uid)} slipped on oil!`, "bad");
+    else if (e.type === "lap" && e.lap === 3) {
+      const order = standings(this.world!);
+      if (order[0]?.uid === e.uid) this.pushFeed(`🔔 Final lap! ${this.name(e.uid)} is leading`, "info");
+    }
+  }
+
+  private useItem(uid: string) {
+    const w = this.world;
+    if (!w || !this.game || this.game.status !== "playing" || this.game.paused) return;
+    const use = useItem(w, uid);
+    if (!use) return;
+    this.onEvent?.({ type: "item", uid, item: use.item });
+    const it = ITEMS[use.item];
+    if (use.item === "audit" && use.target)
+      this.pushFeed(
+        use.blocked ? `📋 ${this.name(uid)} sent an Audit to ${this.name(use.target)}, but the PPE Shield blocked it!` : `📋 ${this.name(uid)} sent an Audit to ${this.name(use.target)}! Slowed down`,
+        "bad",
+      );
+    else if (use.item !== "shield") this.pushFeed(`${it.icon} ${this.name(uid)} used ${it.en}`);
+  }
+
+  private ask(uid: string, now: number, updates: Record<string, unknown>) {
+    const q = this.qs[uid];
+    const pick = pickQuestion(this.pool, new Set(Object.keys(this.used[uid] ?? {})));
+    if (!pick) return;
+    if (pick.reset) this.used[uid] = {};
+    (this.used[uid] ??= {})[pick.q.id] = true;
+    const base = pick.q.type === "tf" ? TF_OPTS : pick.q.opts ?? [];
+    const sh = pick.q.type === "tf" ? { opts: base, correctIdx: pick.q.ans } : shuffleOptions(base, pick.q.ans);
+    q.open = true;
+    q.qid = pick.q.id;
+    q.correctIdx = sh.correctIdx;
+    q.deadline = now + CART_QUESTION_MS;
+    q.seq += 1;
+    const pub: CartQ = { seq: q.seq, q: { id: pick.q.id, type: pick.q.type, q: pick.q.q, opts: sh.opts }, deadline: q.deadline, result: null, until: 0 };
+    updates[`kart/q/${uid}`] = pub;
+    updates[`answers/${uid}`] = null;
+    updates[`used/${uid}`] = this.used[uid];
+  }
+
+  private onAnswer(uid: string, a: { qid: string; choice: number }) {
+    const q = this.qs[uid];
+    if (!this.game || this.game.status !== "playing" || this.game.paused || !q?.open || q.qid !== a.qid) return;
+    const updates: Record<string, unknown> = {};
+    this.judge(uid, a.choice, updates);
+    void update(ref(db), updates).catch(() => {});
+  }
+
+  private judge(uid: string, choice: number | null, updates: Record<string, unknown>) {
+    const q = this.qs[uid];
+    const w = this.world;
+    if (!q?.open || !w) return;
+    q.open = false;
+    const correct = choice !== null && choice === q.correctIdx;
+    answerEffect(w, uid, correct);
+    q.nextAt = w.t + 6 + Math.random() * 6;
+    updates[`kart/q/${uid}/result`] = { correct, timeout: choice === null, correctIdx: q.correctIdx };
+    updates[`kart/q/${uid}/until`] = serverNow() + RESULT_SHOW_MS;
+    updates[`answers/${uid}`] = null;
+  }
+
+  private async finish() {
+    if (!this.game || this.game.status === "ended" || !this.world) return;
+    const w = this.world;
+    const results: CartResult[] = standings(w).map((c, i) => ({
+      uid: c.uid,
+      rank: i + 1,
+      finished: c.finished,
+      time: c.finished ? Math.round(c.finishT * 10) / 10 : null,
+      lap: lapOf(c),
+    }));
+    this.game = { ...this.game, status: "ended", endedAt: serverNow(), paused: false, pausedAt: null, winners: results.filter((r) => r.finished).map((r) => r.uid) };
+    this.pushFeed("🏆 Race over! Thank you for playing.", "win");
+    await update(ref(db), { game: this.game, feed: this.feed, "kart/results": results, "private/kartsim": { world: w, qs: this.qs } });
+    this.stop();
+  }
+}

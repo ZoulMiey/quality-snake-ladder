@@ -1,19 +1,34 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { get, ref, set } from "firebase/database";
+import { get, ref, set, update } from "firebase/database";
 import { db, ensureSignedIn, serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
 import { Engine, MAX_WINNERS, playAgain, removePlayer, resetGame } from "../lib/engine.ts";
 import { tokenById, MAX_PLAYERS } from "../lib/tokens.ts";
 import { isMuted, setMuted, sfx, unlockAudio } from "../lib/sound.ts";
 import Board, { type BoardPiece } from "../components/Board.tsx";
-import Header from "../components/Header.tsx";
+import Header, { GAME_NAMES } from "../components/Header.tsx";
+import { KartEngine } from "../kart/engine.ts";
+import KartView from "../kart/KartView.tsx";
 import Qr from "../components/Qr.tsx";
 import Countdown from "../components/Countdown.tsx";
 import Rules from "../components/Rules.tsx";
 import { eventById } from "../lib/specials.ts";
 import { DiceRoll } from "../components/Dice.tsx";
 import QuestionManager, { seedQuestionsIfEmpty } from "../components/QuestionManager.tsx";
-import { fixStates, type FeedItem, type Game, type Player, type PlayerState, type Question } from "../lib/types.ts";
+import { fixStates, type FeedItem, type Game, type GameMode, type Player, type PlayerState, type Question } from "../lib/types.ts";
+
+/** The referee for the chosen game, with sounds on the projector for the race. */
+function makeEngine(mode: GameMode | undefined, tab: string): Engine | KartEngine {
+  if (mode !== "kart") return new Engine(tab);
+  const e = new KartEngine(tab);
+  e.onEvent = (ev) => {
+    if (ev.type === "finish") sfx.win();
+    else if (ev.type === "spin") sfx.wrong();
+    else if (ev.type === "pickup") sfx.join();
+    else if (ev.type === "item") ev.item === "audit" ? sfx.snake() : ev.item === "turbo" ? sfx.ladder() : sfx.join();
+  };
+  return e;
+}
 
 const tabId = (() => {
   try {
@@ -103,7 +118,7 @@ function HostScreen() {
   const states = useMemo(() => (statesRaw === undefined ? undefined : fixStates(statesRaw)), [statesRaw]);
   const feedRaw = useDbValue<FeedItem[] | Record<string, FeedItem>>("feed");
   const questions = useDbValue<Record<string, Question>>("questions");
-  const engine = useRef<Engine | null>(null);
+  const engine = useRef<Engine | KartEngine | null>(null);
   const [showQs, setShowQs] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
   const [confirm, setConfirm] = useState<null | "reset" | "end">(null);
@@ -118,7 +133,7 @@ function HostScreen() {
   // If this window was running the game and got reloaded, carry on.
   useEffect(() => {
     if (iRun && !engine.current) {
-      const e = new Engine(tabId);
+      const e = makeEngine(game?.mode, tabId);
       engine.current = e;
       e.resume().catch(() => (engine.current = null));
     }
@@ -178,7 +193,7 @@ function HostScreen() {
   async function start() {
     unlockAudio();
     setMsg("");
-    const e = new Engine(tabId);
+    const e = makeEngine(game?.mode, tabId);
     try {
       engine.current = e;
       await e.start();
@@ -189,7 +204,7 @@ function HostScreen() {
   }
   async function takeOver() {
     unlockAudio();
-    const e = new Engine(tabId);
+    const e = makeEngine(game?.mode, tabId);
     engine.current = e;
     await e.resume();
   }
@@ -243,7 +258,7 @@ function HostScreen() {
 
   return (
     <div className="screen">
-      <Header>{tools}</Header>
+      <Header mode={game?.mode}>{tools}</Header>
       {confirm && (
         <div className="confirm-bar">
           {confirm === "reset" ? "Start a new game? Everyone will need to scan and join again." : "End the game now? The current order becomes the final result."}
@@ -276,8 +291,17 @@ function HostScreen() {
       )}
       {msg && <div className="confirm-bar error-bar">{msg}</div>}
 
-      {status === "lobby" && <LobbyView players={players ?? {}} onStart={start} enabledQs={enabledQs} />}
-      {status !== "lobby" && (
+      {status === "lobby" && (
+        <LobbyView
+          players={players ?? {}}
+          onStart={start}
+          enabledQs={enabledQs}
+          mode={game?.mode ?? "snake"}
+          onMode={(m) => update(ref(db, "game"), { mode: m, status: game?.status ?? "lobby" })}
+        />
+      )}
+      {status !== "lobby" && game?.mode === "kart" && <KartView game={game} players={players ?? {}} feed={feed} onAgain={() => playAgain()} />}
+      {status !== "lobby" && game?.mode !== "kart" && (
         <GameView game={game!} players={players ?? {}} states={states ?? {}} feed={feed} highlight={highlight} lastRoll={lastRoll} hop={hop} onAgain={() => playAgain()} />
       )}
       {showQs && <QuestionManager onClose={() => setShowQs(false)} />}
@@ -285,7 +309,19 @@ function HostScreen() {
   );
 }
 
-function LobbyView({ players, onStart, enabledQs }: { players: Record<string, Player>; onStart: () => void; enabledQs: number }) {
+function LobbyView({
+  players,
+  onStart,
+  enabledQs,
+  mode,
+  onMode,
+}: {
+  players: Record<string, Player>;
+  onStart: () => void;
+  enabledQs: number;
+  mode: GameMode;
+  onMode: (m: GameMode) => void;
+}) {
   const url = `${location.origin}/join`;
   const list = Object.entries(players).sort((a, b) => (a[1].joinedAt ?? 0) - (b[1].joinedAt ?? 0));
   return (
@@ -299,6 +335,17 @@ function LobbyView({ players, onStart, enabledQs }: { players: Record<string, Pl
         <div className="url">{url.replace(/^https?:\/\//, "")}</div>
       </section>
       <section className="lobby-side">
+        <div className="mode-pick" role="radiogroup" aria-label="Choose the game">
+          {(["snake", "kart"] as GameMode[]).map((m) => (
+            <button key={m} role="radio" aria-checked={mode === m} className={`mode-btn ${mode === m ? "on" : ""}`} onClick={() => onMode(m)}>
+              <span className="mode-icon">{GAME_NAMES[m].icon}</span>
+              <span className="mode-text">
+                <span className="en">{GAME_NAMES[m].en}</span>
+                <span className="ms">{GAME_NAMES[m].ms}</span>
+              </span>
+            </button>
+          ))}
+        </div>
         <div className="lobby-head">
           <h2>
             Players <span className="count">{list.length}/{MAX_PLAYERS}</span>
@@ -322,7 +369,7 @@ function LobbyView({ players, onStart, enabledQs }: { players: Record<string, Pl
             );
           })}
         </ul>
-        <Rules />
+        <Rules mode={mode} />
       </section>
     </main>
   );

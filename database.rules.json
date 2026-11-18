@@ -47,10 +47,18 @@
       "$uid": {
         ".write": "auth != null && auth.uid === $uid && (!root.child('game/status').exists() || root.child('game/status').val() === 'lobby')",
         ".validate": "!newData.exists() || newData.hasChildren(['name', 'token', 'joinedAt'])",
-        "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20" },
-        "token": { ".validate": "newData.isString() && newData.val().length <= 20" },
-        "joinedAt": { ".validate": "newData.isNumber()" },
-        "$other": { ".validate": false }
+        "name": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20"
+        },
+        "token": {
+          ".validate": "newData.isString() && newData.val().length <= 20"
+        },
+        "joinedAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     },
     "tokens": {
@@ -68,6 +76,16 @@
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && auth.uid === $uid && root.child('game/status').val() === 'playing'",
         ".validate": "!newData.exists() || (newData.hasChildren(['qid', 'choice']) && newData.child('qid').isString() && newData.child('choice').isNumber())"
+      }
+    },
+    "kart": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('secret/pin').exists() && root.child('hosts').child(auth.uid).val() === root.child('secret/pin').val()",
+      "input": {
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid && root.child('game/status').val() === 'playing'",
+          ".validate": "newData.hasChildren(['s']) && newData.child('s').isNumber() && newData.child('s').val() >= -1 && newData.child('s').val() <= 1 && (!newData.child('use').exists() || newData.child('use').isNumber())"
+        }
       }
     }
   }

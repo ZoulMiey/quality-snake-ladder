@@ -56,7 +56,7 @@ export class Engine {
     this.priv = {};
     this.used = {};
     this.feed = [{ at: now, uid: "", text: "Game started! Good luck everyone.", tone: "info" }];
-    this.game = { status: "playing", engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt: now + COUNTDOWN_MS, endedAt: null, winners: [], specials: placeSpecials() };
+    this.game = { status: "playing", mode: "snake", engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt: now + COUNTDOWN_MS, endedAt: null, winners: [], specials: placeSpecials() };
 
     const updates: Record<string, unknown> = {
       answers: null,
@@ -334,10 +334,12 @@ function describe(icon: string, name: string, r: Result): string {
   }
 }
 
-/** Remove everything from the last game. Players will need to join again. */
+const LOBBY_GAME = { "game/status": "lobby", "game/engine": null, "game/paused": false, "game/pausedAt": null, "game/startedAt": null, "game/goAt": null, "game/endedAt": null, "game/winners": null, "game/specials": null };
+
+/** Remove everything from the last game. Players will need to join again. The chosen game (mode) is kept. */
 export async function resetGame() {
   await update(ref(db), {
-    game: { status: "lobby", engine: null, paused: false, pausedAt: null, startedAt: null, goAt: null, endedAt: null, winners: [] },
+    ...LOBBY_GAME,
     players: null,
     tokens: null,
     state: null,
@@ -345,18 +347,20 @@ export async function resetGame() {
     used: null,
     answers: null,
     feed: null,
+    kart: null,
   });
 }
 
 /** Back to the lobby with the same players (they don't need to scan again). */
 export async function playAgain() {
   await update(ref(db), {
-    game: { status: "lobby", engine: null, paused: false, pausedAt: null, startedAt: null, goAt: null, endedAt: null, winners: [] },
+    ...LOBBY_GAME,
     state: null,
     private: null,
     used: null,
     answers: null,
     feed: null,
+    kart: null,
   });
 }
 
