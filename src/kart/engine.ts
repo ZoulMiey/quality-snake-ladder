@@ -1,5 +1,6 @@
 // The Quality Cart referee. It runs in the projector window only: it moves the carts,
 // reads each phone's tilt, hands out questions and items, and writes what each phone needs to show.
+import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";
 import { get, onValue, ref, set, update } from "firebase/database";
 import { db, serverNow } from "../lib/firebase.ts";
 import { pickQuestion, shuffleOptions } from "../lib/rules.ts";
@@ -41,6 +42,7 @@ export type CartResult = { uid: string; rank: number; finished: boolean; time: n
 export class KartEngine {
   private players: Record<string, Player> = {};
   private pool: Question[] = [];
+  private qset: QChoice = "quality";
   private used: Record<string, Record<string, true>> = {};
   private qs: Record<string, QState> = {};
   private inputs: Record<string, Input> = {};
@@ -61,10 +63,11 @@ export class KartEngine {
   constructor(readonly tabId: string) {}
 
   async start() {
-    const [playersSnap, qSnap] = await Promise.all([get(ref(db, "players")), get(ref(db, "questions"))]);
+    const [playersSnap, qSnap, qsetSnap] = await Promise.all([get(ref(db, "players")), get(ref(db, "questions")), get(ref(db, "game/qset"))]);
+    this.qset = (qsetSnap.val() as QChoice) || "quality";
     this.players = playersSnap.val() ?? {};
-    this.pool = Object.values((qSnap.val() ?? {}) as Record<string, Question>).filter((q) => q.enabled);
-    if (!this.pool.length) throw new Error("There are no questions switched on. Open Questions and switch some on.");
+    this.pool = poolFor(qSnap.val(), this.qset);
+    if (!this.pool.length) throw new Error(noQuestionsMessage(this.qset));
     const uids = Object.keys(this.players).sort((a, b) => (this.players[a].joinedAt ?? 0) - (this.players[b].joinedAt ?? 0));
     if (!uids.length) throw new Error("Nobody has joined yet.");
     const now = serverNow();
@@ -72,7 +75,7 @@ export class KartEngine {
     this.used = {};
     this.qs = Object.fromEntries(uids.map((u) => [u, { open: false, qid: "", correctIdx: 0, deadline: 0, nextAt: 4 + Math.random() * 5, seq: 0 }]));
     this.feed = [{ at: now, uid: "", text: "🏁 The race has started! Good luck everyone.", tone: "info" }];
-    this.game = { status: "playing", mode: "kart", engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt: now + COUNTDOWN_MS, endedAt: null, winners: [] };
+    this.game = { status: "playing", qset: this.qset, mode: "kart", engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt: now + COUNTDOWN_MS, endedAt: null, winners: [] };
     await update(ref(db), { game: this.game, feed: this.feed, kart: null, answers: null, private: null, used: null, state: null });
     this.run();
   }
@@ -81,7 +84,8 @@ export class KartEngine {
   async resume() {
     const all = (await get(ref(db))).val() ?? {};
     this.players = all.players ?? {};
-    this.pool = Object.values((all.questions ?? {}) as Record<string, Question>).filter((q) => q.enabled);
+    this.qset = (all.game?.qset as QChoice) || "quality";
+    this.pool = poolFor(all.questions, this.qset);
     this.feed = all.feed ?? [];
     this.used = all.used ?? {};
     const snap = all.private?.kartsim;

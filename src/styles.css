@@ -646,3 +646,19 @@ button:disabled { cursor: default; }
 .gd-change { margin-left: auto; font-size: 16px; padding: 10px 14px; }
 .gd-change span { opacity: .75; font-weight: 500; }
 @media (max-width: 900px) { .game-card { grid-template-columns: 1fr; } .gc-go { display: none; } .gd-head { flex-wrap: wrap; } }
+/* Question sets: tabs in the Questions manager and the picker in the lobby */
+.qset-tabs { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 18px 0; }
+.qset-tab { border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 999px; padding: 5px 12px; font-weight: 600; font-size: 14px; }
+.qset-tab span { color: var(--muted); font-variant-numeric: tabular-nums; margin-left: 2px; }
+.qset-tab.on { background: var(--felt); color: #fff; border-color: var(--felt); }
+.qset-tab.on span { color: rgba(255,255,255,.75); }
+.qset-pick { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0 8px; }
+.qset-pick .lbl { display: grid; line-height: 1.1; }
+.qset-pick .lbl .en { font-family: var(--display); font-weight: 800; font-size: 20px; }
+.qset-pick .lbl .ms { font-size: 13px; opacity: .75; }
+.qset-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.qset-btn { display: grid; text-align: left; padding: 6px 12px; border-radius: 12px; border: 3px solid rgba(255,255,255,.18); background: rgba(0,0,0,.18); color: #fff; }
+.qset-btn .en { font-weight: 800; font-size: 16px; }
+.qset-btn .ms { font-size: 12px; opacity: .75; }
+.qset-btn.on { border-color: var(--gold); background: rgba(245,197,66,.16); }
+.qset-btn.empty { opacity: .5; }

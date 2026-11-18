@@ -4,6 +4,8 @@ export type Text = { en: string; ms: string };
 export type Question = {
   id: string;
   cat: string;
+  /** Question set (quality, world, logo, malaysia, general). Missing = quality. */
+  set?: "quality" | "world" | "logo" | "malaysia" | "general";
   type: "mc" | "tf";
   q: Text;
   opts?: Text[];
@@ -74,6 +76,8 @@ export type Game = {
   clashFormat?: "team" | "solo" | "boss";
   /** Boss Raid only: Time Attack or High Score. */
   bossMode?: "ta" | "hs";
+  /** Which question set this game uses (missing = quality). */
+  qset?: "quality" | "world" | "logo" | "malaysia" | "general" | "mix";
   engine: string | null;
   paused: boolean;
   pausedAt: number | null;

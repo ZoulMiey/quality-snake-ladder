@@ -1,5 +1,6 @@
 // The game engine. It runs in the projector window only, and is the single referee:
 // it gives out questions, checks answers, rolls the dice and moves the pieces.
+import { noQuestionsMessage, poolFor, type QChoice } from "./questionSets.ts";
 import { ref, get, onValue, update, set } from "firebase/database";
 import { db, serverNow } from "./firebase.ts";
 import { resolve, pickQuestion, shuffleOptions } from "./rules.ts";
@@ -34,6 +35,7 @@ export class Engine {
   private priv: Record<string, Private> = {};
   private used: Record<string, Record<string, true>> = {};
   private pool: Question[] = [];
+  private qset: QChoice = "quality";
   private game: Game | null = null;
   private feed: FeedItem[] = [];
   private busy = new Set<string>();
@@ -45,10 +47,11 @@ export class Engine {
 
   /** Start a new game with everyone in the lobby. */
   async start() {
-    const [playersSnap, qSnap] = await Promise.all([get(ref(db, "players")), get(ref(db, "questions"))]);
+    const [playersSnap, qSnap, qsetSnap] = await Promise.all([get(ref(db, "players")), get(ref(db, "questions")), get(ref(db, "game/qset"))]);
+    this.qset = (qsetSnap.val() as QChoice) || "quality";
     this.players = playersSnap.val() ?? {};
-    this.pool = Object.values((qSnap.val() ?? {}) as Record<string, Question>).filter((q) => q.enabled);
-    if (!this.pool.length) throw new Error("There are no questions switched on. Open Questions and switch some on.");
+    this.pool = poolFor(qSnap.val(), this.qset);
+    if (!this.pool.length) throw new Error(noQuestionsMessage(this.qset));
     if (!Object.keys(this.players).length) throw new Error("Nobody has joined yet.");
 
     const now = serverNow();
@@ -56,7 +59,7 @@ export class Engine {
     this.priv = {};
     this.used = {};
     this.feed = [{ at: now, uid: "", text: "Game started! Good luck everyone.", tone: "info" }];
-    this.game = { status: "playing", mode: "snake", engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt: now + COUNTDOWN_MS, endedAt: null, winners: [], specials: placeSpecials() };
+    this.game = { status: "playing", qset: this.qset, mode: "snake", engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt: now + COUNTDOWN_MS, endedAt: null, winners: [], specials: placeSpecials() };
 
     const updates: Record<string, unknown> = {
       answers: null,
@@ -101,7 +104,8 @@ export class Engine {
     this.priv = all.private ?? {};
     this.used = all.used ?? {};
     this.feed = all.feed ?? [];
-    this.pool = Object.values((all.questions ?? {}) as Record<string, Question>).filter((q) => q.enabled);
+    this.qset = (all.game?.qset as QChoice) || "quality";
+    this.pool = poolFor(all.questions, this.qset);
     this.game = { ...(all.game as Game), winners: all.game?.winners ?? [], engine: this.tabId };
     await set(ref(db, "game/engine"), this.tabId);
     this.run();
@@ -128,7 +132,7 @@ export class Engine {
         for (const uid of Object.keys(this.states)) if (!this.players[uid]) delete this.states[uid];
       }),
       onValue(ref(db, "questions"), (s) => {
-        const pool = Object.values((s.val() ?? {}) as Record<string, Question>).filter((q) => q.enabled);
+        const pool = poolFor(s.val(), this.qset);
         if (pool.length) this.pool = pool;
       }),
     );

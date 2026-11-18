@@ -1,8 +1,13 @@
 import { useState } from "react";
-import { ref, set, update, remove } from "firebase/database";
+import { get, ref, set, update, remove } from "firebase/database";
 import { db } from "../lib/firebase.ts";
 import { useDbValue } from "../lib/useDb.ts";
 import { DEFAULT_QUESTIONS } from "../lib/defaultQuestions.ts";
+import { MORE_QUESTIONS } from "../lib/moreQuestions.ts";
+import { QSETS, SET_IDS, setOf, type QSet } from "../lib/questionSets.ts";
+
+/** Every question the app comes with: the original 63 Quality questions and the added sets. */
+export const ALL_DEFAULT_QUESTIONS = [...DEFAULT_QUESTIONS, ...MORE_QUESTIONS];
 import type { Question, Text } from "../lib/types.ts";
 
 const TF = [
@@ -10,9 +15,21 @@ const TF = [
   { en: "False", ms: "Salah" },
 ];
 
+/**
+ * First visit: load every default question. Later visits: add the question sets once (the
+ * November 2026 additions), without touching the host's own questions, edits or deletions.
+ */
 export async function seedQuestionsIfEmpty(current: Record<string, Question> | null) {
-  if (current && Object.keys(current).length) return;
-  await set(ref(db, "questions"), Object.fromEntries(DEFAULT_QUESTIONS.map((q) => [q.id, q])));
+  if (!current || !Object.keys(current).length) {
+    await set(ref(db, "questions"), Object.fromEntries(ALL_DEFAULT_QUESTIONS.map((q) => [q.id, q])));
+    await set(ref(db, "setup/qsetsAdded"), true).catch(() => {});
+    return;
+  }
+  const added = (await get(ref(db, "setup/qsetsAdded")).catch(() => null))?.val();
+  if (added) return;
+  const missing = MORE_QUESTIONS.filter((q) => !current[q.id]);
+  if (missing.length) await update(ref(db, "questions"), Object.fromEntries(missing.map((q) => [q.id, q])));
+  await set(ref(db, "setup/qsetsAdded"), true);
 }
 
 export default function QuestionManager({ onClose }: { onClose: () => void }) {
@@ -20,9 +37,12 @@ export default function QuestionManager({ onClose }: { onClose: () => void }) {
   const [editing, setEditing] = useState<Question | null>(null);
   const [confirmRestore, setConfirmRestore] = useState(false);
   const [filter, setFilter] = useState("");
-  const list = Object.values(qs ?? {}).sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+  const [tab, setTab] = useState<QSet | "all">("all");
+  const all = Object.values(qs ?? {}).sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+  const list = all.filter((q) => tab === "all" || setOf(q) === tab);
   const on = list.filter((q) => q.enabled).length;
   const shown = list.filter((q) => !filter || (q.q.en + q.q.ms + q.cat).toLowerCase().includes(filter.toLowerCase()));
+  const setName = (id: QSet) => QSETS.find((s) => s.id === id)!.en;
 
   return (
     <div className="modal-back" role="dialog" aria-modal="true" aria-label="Questions">
@@ -41,22 +61,29 @@ export default function QuestionManager({ onClose }: { onClose: () => void }) {
           <Editor q={editing} onDone={() => setEditing(null)} />
         ) : (
           <>
+            <div className="qset-tabs" role="tablist" aria-label="Question sets">
+              {(["all", ...SET_IDS] as (QSet | "all")[]).map((s) => (
+                <button key={s} role="tab" aria-selected={tab === s} className={`qset-tab ${tab === s ? "on" : ""}`} onClick={() => setTab(s)}>
+                  {s === "all" ? "All" : setName(s)} <span>{s === "all" ? all.length : all.filter((q) => setOf(q) === s).length}</span>
+                </button>
+              ))}
+            </div>
             <div className="modal-tools">
               <input id="qfilter" placeholder="Search questions" value={filter} onChange={(e) => setFilter(e.target.value)} />
               <button
                 className="btn primary"
                 onClick={() =>
-                  setEditing({ id: "c" + Date.now().toString(36), cat: "My questions", type: "mc", q: { en: "", ms: "" }, opts: [0, 1, 2, 3].map(() => ({ en: "", ms: "" })), ans: 0, enabled: true })
+                  setEditing({ id: "c" + Date.now().toString(36), cat: "My questions", set: tab === "all" ? "quality" : tab, type: "mc", q: { en: "", ms: "" }, opts: [0, 1, 2, 3].map(() => ({ en: "", ms: "" })), ans: 0, enabled: true })
                 }
               >
                 + Add question
               </button>
               <button className="btn" onClick={() => update(ref(db, "questions"), Object.fromEntries(list.map((q) => [`${q.id}/enabled`, true])))}>
-                Switch all on
+                Switch all on{tab === "all" ? "" : ` (${setName(tab)})`}
               </button>
               {confirmRestore ? (
                 <span className="confirm">
-                  Replace all questions with the original 63?
+                  Replace all questions with the original {ALL_DEFAULT_QUESTIONS.length}? Your own and edited questions will be lost.
                   <button
                     className="btn danger"
                     onClick={async () => {
@@ -88,7 +115,7 @@ export default function QuestionManager({ onClose }: { onClose: () => void }) {
                     </label>
                     <div className="qtext">
                       <div className="qmeta">
-                        {q.cat} · {q.type === "tf" ? "True/False" : "Multiple choice"}
+                        {setName(setOf(q))} · {q.cat} · {q.type === "tf" ? "True/False" : "Multiple choice"}
                       </div>
                       <div className="en">{q.q.en}</div>
                       <div className="ms">{q.q.ms}</div>
@@ -120,7 +147,7 @@ function Editor({ q, onDone }: { q: Question; onDone: () => void }) {
 
   async function save() {
     if (!d.q.en.trim() || !d.q.ms.trim()) return setErr("Type the question in English and Malay.");
-    const out: Question = { id: d.id, cat: d.cat || "My questions", type: d.type, q: { en: d.q.en.trim(), ms: d.q.ms.trim() }, ans: d.ans, enabled: d.enabled };
+    const out: Question = { id: d.id, cat: d.cat || "My questions", set: setOf(d), type: d.type, q: { en: d.q.en.trim(), ms: d.q.ms.trim() }, ans: d.ans, enabled: d.enabled };
     if (d.type === "mc") {
       const opts = d.opts!.map((o) => ({ en: o.en.trim(), ms: o.ms.trim() }));
       if (opts.some((o) => !o.en || !o.ms)) return setErr("Fill in all 4 answers in English and Malay.");
@@ -139,6 +166,16 @@ function Editor({ q, onDone }: { q: Question; onDone: () => void }) {
           <select id="etype" value={d.type} onChange={(e) => setD({ ...d, type: e.target.value as Question["type"], ans: 0 })}>
             <option value="mc">Multiple choice</option>
             <option value="tf">True / False</option>
+          </select>
+        </label>
+        <label>
+          Set
+          <select id="eset" value={setOf(d)} onChange={(e) => setD({ ...d, set: e.target.value as QSet })}>
+            {SET_IDS.map((s) => (
+              <option key={s} value={s}>
+                {QSETS.find((x) => x.id === s)!.en}
+              </option>
+            ))}
           </select>
         </label>
         <label className="grow">

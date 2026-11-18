@@ -18,6 +18,7 @@ import Qr from "../components/Qr.tsx";
 import Countdown from "../components/Countdown.tsx";
 import Rules from "../components/Rules.tsx";
 import GamePreview from "../components/GamePreview.tsx";
+import { QSETS, poolFor, type QChoice } from "../lib/questionSets.ts";
 import { eventById } from "../lib/specials.ts";
 import { DiceRoll } from "../components/Dice.tsx";
 import QuestionManager, { seedQuestionsIfEmpty } from "../components/QuestionManager.tsx";
@@ -197,6 +198,7 @@ function HostScreen() {
 
   const feed: FeedItem[] = Array.isArray(feedRaw) ? feedRaw : Object.values(feedRaw ?? {});
   const enabledQs = Object.values(questions ?? {}).filter((q) => q.enabled).length;
+  const qsetCounts = useMemo(() => Object.fromEntries(QSETS.map((s) => [s.id, poolFor(questions, s.id).length])) as Record<QChoice, number>, [questions]);
 
   async function start() {
     unlockAudio();
@@ -308,6 +310,9 @@ function HostScreen() {
           onMode={(m) => update(ref(db, "game"), { mode: m, status: game?.status ?? "lobby" })}
           clashFormat={game?.clashFormat ?? "team"}
           onClashFormat={(f) => update(ref(db, "game"), { clashFormat: f, status: game?.status ?? "lobby" })}
+          qset={game?.qset ?? "quality"}
+          qsetCounts={qsetCounts}
+          onQset={(q) => update(ref(db, "game"), { qset: q, status: game?.status ?? "lobby" })}
           bossMode={game?.bossMode ?? "ta"}
           onBossMode={(m) => update(ref(db, "game"), { bossMode: m, status: game?.status ?? "lobby" })}
         />
@@ -339,6 +344,9 @@ function LobbyView({
   onClashFormat,
   bossMode,
   onBossMode,
+  qset,
+  qsetCounts,
+  onQset,
 }: {
   players: Record<string, Player>;
   onStart: () => void;
@@ -349,10 +357,13 @@ function LobbyView({
   onClashFormat: (f: "team" | "solo" | "boss") => void;
   bossMode: "ta" | "hs";
   onBossMode: (m: "ta" | "hs") => void;
+  qset: QChoice;
+  qsetCounts: Record<QChoice, number>;
+  onQset: (q: QChoice) => void;
 }) {
   const url = `${location.origin}/join`;
   const clash = useLineUp(clashFormat, players);
-  const canStart = !!mode && !!list0(players).length && !!enabledQs && (mode !== "clash" || clash.ready);
+  const canStart = !!mode && !!list0(players).length && !!enabledQs && (qsetCounts[qset] ?? 0) > 0 && (mode !== "clash" || clash.ready);
   const list = Object.entries(players).sort((a, b) => (a[1].joinedAt ?? 0) - (b[1].joinedAt ?? 0));
   return (
     <main className="lobby">
@@ -401,6 +412,29 @@ function LobbyView({
                 ← Change game <span>/ Tukar permainan</span>
               </button>
             </div>
+            <div className="qset-pick">
+              <div className="lbl">
+                <span className="en">Questions</span>
+                <span className="ms">Set soalan</span>
+              </div>
+              <div className="qset-btns" role="radiogroup" aria-label="Question set">
+                {QSETS.map((s) => (
+                  <button
+                    key={s.id}
+                    role="radio"
+                    aria-checked={qset === s.id}
+                    className={`qset-btn ${qset === s.id ? "on" : ""} ${qsetCounts[s.id] ? "" : "empty"}`}
+                    onClick={() => onQset(s.id)}
+                  >
+                    <span className="en">
+                      {s.icon} {s.id === "mix" ? "Mix" : s.en} · {qsetCounts[s.id] ?? 0}
+                    </span>
+                    <span className="ms">{s.id === "mix" ? "All except Quality / Campuran" : s.ms}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            {(qsetCounts[qset] ?? 0) === 0 && <p className="waiting">No questions are switched on in this set. Open Questions to switch some on. / Tiada soalan dihidupkan dalam set ini.</p>}
             {mode === "clash" && <ClashFormatPick format={clashFormat} onFormat={onClashFormat} bossMode={bossMode} onBossMode={onBossMode} />}
             <div className="lobby-head">
               <h2>

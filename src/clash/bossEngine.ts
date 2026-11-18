@@ -1,5 +1,6 @@
 // The Boss Raid referee. It runs in the projector window only: it gives each player their own
 // question stream, makes their monsters hit the Titan, runs the Titan's stomps and the revive questions.
+import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";
 import { get, onValue, ref, set, update } from "firebase/database";
 import { db, serverNow } from "../lib/firebase.ts";
 import { pickQuestion, shuffleOptions } from "../lib/rules.ts";
@@ -37,6 +38,7 @@ type QState = { open: boolean; qid: string; correctIdx: number; askedAt: number;
 export class BossEngine {
   private players: Record<string, Player> = {};
   private pool: Question[] = [];
+  private qset: QChoice = "quality";
   private used: Record<string, Record<string, true>> = {};
   private qs: Record<string, QState> = {};
   private game: Game | null = null;
@@ -52,8 +54,9 @@ export class BossEngine {
   async start() {
     const [playersSnap, qSnap, pickSnap, gameSnap] = await Promise.all([get(ref(db, "players")), get(ref(db, "questions")), get(ref(db, "clash/pick")), get(ref(db, "game"))]);
     this.players = playersSnap.val() ?? {};
-    this.pool = Object.values((qSnap.val() ?? {}) as Record<string, Question>).filter((q) => q.enabled);
-    if (!this.pool.length) throw new Error("There are no questions switched on. Open Questions and switch some on.");
+    this.qset = ((gameSnap.val() as Game | null)?.qset as QChoice) || "quality";
+    this.pool = poolFor(qSnap.val(), this.qset);
+    if (!this.pool.length) throw new Error(noQuestionsMessage(this.qset));
     const mode: BossMode = (gameSnap.val() as Game | null)?.bossMode === "hs" ? "hs" : "ta";
     const picks = Object.entries((pickSnap.val() ?? {}) as Record<string, { c?: string[] | Record<string, string>; at?: number }>)
       .filter(([uid]) => this.players[uid])
@@ -68,7 +71,7 @@ export class BossEngine {
     this.events = [];
     this.evN = 0;
     const feed: FeedItem[] = [{ at: now, uid: "", text: "👹 The Defect Titan appears!", tone: "info" }];
-    this.game = { status: "playing", mode: "clash", clashFormat: "boss", bossMode: mode, engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt, endedAt: null, winners: [] };
+    this.game = { status: "playing", qset: this.qset, mode: "clash", clashFormat: "boss", bossMode: mode, engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt, endedAt: null, winners: [] };
     await update(ref(db), {
       game: this.game,
       feed,
@@ -92,7 +95,8 @@ export class BossEngine {
       ["game", "clash/raid", "clash/rev", "private/clash", "questions", "players", "used"].map((p) => get(ref(db, p)).then((s) => s.val())),
     );
     this.players = pSnap ?? {};
-    this.pool = Object.values((qSnap ?? {}) as Record<string, Question>).filter((q) => q.enabled);
+    this.qset = ((g as Game | null)?.qset as QChoice) || "quality";
+    this.pool = poolFor(qSnap, this.qset);
     this.used = usedSnap ?? {};
     this.r = fixRaid(raid);
     this.events = fixRaidEvents(ev);
@@ -120,7 +124,7 @@ export class BossEngine {
         this.players = s.val() ?? {};
       }),
       onValue(ref(db, "questions"), (s) => {
-        const pool = Object.values((s.val() ?? {}) as Record<string, Question>).filter((q) => q.enabled);
+        const pool = poolFor(s.val(), this.qset);
         if (pool.length) this.pool = pool;
       }),
     );
