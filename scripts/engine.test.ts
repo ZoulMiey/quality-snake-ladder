@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { resolve, pickQuestion, shuffleOptions } from "../src/lib/rules.ts";
 import { SNAKES, LADDERS, LAST_BOX } from "../src/lib/board.ts";
+import { placeSpecials, EVENTS } from "../src/lib/specials.ts";
 
 // A snake head and a ladder bottom that can be reached with two small dice from a plain box.
 const [HEAD, TAIL] = Object.entries(SNAKES).map(([a, b]) => [+a, b])[0];
@@ -84,6 +85,41 @@ t("reaching box 100 wins (from 96 a 4 wins, from 99 any roll wins)", () => {
   assert.equal(r(96, 0, "turn", true, 3).pos, 99);
   assert.equal(r(99, 0, "turn", true, 1).result.outcome, "win");
   assert.equal(r(97, 0, "turn", true, 6).pos, LAST_BOX);
+});
+t("special box: forward or back at once", () => {
+  const specials = [{ box: 33, id: "viscosity" }, { box: 38, id: "cso" }];
+  const f = resolve(30, 0, "turn", true, { correctIdx: 0, rollDie: () => 3, specials });
+  assert.equal(f.result.land, 33);
+  assert.equal(f.result.special, "viscosity");
+  assert.equal(f.pos, 35);
+  const b = resolve(35, 0, "turn", true, { correctIdx: 0, rollDie: () => 3, specials });
+  assert.equal(b.pos, 35); // 38 - 3
+});
+t("special box that sends you to a snake head asks the snake question", () => {
+  const head = Number(Object.keys(SNAKES)[0]);
+  const specials = [{ box: head - 2, id: "viscosity" }];
+  const x = resolve(head - 5, 0, "turn", true, { correctIdx: 0, rollDie: () => 3, specials });
+  assert.equal(x.pos, head);
+  assert.equal(x.result.next, "snake");
+});
+t("a special box leading to another special box does nothing more", () => {
+  const specials = [{ box: 33, id: "viscosity" }, { box: 35, id: "cso" }];
+  const x = resolve(30, 0, "turn", true, { correctIdx: 0, rollDie: () => 3, specials });
+  assert.equal(x.pos, 35);
+});
+t("12 special boxes, placed away from snakes, ladders, start and finish", () => {
+  for (let k = 0; k < 200; k++) {
+    const list = placeSpecials();
+    assert.equal(list.length, 12);
+    const ends = new Set([...Object.entries(SNAKES), ...Object.entries(LADDERS)].flat().map(Number));
+    for (const s of list) {
+      assert.ok(s.box >= 6 && s.box <= 90, `box ${s.box}`);
+      assert.ok(!ends.has(s.box), `box ${s.box} is a snake/ladder end`);
+      assert.ok(EVENTS.some((e) => e.id === s.id));
+    }
+    const boxes = list.map((s) => s.box);
+    assert.equal(new Set(boxes).size, 12);
+  }
 });
 t("questions never repeat for a player until all are used", () => {
   const pool = [{ id: "a" }, { id: "b" }, { id: "c" }];

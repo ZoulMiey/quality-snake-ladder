@@ -10,6 +10,7 @@ import Header from "../components/Header.tsx";
 import Qr from "../components/Qr.tsx";
 import Countdown from "../components/Countdown.tsx";
 import Rules from "../components/Rules.tsx";
+import { eventById } from "../lib/specials.ts";
 import { DiceRoll } from "../components/Dice.tsx";
 import QuestionManager, { seedQuestionsIfEmpty } from "../components/QuestionManager.tsx";
 import { fixStates, type FeedItem, type Game, type Player, type PlayerState, type Question } from "../lib/types.ts";
@@ -130,6 +131,8 @@ function HostScreen() {
 
   // Sounds and highlight when pieces move.
   const lastSeq = useRef<Record<string, number>>({});
+  // A piece that lands on a quality event box stops there for a moment before moving on.
+  const [hop, setHop] = useState<Record<string, number>>({});
   useEffect(() => {
     if (!states) return;
     for (const [uid, st] of Object.entries(states)) {
@@ -138,6 +141,21 @@ function HostScreen() {
       if (prev === undefined || prev === st.seq || !st.result) continue;
       setHighlight(uid);
       if (st.result.dice.length) setLastRoll({ uid, seq: st.seq, dice: st.result.dice, bonus: st.result.bonus });
+      if (st.result.special && st.result.land) {
+        const land = st.result.land;
+        const good = (eventById(st.result.special)?.move ?? 0) > 0;
+        setHop((h) => ({ ...h, [uid]: land }));
+        setTimeout(() => (good ? sfx.correct() : sfx.wrong()), 1100);
+        setTimeout(
+          () =>
+            setHop((h) => {
+              const n = { ...h };
+              delete n[uid];
+              return n;
+            }),
+          1500,
+        );
+      }
       const o = st.result.outcome;
       if (o === "win") sfx.win();
       else if (o === "climb") sfx.ladder();
@@ -260,7 +278,7 @@ function HostScreen() {
 
       {status === "lobby" && <LobbyView players={players ?? {}} onStart={start} enabledQs={enabledQs} />}
       {status !== "lobby" && (
-        <GameView game={game!} players={players ?? {}} states={states ?? {}} feed={feed} highlight={highlight} lastRoll={lastRoll} onAgain={() => playAgain()} />
+        <GameView game={game!} players={players ?? {}} states={states ?? {}} feed={feed} highlight={highlight} lastRoll={lastRoll} hop={hop} onAgain={() => playAgain()} />
       )}
       {showQs && <QuestionManager onClose={() => setShowQs(false)} />}
     </div>
@@ -317,6 +335,7 @@ function GameView({
   feed,
   highlight,
   lastRoll,
+  hop,
   onAgain,
 }: {
   game: Game;
@@ -325,6 +344,7 @@ function GameView({
   feed: FeedItem[];
   highlight: string | null;
   lastRoll: { uid: string; seq: number; dice: number[]; bonus: boolean } | null;
+  hop: Record<string, number>;
   onAgain: () => void;
 }) {
   useNow(500);
@@ -344,7 +364,7 @@ function GameView({
   return (
     <main className={`game ${ended ? "ended" : ""}`}>
       <section className="board-side">
-        <Board pieces={pieces} highlight={highlight} />
+        <Board pieces={pieces} highlight={highlight} specials={game.specials} posOverride={hop} />
         {game.paused && <div className="paused-overlay">⏸ Paused / Dihentikan seketika</div>}
         {game.status === "playing" && game.goAt && <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="board-cd" />}
         {ended && (

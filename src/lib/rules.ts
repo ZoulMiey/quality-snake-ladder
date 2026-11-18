@@ -1,5 +1,6 @@
 import { LADDERS, LAST_BOX, SNAKES } from "./board.ts";
 import type { QuestionKind, Result } from "./types.ts";
+import { specialAt, type SpecialBox } from "./specials.ts";
 
 /** Right answers in a row needed for the 2-dice bonus. */
 export const BONUS_STREAK = 5;
@@ -13,6 +14,8 @@ export type Resolved = { result: Result; pos: number; streak: number };
  * - Wrong answer or no answer: no roll, and a 5-second penalty before the next question.
  * - Snake question: right = stay, wrong = slide down (+ penalty).
  * - Ladder question: right = climb, wrong = stay (+ penalty).
+ * - Landing on a special (quality event) box moves the player forward or back at once.
+ *   A snake or ladder at the new box then asks its question; another special box does nothing.
  * - Reaching or passing the last box wins.
  */
 export function resolve(
@@ -20,7 +23,7 @@ export function resolve(
   streak: number,
   kind: QuestionKind,
   correct: boolean,
-  opts: { timeout?: boolean; choice?: number | null; correctIdx: number; rollDie?: () => number },
+  opts: { timeout?: boolean; choice?: number | null; correctIdx: number; rollDie?: () => number; specials?: SpecialBox[] | null },
 ): Resolved {
   const rollDie = opts.rollDie ?? (() => 1 + Math.floor(Math.random() * 6));
   let newStreak = correct ? streak + 1 : 0;
@@ -61,8 +64,12 @@ export function resolve(
   if (land >= LAST_BOX) {
     return { result: { ...base, dice, bonus, to: LAST_BOX, outcome: "win" }, pos: LAST_BOX, streak: newStreak };
   }
-  const next: QuestionKind | null = SNAKES[land] ? "snake" : LADDERS[land] ? "ladder" : null;
-  return { result: { ...base, dice, bonus, to: land, outcome: "move", next }, pos: land, streak: newStreak };
+  let to = land;
+  const special = specialAt(opts.specials, land);
+  if (special) to = Math.max(1, Math.min(LAST_BOX - 1, land + special.move));
+  const next: QuestionKind | null = SNAKES[to] ? "snake" : LADDERS[to] ? "ladder" : null;
+  const extra = special ? { special: special.id, land } : {};
+  return { result: { ...base, ...extra, dice, bonus, to, outcome: "move", next }, pos: to, streak: newStreak };
 }
 
 /** Pick a question for a player: never one they already had, until they have had them all. */

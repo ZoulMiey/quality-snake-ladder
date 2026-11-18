@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { COLS, ROWS, LADDERS, SNAKES, LAST_BOX, cellOf } from "../lib/board.ts";
 import { tokenById } from "../lib/tokens.ts";
+import { specialAt, type SpecialBox } from "../lib/specials.ts";
 import type { Player, PlayerState } from "../lib/types.ts";
 
 // Board units: each row is 100 high. The board stretches sideways to fill the screen, so a box can be
@@ -109,7 +110,7 @@ function Snake({ head, tail, i }: { head: number; tail: number; i: number }) {
 
 export type BoardPiece = { uid: string; player: Player; state: PlayerState | undefined };
 
-export default function Board({ pieces, highlight }: { pieces: BoardPiece[]; highlight?: string | null }) {
+export default function Board({ pieces, highlight, specials, posOverride }: { pieces: BoardPiece[]; highlight?: string | null; specials?: SpecialBox[] | null; posOverride?: Record<string, number> }) {
   const cells = useMemo(() => Array.from({ length: LAST_BOX }, (_, i) => i + 1), []);
   const boardRef = useRef<HTMLDivElement>(null);
   const [ratio, setRatio] = useState(1);
@@ -141,7 +142,7 @@ export default function Board({ pieces, highlight }: { pieces: BoardPiece[]; hig
   // Group pieces by box so several on one box sit side by side.
   const byBox = new Map<number, BoardPiece[]>();
   for (const p of pieces) {
-    const box = p.state?.pos ?? 0;
+    const box = posOverride?.[p.uid] ?? p.state?.pos ?? 0;
     if (!byBox.has(box)) byBox.set(box, []);
     byBox.get(box)!.push(p);
   }
@@ -157,6 +158,7 @@ export default function Board({ pieces, highlight }: { pieces: BoardPiece[]; hig
               "cell",
               (col + row) % 2 ? "alt" : "",
               n === LAST_BOX ? "finish" : "",
+              specialAt(specials, n) ? ((specialAt(specials, n)!.move > 0 ? "sp-good" : "sp-bad")) : "",
               SNAKES[n] ? "has-snake" : "",
               LADDERS[n] ? "has-ladder" : "",
             ].join(" ");
@@ -175,6 +177,16 @@ export default function Board({ pieces, highlight }: { pieces: BoardPiece[]; hig
               <div key={n} style={{ gridColumn: col + 1, gridRow: row + 1, position: "relative" }}>
                 <span className="num">{n}</span>
                 {n === LAST_BOX && <span className="finish-label">🏆 FINISH</span>}
+                {(() => {
+                  const ev = specialAt(specials, n);
+                  if (!ev) return null;
+                  return (
+                    <span className={`sp-label ${ev.move > 0 ? "good" : "bad"}`} title={ev.en}>
+                      <span className="sp-icon">{ev.icon}</span>
+                      <span className="sp-move">{ev.move > 0 ? `+${ev.move}` : `−${-ev.move}`}</span>
+                    </span>
+                  );
+                })()}
               </div>
             );
           })}

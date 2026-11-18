@@ -5,6 +5,7 @@ import { db, serverNow } from "./firebase.ts";
 import { resolve, pickQuestion, shuffleOptions } from "./rules.ts";
 import { LAST_BOX } from "./board.ts";
 import { tokenById } from "./tokens.ts";
+import { eventById, placeSpecials } from "./specials.ts";
 import { fixStates, type FeedItem, type Game, type Player, type PlayerState, type Question, type QuestionKind, type Result } from "./types.ts";
 
 export const QUESTION_MS = 30_000;
@@ -15,6 +16,8 @@ const RESULT_MS_DICE = 3_000;
 const RESULT_MS_SHORT = 2_200;
 /** Waiting time after a wrong answer (always 5 seconds, however many wrong answers). */
 export const PENALTY_MS = 5_000;
+/** Extra time to read the message after landing on a quality event box. */
+const SPECIAL_EXTRA_MS = 2_000;
 const GRACE_MS = 800;
 const FEED_KEEP = 14;
 
@@ -53,7 +56,7 @@ export class Engine {
     this.priv = {};
     this.used = {};
     this.feed = [{ at: now, uid: "", text: "Game started! Good luck everyone.", tone: "info" }];
-    this.game = { status: "playing", engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt: now + COUNTDOWN_MS, endedAt: null, winners: [] };
+    this.game = { status: "playing", engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt: now + COUNTDOWN_MS, endedAt: null, winners: [], specials: placeSpecials() };
 
     const updates: Record<string, unknown> = {
       answers: null,
@@ -243,6 +246,7 @@ export class Engine {
         timeout: choice === null,
         choice,
         correctIdx: p.correctIdx,
+        specials: this.game?.specials,
       });
       st.pos = pos;
       st.streak = streak;
@@ -255,7 +259,7 @@ export class Engine {
       const updates: Record<string, unknown> = { [`answers/${uid}`]: null };
       const name = this.players[uid]?.name ?? "Player";
       const icon = tokenById(this.players[uid]?.token).emoji;
-      this.pushFeed(now, uid, describe(icon, name, result));
+      this.pushFeed(now, uid, describe(icon, name, result), result.special ? ((eventById(result.special)?.move ?? 0) > 0 ? "good" : "bad") : undefined);
 
       if (result.outcome === "win") {
         const winners = [...(this.game?.winners ?? []), uid];
@@ -266,7 +270,7 @@ export class Engine {
         this.pushFeed(now, uid, `🏆 ${icon} ${name} finished #${st.rank}!`, "win");
       } else {
         st.phase = "result";
-        st.until = now + (result.penalty ? PENALTY_MS : result.dice.length ? RESULT_MS_DICE : RESULT_MS_SHORT);
+        st.until = now + (result.penalty ? PENALTY_MS : result.dice.length ? RESULT_MS_DICE : RESULT_MS_SHORT) + (result.special ? SPECIAL_EXTRA_MS : 0);
       }
       updates[`state/${uid}`] = st;
       updates.feed = this.feed;
@@ -308,8 +312,13 @@ function describe(icon: string, name: string, r: Result): string {
   const mark = r.timeout ? "⏰" : r.correct ? "✔" : "✘";
   const roll = r.dice.length ? ` rolled ${r.dice.join("+")}${r.bonus ? " (2-dice bonus!)" : ""}` : "";
   switch (r.outcome) {
-    case "move":
-      return `${who} ${mark}${roll} → box ${r.to}${r.next === "snake" ? " 🐍" : r.next === "ladder" ? " 🪜" : ""}`;
+    case "move": {
+      const tail = r.next === "snake" ? " 🐍" : r.next === "ladder" ? " 🪜" : "";
+      const ev = eventById(r.special);
+      if (ev)
+        return `${who} ${mark}${roll} → box ${r.land} ${ev.icon} ${ev.en} ${ev.move > 0 ? "Forward" : "Back"} ${Math.abs(ev.move)} → box ${r.to}${tail}`;
+      return `${who} ${mark}${roll} → box ${r.to}${tail}`;
+    }
     case "win":
       return `${who} ${mark}${roll} → box ${LAST_BOX}!`;
     case "noroll":

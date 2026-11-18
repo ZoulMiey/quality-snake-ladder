@@ -8,6 +8,7 @@ import { useDbValue, useNow } from "../lib/useDb.ts";
 import { TOKENS, tokenById } from "../lib/tokens.ts";
 import { LADDERS, SNAKES, LAST_BOX } from "../lib/board.ts";
 import { BONUS_STREAK } from "../lib/rules.ts";
+import { eventById } from "../lib/specials.ts";
 import { PENALTY_MS, QUESTION_MS } from "../lib/engine.ts";
 import { DiceRoll } from "../components/Dice.tsx";
 import { sfx, unlockAudio } from "../lib/sound.ts";
@@ -378,6 +379,12 @@ function QuestionCard({ uid, st, paused, pausedAt }: { uid: string; st: PlayerSt
 function outcomeText(r: Result): { en: string; ms: string } {
   switch (r.outcome) {
     case "move":
+      if (r.special) {
+        const land = r.land ?? r.to;
+        if (r.next === "snake") return { en: `Box ${r.from} → ${land}. Then 🐍 a snake at box ${r.to}!`, ms: `Petak ${r.from} → ${land}. Kemudian ular di petak ${r.to}!` };
+        if (r.next === "ladder") return { en: `Box ${r.from} → ${land}. Then 🪜 a ladder at box ${r.to}!`, ms: `Petak ${r.from} → ${land}. Kemudian tangga di petak ${r.to}!` };
+        return { en: `Box ${r.from} → ${land}`, ms: `Petak ${r.from} → ${land}` };
+      }
       if (r.next === "snake") return { en: `Box ${r.from} → ${r.to}. 🐍 A snake! Answer to stay safe.`, ms: `Petak ${r.from} → ${r.to}. Ular! Jawab untuk selamat.` };
       if (r.next === "ladder") return { en: `Box ${r.from} → ${r.to}. 🪜 A ladder! Answer to climb.`, ms: `Petak ${r.from} → ${r.to}. Tangga! Jawab untuk naik.` };
       return { en: `Box ${r.from} → ${r.to}`, ms: `Petak ${r.from} → ${r.to}` };
@@ -425,7 +432,44 @@ function ResultCard({ r, st, frozenAt }: { r: Result; st: PlayerState; frozenAt:
       {r.bonus && <div className="bonus-badge">🔥 {BONUS_STREAK} in a row! 2-dice bonus / Bonus 2 dadu</div>}
       {r.dice.length > 0 && <DiceRoll values={r.dice} seed={seq} size={72} onDone={() => setRolled(true)} />}
       {rolled && <Bi en={out.en} ms={out.ms} className="outcome" />}
+      {rolled && r.special && <SpecialCard r={r} />}
       {r.penalty && <Penalty until={st.until} frozenAt={frozenAt} />}
+    </div>
+  );
+}
+
+/** Big card when the dice land on a quality event box. */
+function SpecialCard({ r }: { r: Result }) {
+  const ev = eventById(r.special);
+  useEffect(() => {
+    if (!ev) return;
+    if (ev.move > 0) sfx.ladder();
+    else sfx.snake();
+    try {
+      navigator.vibrate?.(ev.move > 0 ? [80, 60, 80] : [300]);
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  if (!ev) return null;
+  const good = ev.move > 0;
+  const n = Math.abs(ev.move);
+  return (
+    <div className={`sp-card ${good ? "good" : "bad"}`} role="alert">
+      <div className="sp-card-icon" aria-hidden="true">
+        {ev.icon}
+      </div>
+      <div className="sp-card-title">
+        <span className="en">{ev.en}</span>
+        <span className="ms">{ev.ms}</span>
+      </div>
+      <div className="sp-card-move">
+        <span className="en">
+          {good ? `Move forward ${n}` : `Move back ${n}`} → box {r.to}
+        </span>
+        <span className="ms">
+          {good ? `Maju ${n} petak` : `Undur ${n} petak`} → petak {r.to}
+        </span>
+      </div>
     </div>
   );
 }

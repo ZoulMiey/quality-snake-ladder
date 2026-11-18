@@ -8,6 +8,7 @@ export default function Rules({ compact }: { compact?: boolean }) {
     { icon: "🎲", en: "Right = roll 1 dice\nWrong = wait 5 sec", ms: "Betul = baling 1 dadu · Salah = tunggu 5 saat" },
     { icon: "🔥", en: `${BONUS_STREAK} right in a row\n= 2 dice`, ms: `${BONUS_STREAK} betul berturut = 2 dadu` },
     { icon: "🐍🪜", en: "Answer right to\nstay safe or climb", ms: "Jawab betul untuk selamat atau naik" },
+    { icon: "🧪📄", en: "Quality boxes move you\nforward or back", ms: "Petak kualiti: maju atau undur" },
     { icon: "🏁", en: `First ${MAX_WINNERS} to box ${LAST_BOX}\nwin!`, ms: `${MAX_WINNERS} pemain pertama ke petak ${LAST_BOX} menang` },
   ];
   return (

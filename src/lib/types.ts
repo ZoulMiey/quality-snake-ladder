@@ -42,6 +42,8 @@ export type Result = {
   outcome: Outcome;
   bonus: boolean; // 2-dice bonus roll (5 right in a row)
   penalty?: boolean; // wrong answer: wait 5 seconds before the next question
+  special?: string; // landed on a quality event box (id from specials.ts)
+  land?: number; // the box the dice landed on, before the special box moved the player
   next: QuestionKind | null; // question that follows because of where they landed
 };
 
@@ -72,6 +74,8 @@ export type Game = {
   goAt?: number | null;
   endedAt: number | null;
   winners: string[] | null;
+  /** This game's quality event boxes (placed at random when the game starts). */
+  specials?: { box: number; id: string }[] | null;
 };
 
 export type FeedItem = { at: number; uid: string; text: string; tone: "good" | "bad" | "info" | "win" };
