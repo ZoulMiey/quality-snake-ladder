@@ -1,0 +1,66 @@
+// Small sound effects made in the browser, so there are no sound files to load.
+let ctx: AudioContext | null = null;
+let muted = false;
+try {
+  muted = localStorage.getItem("qsl-muted") === "1";
+} catch {}
+
+export const isMuted = () => muted;
+export function setMuted(m: boolean) {
+  muted = m;
+  try {
+    localStorage.setItem("qsl-muted", m ? "1" : "0");
+  } catch {}
+}
+
+/** Call from a click so the browser allows sound later. */
+export function unlockAudio() {
+  try {
+    ctx ??= new AudioContext();
+    if (ctx.state === "suspended") void ctx.resume();
+  } catch {}
+}
+
+function tone(freq: number, start: number, dur: number, type: OscillatorType = "sine", vol = 0.18, endFreq?: number) {
+  if (!ctx || muted) return;
+  const t0 = ctx.currentTime + start;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t0);
+  if (endFreq) o.frequency.exponentialRampToValueAtTime(endFreq, t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g).connect(ctx.destination);
+  o.start(t0);
+  o.stop(t0 + dur + 0.02);
+}
+
+export const sfx = {
+  dice() {
+    for (let i = 0; i < 6; i++) tone(180 + Math.random() * 260, i * 0.06, 0.05, "square", 0.06);
+  },
+  correct() {
+    tone(660, 0, 0.12, "triangle");
+    tone(990, 0.1, 0.18, "triangle");
+  },
+  wrong() {
+    tone(220, 0, 0.25, "sawtooth", 0.09, 140);
+  },
+  ladder() {
+    [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.09, 0.14, "triangle"));
+  },
+  snake() {
+    tone(900, 0, 0.7, "sawtooth", 0.06, 120);
+  },
+  tick() {
+    tone(1000, 0, 0.07, "square", 0.08);
+  },
+  win() {
+    [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, i * 0.13, 0.22, "triangle", 0.2));
+  },
+  join() {
+    tone(784, 0, 0.1, "triangle", 0.12);
+  },
+};

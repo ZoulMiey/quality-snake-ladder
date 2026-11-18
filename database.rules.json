@@ -1,0 +1,74 @@
+{
+  "rules": {
+    "secret": {
+      ".read": false,
+      "pin": {
+        ".write": "auth != null && (!data.exists() || root.child('hosts').child(auth.uid).val() === data.val())",
+        ".validate": "newData.isString() && newData.val().length >= 4 && newData.val().length <= 12"
+      }
+    },
+    "setup": {
+      ".read": true,
+      ".write": "auth != null && root.child('hosts').child(auth.uid).val() === root.child('secret/pin').val()"
+    },
+    "hosts": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && root.child('secret/pin').exists() && (!newData.exists() || newData.val() === root.child('secret/pin').val())"
+      }
+    },
+    "questions": {
+      ".read": "auth != null && root.child('secret/pin').exists() && root.child('hosts').child(auth.uid).val() === root.child('secret/pin').val()",
+      ".write": "auth != null && root.child('secret/pin').exists() && root.child('hosts').child(auth.uid).val() === root.child('secret/pin').val()"
+    },
+    "private": {
+      ".read": "auth != null && root.child('secret/pin').exists() && root.child('hosts').child(auth.uid).val() === root.child('secret/pin').val()",
+      ".write": "auth != null && root.child('secret/pin').exists() && root.child('hosts').child(auth.uid).val() === root.child('secret/pin').val()"
+    },
+    "used": {
+      ".read": "auth != null && root.child('secret/pin').exists() && root.child('hosts').child(auth.uid).val() === root.child('secret/pin').val()",
+      ".write": "auth != null && root.child('secret/pin').exists() && root.child('hosts').child(auth.uid).val() === root.child('secret/pin').val()"
+    },
+    "game": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('secret/pin').exists() && root.child('hosts').child(auth.uid).val() === root.child('secret/pin').val()"
+    },
+    "state": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('secret/pin').exists() && root.child('hosts').child(auth.uid).val() === root.child('secret/pin').val()"
+    },
+    "feed": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('secret/pin').exists() && root.child('hosts').child(auth.uid).val() === root.child('secret/pin').val()"
+    },
+    "players": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('secret/pin').exists() && root.child('hosts').child(auth.uid).val() === root.child('secret/pin').val()",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid && (!root.child('game/status').exists() || root.child('game/status').val() === 'lobby')",
+        ".validate": "!newData.exists() || newData.hasChildren(['name', 'token', 'joinedAt'])",
+        "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20" },
+        "token": { ".validate": "newData.isString() && newData.val().length <= 20" },
+        "joinedAt": { ".validate": "newData.isNumber()" },
+        "$other": { ".validate": false }
+      }
+    },
+    "tokens": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('secret/pin').exists() && root.child('hosts').child(auth.uid).val() === root.child('secret/pin').val()",
+      "$token": {
+        ".write": "auth != null && (!root.child('game/status').exists() || root.child('game/status').val() === 'lobby') && ((!data.exists() && newData.val() === auth.uid) || (data.val() === auth.uid && !newData.exists()))",
+        ".validate": "!newData.exists() || newData.isString()"
+      }
+    },
+    "answers": {
+      ".read": "auth != null && root.child('secret/pin').exists() && root.child('hosts').child(auth.uid).val() === root.child('secret/pin').val()",
+      ".write": "auth != null && root.child('secret/pin').exists() && root.child('hosts').child(auth.uid).val() === root.child('secret/pin').val()",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && root.child('game/status').val() === 'playing'",
+        ".validate": "!newData.exists() || (newData.hasChildren(['qid', 'choice']) && newData.child('qid').isString() && newData.child('choice').isNumber())"
+      }
+    }
+  }
+}
