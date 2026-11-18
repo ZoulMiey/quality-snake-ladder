@@ -6,3 +6,4 @@ dist
 database-debug.log
 firebase-debug.log
 *.tsbuildinfo
+scripts/e2e/shots
