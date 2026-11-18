@@ -52,11 +52,11 @@ The Firebase web settings are in `src/lib/firebase.ts`. They are not secret; the
 ### Quality Clash rules (added 18 Nov 2026, second session)
 - Lobby: host picks **Quality Clash**, then Quick Match **Team 3 v 3** or **Single 1 v 1** (Mini Tournament shows "coming soon"). Phones pick Red/Blue and a creature (Team) or 3 creatures (1 v 1); players who don't get a place watch. Team mode also works with fewer players (1 v 1, 2 v 2, 2 v 3).
 - 15 equal creatures (`src/clash/creatures.ts`, pixel art in `src/clash/sprites.ts`), 300 HP each; the type only sets colours and the attack animation. No type advantage.
-- Each fighter gets their own question stream (15 s). Right = attack at once: Team 20 damage from your creature; 1 v 1 10 damage from **each** of your creatures still standing. Target = the opponent with the lowest HP.
+- Each fighter gets their own question stream (15 s). Right = attack at once. A side's attack power is always **60**, shared by its creatures still standing: 3 left = 20 per hit, 2 left = 30 per hit, the last one = 3 hits of 20. Team: only the answering player's creature attacks. 1 v 1: all the player's creatures still standing attack (20+20+20, 30+30 or 3 × 20). Every hit goes to a **random** opponent creature (several hits can land on the same one).
 - FAST (answer within 3 s) +25%. 5 right in a row = super move ×2, count restarts. Wrong/timeout = stunned 3 s, right answer shown, streak 0.
 - Team only: every 5 right answers by the team = +50 shield for the teammate with the lowest HP; shields take damage first.
 - No time limit: the battle ends when one side is eliminated. "End game" by the host gives the win to the side with more HP + shield.
-- Simulated length (`npm test`): Team median about 4 min, 1 v 1 about 7 min.
+- Simulated length (`npm test`): Team median about 4 min, 1 v 1 about 2.5 min.
 - Phones show the full battle arena from their own side (their team at the bottom, a "YOU" arrow), with the question popping up over it. The arena drawing is shared: `ArenaCanvas` in `src/clash/ClashView.tsx` (wide = projector, tall = phone).
 - Code: rules `src/clash/sim.ts`; referee `src/clash/engine.ts`; projector `src/clash/ClashView.tsx`; lobby `src/clash/ClashLobby.tsx`; phone `src/clash/ClashPhone.tsx`. Data: `clash/pick/{uid}` (phones, lobby only), `clash/b` (battle), `clash/ev` (last 16 events for animations), `clash/q/{uid}`, `private/clash`.
 - **Security rules:** a new `clash` section was added to `database.rules.json`. Paste the whole file into Firebase before playing Quality Clash.

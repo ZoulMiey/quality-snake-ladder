@@ -6,9 +6,12 @@ export type Side = "red" | "blue";
 export type Format = "team" | "solo";
 
 export const HP = 300;
-/** Damage of one normal attack. In 1 v 1 every creature still standing attacks, each with SOLO_DAMAGE. */
-export const TEAM_DAMAGE = 20;
-export const SOLO_DAMAGE = 10;
+/**
+ * A side's attack power: always 60, shared by its creatures still standing
+ * (3 left: 20 each, 2 left: 30 each). The last creature splits its 60 into 3 hits of 20.
+ */
+export const POWER = 60;
+export const LAST_HITS = 3;
 /** An answer within this time is FAST: +25% damage. */
 export const FAST_MS = 3_000;
 export const FAST_MULT = 1.25;
@@ -97,11 +100,19 @@ export const fightersOf = (b: Battle, uid: string) => Object.values(b.fighters).
 export const isAlive = (b: Battle, uid: string) => fightersOf(b, uid).some((f) => f.hp > 0);
 export const sideOf = (b: Battle, uid: string): Side | null => fightersOf(b, uid)[0]?.side ?? null;
 export const players = (b: Battle) => [...new Set(Object.values(b.fighters).map((f) => f.uid))];
-/** The opponent with the lowest HP (the left-most one on a tie). */
-export const targetFor = (b: Battle, side: Side) => aliveOf(b, other(side)).sort(byHp)[0] ?? null;
+/** A random opponent creature still standing. */
+export const targetFor = (b: Battle, side: Side, rand: () => number = Math.random) => {
+  const list = aliveOf(b, other(side)).sort((x, y) => x.slot - y.slot);
+  return list.length ? list[Math.min(list.length - 1, Math.floor(rand() * list.length))] : null;
+};
 
-/** A right answer: the player's creature(s) attack at once. */
-export function right(b: Battle, uid: string, fast: boolean): RightResult {
+/**
+ * A right answer: the player's creature(s) attack at once.
+ * 1 v 1: all the player's creatures still standing attack. Team: the player's own creature attacks.
+ * Each hit is POWER divided by the side's creatures still standing; the last creature makes LAST_HITS hits instead.
+ * Every hit goes to a random opponent creature still standing.
+ */
+export function right(b: Battle, uid: string, fast: boolean, rand: () => number = Math.random): RightResult {
   const mine = fightersOf(b, uid).filter((f) => f.hp > 0);
   const side = mine[0]?.side;
   const out: RightResult = { hits: [], fast, sup: false, dmg: 0, shieldTo: null, fainted: [] };
@@ -109,19 +120,22 @@ export function right(b: Battle, uid: string, fast: boolean): RightResult {
   const streak = (b.streak[uid] ?? 0) + 1;
   out.sup = streak >= SUPER_STREAK;
   b.streak[uid] = out.sup ? 0 : streak;
-  let dmg = b.format === "solo" ? SOLO_DAMAGE : TEAM_DAMAGE;
+  const standing = aliveOf(b, side).length;
+  const last = standing === 1;
+  let dmg = last ? POWER / LAST_HITS : POWER / standing;
   if (fast) dmg *= FAST_MULT;
   if (out.sup) dmg *= SUPER_MULT;
   out.dmg = Math.round(dmg);
-  for (const f of mine) {
-    f.lv += 1;
-    const tg = targetFor(b, side);
+  const attackers = last ? Array.from({ length: LAST_HITS }, () => mine[0]) : mine;
+  for (const f of new Set(attackers)) f.lv += 1;
+  for (const f of attackers) {
+    const tg = targetFor(b, side, rand);
     if (!tg) break;
     const blocked = Math.min(tg.sh, out.dmg);
     tg.sh -= blocked;
     tg.hp = Math.max(0, tg.hp - (out.dmg - blocked));
     out.hits.push([f.id, tg.id, out.dmg, blocked]);
-    if (tg.hp === 0) out.fainted.push(tg.id);
+    if (tg.hp === 0 && !out.fainted.includes(tg.id)) out.fainted.push(tg.id);
   }
   b.rights[side] += 1;
   if (b.format === "team" && b.rights[side] % SHIELD_EVERY === 0) {
