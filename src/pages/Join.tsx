@@ -260,23 +260,52 @@ function Play({ uid, me, game, state, onExit }: { uid: string; me: Player; game:
   );
 }
 
+/** Big, hard-to-miss banner when a player lands on a snake or a ladder. */
+function SnakeLadderAlert({ st }: { st: PlayerState }) {
+  const snake = st.kind === "snake";
+  useEffect(() => {
+    if (snake) sfx.snake();
+    else sfx.ladder();
+    try {
+      navigator.vibrate?.([200, 80, 200]);
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [st.seq]);
+  const right = snake
+    ? { en: `Stay at box ${st.pos}`, ms: `Kekal di petak ${st.pos}` }
+    : { en: `Climb to box ${LADDERS[st.pos]}`, ms: `Naik ke petak ${LADDERS[st.pos]}` };
+  const wrong = snake
+    ? { en: `Slide to box ${SNAKES[st.pos]}`, ms: `Turun ke petak ${SNAKES[st.pos]}` }
+    : { en: `Stay at box ${st.pos}`, ms: `Kekal di petak ${st.pos}` };
+  return (
+    <div className={`sl-alert ${snake ? "snake" : "ladder"}`} role="alert">
+      <div className="sl-top">
+        <span className="sl-icon" aria-hidden="true">
+          {snake ? "🐍" : "🪜"}
+        </span>
+        <span className="sl-title">
+          <span className="en">{snake ? "SNAKE!" : "LADDER!"}</span>
+          <span className="ms">{snake ? "Ular! Jawab betul untuk selamat" : "Tangga! Jawab betul untuk naik"}</span>
+        </span>
+      </div>
+      <div className="sl-stakes">
+        <div className="sl-right">
+          <b>✔ Right</b>
+          <span>{right.en}</span>
+          <small>{right.ms}</small>
+        </div>
+        <div className="sl-wrong">
+          <b>✘ Wrong</b>
+          <span>{wrong.en}</span>
+          <small>{wrong.ms}</small>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function kindIntro(st: PlayerState) {
-  if (st.kind === "snake")
-    return (
-      <Bi
-        className="kind snake"
-        en={`🐍 Snake question! Right = stay safe. Wrong = slide to box ${SNAKES[st.pos]}.`}
-        ms={`Soalan ular! Betul = selamat. Salah = turun ke petak ${SNAKES[st.pos]}.`}
-      />
-    );
-  if (st.kind === "ladder")
-    return (
-      <Bi
-        className="kind ladder"
-        en={`🪜 Ladder question! Right = climb to box ${LADDERS[st.pos]}. Wrong = stay.`}
-        ms={`Soalan tangga! Betul = naik ke petak ${LADDERS[st.pos]}. Salah = kekal.`}
-      />
-    );
+  if (st.kind === "snake" || st.kind === "ladder") return <SnakeLadderAlert st={st} />;
   if (st.streak === BONUS_STREAK - 1) return <Bi className="kind bonus" en="🔥 Get this right for a 2-dice bonus!" ms="Jawab betul untuk bonus 2 dadu!" />;
   return null;
 }
@@ -314,7 +343,7 @@ function QuestionCard({ uid, st, paused, pausedAt }: { uid: string; st: PlayerSt
   }
 
   return (
-    <div className="qcard" key={`${q.id}-${st.seq}`}>
+    <div className={`qcard ${st.kind !== "turn" ? `framed ${st.kind}` : ""}`} key={`${q.id}-${st.seq}`}>
       {kindIntro(st)}
       <div className={`timer ${warn ? "warn" : ""}`} aria-label={`${secs} seconds left`}>
         <div className="timer-fill" style={{ width: `${(left / QUESTION_MS) * 100}%` }} />

@@ -232,8 +232,28 @@ button:disabled { cursor: default; }
 
 .qcard { display: grid; gap: 12px; animation: pop .3s ease-out; }
 .kind { border-radius: 12px; padding: 10px 12px; font-size: 15px; }
-.kind.snake { background: #fde2e7; }
-.kind.ladder { background: #f6e7cf; }
+/* Snake / ladder alert on the phone */
+.sl-alert { border-radius: 18px; padding: 14px; color: #fff; display: grid; gap: 12px; animation: slpop .5s ease-out, shake .5s .5s ease-in-out; box-shadow: 0 6px 18px rgba(0,0,0,.18); }
+.sl-alert.snake { background: linear-gradient(135deg, #e11d48, #9f1239); }
+.sl-alert.ladder { background: linear-gradient(135deg, #b7791f, #7c4a1e); }
+.sl-top { display: flex; align-items: center; gap: 12px; }
+.sl-icon { font-size: 56px; line-height: 1; background: rgba(255,255,255,.18); border-radius: 16px; width: 76px; height: 76px; display: grid; place-items: center; flex: none; animation: wiggle 1.2s ease-in-out infinite; }
+.sl-title { display: grid; }
+.sl-title .en { font-family: var(--display); font-weight: 800; font-size: 40px; line-height: 1; letter-spacing: .02em; }
+.sl-title .ms { font-size: 14px; opacity: .9; margin-top: 4px; }
+.sl-stakes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sl-stakes > div { background: #fff; color: var(--ink); border-radius: 12px; padding: 8px 10px; display: grid; gap: 1px; }
+.sl-stakes b { font-size: 14px; }
+.sl-stakes span { font-weight: 800; font-size: 16px; line-height: 1.2; }
+.sl-stakes small { font-size: 12px; color: var(--muted); }
+.sl-right b { color: var(--good); }
+.sl-wrong b { color: var(--bad); }
+.qcard.framed { border-radius: 22px; padding: 8px; }
+.qcard.framed.snake { box-shadow: 0 0 0 4px #e11d48; background: #fff1f3; }
+.qcard.framed.ladder { box-shadow: 0 0 0 4px #b7791f; background: #fdf5e8; }
+@keyframes slpop { from { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.04); opacity: 1; } }
+@keyframes shake { 25% { transform: translateX(-6px) rotate(-1deg); } 75% { transform: translateX(6px) rotate(1deg); } }
+@keyframes wiggle { 50% { transform: rotate(-10deg) scale(1.08); } }
 .kind.bonus { background: #ffe4cc; }
 .timer { position: relative; height: 28px; background: #dfe7e2; border-radius: 999px; overflow: hidden; }
 .timer-fill { position: absolute; inset: 0 auto 0 0; background: var(--felt-3); transition: width .2s linear; }
