@@ -87,6 +87,30 @@
           ".validate": "newData.hasChildren(['s']) && newData.child('s').isNumber() && newData.child('s').val() >= -1 && newData.child('s').val() <= 1 && (!newData.child('use').exists() || newData.child('use').isNumber())"
         }
       }
+    },
+    "clash": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('secret/pin').exists() && root.child('hosts').child(auth.uid).val() === root.child('secret/pin').val()",
+      "pick": {
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid && (!root.child('game/status').exists() || root.child('game/status').val() === 'lobby')",
+          ".validate": "!newData.exists() || (newData.hasChildren(['side', 'c']) && (newData.child('side').val() === 'red' || newData.child('side').val() === 'blue'))",
+          "side": {
+            ".validate": "newData.isString()"
+          },
+          "c": {
+            "$i": {
+              ".validate": "newData.isString() && newData.val().length <= 12"
+            }
+          },
+          "at": {
+            ".validate": "newData.isNumber()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
     }
   }
 }

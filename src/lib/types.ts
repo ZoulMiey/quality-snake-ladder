@@ -64,12 +64,14 @@ export type PlayerState = {
 
 export type Player = { name: string; token: string; joinedAt: number };
 
-export type GameMode = "snake" | "kart";
+export type GameMode = "snake" | "kart" | "clash";
 
 export type Game = {
   status: "lobby" | "playing" | "ended";
-  /** Which game the host picked: Snake & Ladder or Quality Cart. */
+  /** Which game the host picked: Snake & Ladder, Quality Cart or Quality Clash. */
   mode?: GameMode;
+  /** Quality Clash only: Team 3 v 3 or Single 1 v 1. */
+  clashFormat?: "team" | "solo";
   engine: string | null;
   paused: boolean;
   pausedAt: number | null;

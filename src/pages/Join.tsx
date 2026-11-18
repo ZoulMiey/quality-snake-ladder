@@ -5,6 +5,7 @@ import { signOut } from "firebase/auth";
 import Countdown from "../components/Countdown.tsx";
 import Rules from "../components/Rules.tsx";
 import KartPhone from "../kart/KartPhone.tsx";
+import ClashPhone, { ClashPick } from "../clash/ClashPhone.tsx";
 import { useDbValue, useNow } from "../lib/useDb.ts";
 import { MAX_PLAYERS, TOKENS, tokenById } from "../lib/tokens.ts";
 import { LADDERS, SNAKES, LAST_BOX } from "../lib/board.ts";
@@ -69,7 +70,14 @@ export default function Join() {
         </div>
       );
     else body = <JoinForm uid={uid} tokens={tokens ?? {}} />;
-  } else if (!game || game.status === "lobby") body = <Lobby uid={uid} me={me} tokens={tokens ?? {}} mode={game?.mode} />;
+  } else if (!game || game.status === "lobby")
+    body = (
+      <>
+        {game?.mode === "clash" && <ClashPick uid={uid} format={game.clashFormat ?? "team"} key={game.clashFormat ?? "team"} />}
+        <Lobby uid={uid} me={me} tokens={tokens ?? {}} mode={game?.mode} />
+      </>
+    );
+  else if (game.mode === "clash") body = <ClashPhone uid={uid} me={me} game={game} onExit={exit} />;
   else if (game.mode === "kart") body = <KartPhone uid={uid} me={me} game={game} onExit={exit} />;
   else body = <Play uid={uid} me={me} game={game} state={state ?? null} onExit={exit} />;
 

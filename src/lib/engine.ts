@@ -348,6 +348,7 @@ export async function resetGame() {
     answers: null,
     feed: null,
     kart: null,
+    clash: null,
   });
 }
 
@@ -361,6 +362,9 @@ export async function playAgain() {
     answers: null,
     feed: null,
     kart: null,
+    "clash/b": null,
+    "clash/ev": null,
+    "clash/q": null,
   });
 }
 
@@ -370,6 +374,7 @@ export async function removePlayer(uid: string, token: string | undefined) {
     [`state/${uid}`]: null,
     [`private/${uid}`]: null,
     [`answers/${uid}`]: null,
+    [`clash/pick/${uid}`]: null,
   };
   if (token) updates[`tokens/${token}`] = null;
   await update(ref(db), updates);

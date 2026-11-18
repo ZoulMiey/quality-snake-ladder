@@ -4,12 +4,13 @@ Written at the end of the first build session (18 Nov 2026). It covers this repo
 
 ## What this is
 
-A web app with two live, projector-based games for Quality Month 2026. Players scan a QR code on the projector, type their name and pick a piece, then play on their phones while the projector shows the shared game.
+A web app with three live, projector-based games for Quality Month 2026. Players scan a QR code on the projector, type their name and pick a piece, then play on their phones while the projector shows the shared game.
 
 | Game | Phone | Projector |
 |---|---|---|
 | **Snake & Ladder** (Ular & Tangga) | Answer questions, see dice and moves | 100-box board, all pieces, latest roll, live feed |
 | **Quality Cart** (Kart Kualiti) | Tilt to steer, use items, answer pop-up questions, 16-bit driver's view | Top-down race track with all carts, positions, live feed |
+| **Quality Clash** (Pertempuran Kualiti) | Pick a team and creature(s), answer questions to attack | 16-bit 3 v 3 battle arena with HP bars, attacks, shields |
 
 The host chooses the game in the projector lobby. Everything is bilingual: English on top, Malay underneath.
 
@@ -47,6 +48,18 @@ The Firebase web settings are in `src/lib/firebase.ts`. They are not secret; the
 - 3 laps (about 2½–3 min). Ends when all finish or 60 s after the winner.
 - Track: `src/kart/track.ts`; race rules: `src/kart/sim.ts`; referee: `src/kart/engine.ts`; projector map: `src/kart/KartView.tsx`; phone: `src/kart/KartPhone.tsx` + 16-bit view `src/kart/Chase3D.tsx` (pixel art in `src/kart/pixel.ts`).
 - The projector sends all cart positions ~6×/second to `kart/pos`; phones smooth movement in between.
+
+### Quality Clash rules (added 18 Nov 2026, second session)
+- Lobby: host picks **Quality Clash**, then Quick Match **Team 3 v 3** or **Single 1 v 1** (Mini Tournament shows "coming soon"). Phones pick Red/Blue and a creature (Team) or 3 creatures (1 v 1); players who don't get a place watch. Team mode also works with fewer players (1 v 1, 2 v 2, 2 v 3).
+- 15 equal creatures (`src/clash/creatures.ts`, pixel art in `src/clash/sprites.ts`), 300 HP each; the type only sets colours and the attack animation. No type advantage.
+- Each fighter gets their own question stream (15 s). Right = attack at once: Team 20 damage from your creature; 1 v 1 10 damage from **each** of your creatures still standing. Target = the opponent with the lowest HP.
+- FAST (answer within 3 s) +25%. 5 right in a row = super move ×2, count restarts. Wrong/timeout = stunned 3 s, right answer shown, streak 0.
+- Team only: every 5 right answers by the team = +50 shield for the teammate with the lowest HP; shields take damage first.
+- No time limit: the battle ends when one side is eliminated. "End game" by the host gives the win to the side with more HP + shield.
+- Simulated length (`npm test`): Team median about 4 min, 1 v 1 about 7 min.
+- Code: rules `src/clash/sim.ts`; referee `src/clash/engine.ts`; projector `src/clash/ClashView.tsx`; lobby `src/clash/ClashLobby.tsx`; phone `src/clash/ClashPhone.tsx`. Data: `clash/pick/{uid}` (phones, lobby only), `clash/b` (battle), `clash/ev` (last 16 events for animations), `clash/q/{uid}`, `private/clash`.
+- **Security rules:** a new `clash` section was added to `database.rules.json`. Paste the whole file into Firebase before playing Quality Clash.
+- End-to-end: `node scripts/e2e/clash.cjs` (Team, 6 fighters + 1 watcher) and `MODE=solo node scripts/e2e/clash.cjs`.
 
 ### Data in Firebase (Realtime Database)
 `game` (status, mode, countdown, winners, event boxes) · `players` · `tokens` (who has which piece) · `questions` (host only) · `state` (Snake & Ladder per player) · `private` and `used` (host only: correct answers, used questions, race snapshot) · `answers` (each phone writes its own) · `feed` · `kart/me`, `kart/q`, `kart/pos`, `kart/input` (phones write their own steering), `kart/results`.

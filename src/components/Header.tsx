@@ -3,6 +3,7 @@ import type { GameMode } from "../lib/types.ts";
 export const GAME_NAMES: Record<GameMode, { en: string; ms: string; icon: string }> = {
   snake: { en: "Snake & Ladder", ms: "Ular & Tangga", icon: "🐍" },
   kart: { en: "Quality Cart", ms: "Kart Kualiti", icon: "🏎️" },
+  clash: { en: "Quality Clash", ms: "Pertempuran Kualiti", icon: "⚔️" },
 };
 
 export default function Header({ small, children, mode }: { small?: boolean; children?: React.ReactNode; mode?: GameMode }) {

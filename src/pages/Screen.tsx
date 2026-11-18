@@ -9,6 +9,9 @@ import Board, { type BoardPiece } from "../components/Board.tsx";
 import Header, { GAME_NAMES } from "../components/Header.tsx";
 import { KartEngine } from "../kart/engine.ts";
 import KartView from "../kart/KartView.tsx";
+import { ClashEngine } from "../clash/engine.ts";
+import ClashView from "../clash/ClashView.tsx";
+import { ClashFormatPick, ClashRoster, useLineUp } from "../clash/ClashLobby.tsx";
 import Qr from "../components/Qr.tsx";
 import Countdown from "../components/Countdown.tsx";
 import Rules from "../components/Rules.tsx";
@@ -18,7 +21,9 @@ import QuestionManager, { seedQuestionsIfEmpty } from "../components/QuestionMan
 import { fixStates, type FeedItem, type Game, type GameMode, type Player, type PlayerState, type Question } from "../lib/types.ts";
 
 /** The referee for the chosen game, with sounds on the projector for the race. */
-function makeEngine(mode: GameMode | undefined, tab: string): Engine | KartEngine {
+type AnyEngine = Engine | KartEngine | ClashEngine;
+function makeEngine(mode: GameMode | undefined, tab: string): AnyEngine {
+  if (mode === "clash") return new ClashEngine(tab);
   if (mode !== "kart") return new Engine(tab);
   const e = new KartEngine(tab);
   e.onEvent = (ev) => {
@@ -118,7 +123,7 @@ function HostScreen() {
   const states = useMemo(() => (statesRaw === undefined ? undefined : fixStates(statesRaw)), [statesRaw]);
   const feedRaw = useDbValue<FeedItem[] | Record<string, FeedItem>>("feed");
   const questions = useDbValue<Record<string, Question>>("questions");
-  const engine = useRef<Engine | KartEngine | null>(null);
+  const engine = useRef<AnyEngine | null>(null);
   const [showQs, setShowQs] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
   const [confirm, setConfirm] = useState<null | "reset" | "end">(null);
@@ -298,10 +303,13 @@ function HostScreen() {
           enabledQs={enabledQs}
           mode={game?.mode ?? "snake"}
           onMode={(m) => update(ref(db, "game"), { mode: m, status: game?.status ?? "lobby" })}
+          clashFormat={game?.clashFormat ?? "team"}
+          onClashFormat={(f) => update(ref(db, "game"), { clashFormat: f, status: game?.status ?? "lobby" })}
         />
       )}
       {status !== "lobby" && game?.mode === "kart" && <KartView game={game} players={players ?? {}} feed={feed} onAgain={() => playAgain()} />}
-      {status !== "lobby" && game?.mode !== "kart" && (
+      {status !== "lobby" && game?.mode === "clash" && <ClashView game={game} players={players ?? {}} onAgain={() => playAgain()} />}
+      {status !== "lobby" && game?.mode !== "kart" && game?.mode !== "clash" && (
         <GameView game={game!} players={players ?? {}} states={states ?? {}} feed={feed} highlight={highlight} lastRoll={lastRoll} hop={hop} onAgain={() => playAgain()} />
       )}
       {showQs && <QuestionManager onClose={() => setShowQs(false)} />}
@@ -315,14 +323,20 @@ function LobbyView({
   enabledQs,
   mode,
   onMode,
+  clashFormat,
+  onClashFormat,
 }: {
   players: Record<string, Player>;
   onStart: () => void;
   enabledQs: number;
   mode: GameMode;
   onMode: (m: GameMode) => void;
+  clashFormat: "team" | "solo";
+  onClashFormat: (f: "team" | "solo") => void;
 }) {
   const url = `${location.origin}/join`;
+  const clash = useLineUp(clashFormat, players);
+  const canStart = !!list0(players).length && !!enabledQs && (mode !== "clash" || clash.ready);
   const list = Object.entries(players).sort((a, b) => (a[1].joinedAt ?? 0) - (b[1].joinedAt ?? 0));
   return (
     <main className="lobby">
@@ -336,7 +350,7 @@ function LobbyView({
       </section>
       <section className="lobby-side">
         <div className="mode-pick" role="radiogroup" aria-label="Choose the game">
-          {(["snake", "kart"] as GameMode[]).map((m) => (
+          {(["snake", "kart", "clash"] as GameMode[]).map((m) => (
             <button key={m} role="radio" aria-checked={mode === m} className={`mode-btn ${mode === m ? "on" : ""}`} onClick={() => onMode(m)}>
               <span className="mode-icon">{GAME_NAMES[m].icon}</span>
               <span className="mode-text">
@@ -346,15 +360,22 @@ function LobbyView({
             </button>
           ))}
         </div>
+        {mode === "clash" && <ClashFormatPick format={clashFormat} onFormat={onClashFormat} />}
         <div className="lobby-head">
           <h2>
             Players <span className="count">{list.length}/{MAX_PLAYERS}</span>
           </h2>
-          <button className="big-btn start" disabled={!list.length || !enabledQs} onClick={onStart}>
+          <button className="big-btn start" disabled={!canStart} onClick={onStart}>
             ▶ Start game
           </button>
         </div>
         {!list.length && <p className="waiting">Waiting for players to scan the QR code… / Menunggu pemain…</p>}
+        {mode === "clash" && list.length > 0 && <ClashRoster format={clashFormat} players={players} />}
+        {mode === "clash" && list.length > 0 && !clash.ready && (
+          <p className="waiting">
+            {clashFormat === "solo" ? "Waiting for one player on Red and one on Blue, each with 3 creatures." : "Waiting for at least one player on each team."} Players pick on their phones.
+          </p>
+        )}
         <ul className={`lobby-players ${list.length > 10 ? "many" : ""}`}>
           {list.map(([uid, p]) => {
             const t = tokenById(p.token);
@@ -374,6 +395,8 @@ function LobbyView({
     </main>
   );
 }
+
+const list0 = (players: Record<string, Player>) => Object.keys(players);
 
 function GameView({
   game,
