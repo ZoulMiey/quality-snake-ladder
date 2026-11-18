@@ -54,7 +54,8 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
   await proj.getByRole("button", { name: "▶ Start game" }).click();
 
   const start = Date.now();
-  let answered = 0, shots = 0, sawWarn = false, sawRevive = false, sawRage = false;
+  let answered = 0, shots = 0, sawWarn = false, sawRevive = false, sawRage = false, sawCounter = false;
+  const stomps = new Map();
   while (Date.now() - start < 7 * 60 * 1000) {
     if (errors.length) break;
     if (await proj.locator(".raid-win").count()) break;
@@ -62,7 +63,7 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
     const byName = Object.fromEntries(Object.entries(all.players || {}).map(([u, v]) => [v.name, u]));
     await Promise.all(
       phones.map(async (ph) => {
-        if (Math.random() < 0.45) return;
+        if (Math.random() < (process.env.SKIP ? Number(process.env.SKIP) : 0.45)) return;
         const btns = ph.p.locator(".qcard button.ans:not([disabled])");
         const n = await btns.count();
         if (!n) return;
@@ -79,6 +80,11 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
       }),
     );
     const t = (Date.now() - start) / 1000;
+    for (const e of all.clash?.rev || []) if (e && e.kind === "stomp") stomps.set(e.n, e.counter ? "counter" : "timed");
+    if (!sawCounter && all.clash?.raid?.counterAt && Date.now() < all.clash.raid.counterAt) {
+      sawCounter = true;
+      await proj.screenshot({ path: `${OUT}/${TAG}-counter.png` });
+    }
     const rage = (all.clash?.rev || []).find((e) => e && e.kind === "rage");
     if (rage && !sawRage && Date.now() > rage.at + 900) {
       sawRage = true;
@@ -105,7 +111,9 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
   log("winner:", r?.winner, "titan:", r?.titan?.hp + "/" + r?.titan?.max, "stomp:", r?.stomp);
   log("raiders:", Object.values(r?.raiders || {}).map((x) => `${all.players[x.uid]?.name}:${x.hp}/${x.max}:${x.pts}pts:${x.revive}`).join(" "));
   log("result:", JSON.stringify({ ...all.clash?.result, rank: (all.clash?.result?.rank || []).slice(0, 3).map((x) => all.players[x.uid]?.name + " " + x.pts) }));
-  log("best:", JSON.stringify(all.clash?.records?.best?.ms), "saw warning:", sawWarn, "saw revive:", sawRevive, "saw rage:", sawRage);
+  log("best:", JSON.stringify(all.clash?.records?.best?.ms), "saw warning:", sawWarn, "saw revive:", sawRevive, "saw rage:", sawRage, "saw counter:", sawCounter);
+  const kinds = [...stomps.values()];
+  log("stomps:", kinds.filter((k) => k === "timed").length, "timed +", kinds.filter((k) => k === "counter").length, "counter");
   await proj.screenshot({ path: `${OUT}/${TAG}-end.png` });
   await phones[0].p.screenshot({ path: `${OUT}/${TAG}-phone-end.png` });
   log("errors:", errors.length ? errors.slice(0, 8) : "none");

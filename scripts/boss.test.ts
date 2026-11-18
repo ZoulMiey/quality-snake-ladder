@@ -10,10 +10,10 @@ const t = (name: string, fn: () => void) => {
 };
 const picks = (k: number) => Array.from({ length: k }, (_, i) => ({ uid: "u" + i, c: ["dragon"], at: i }));
 
-t("HP grows with the group: Titan 700 + 600, players 300 + 200, stomp 16 + 14 per extra player", () => {
+t("HP grows with the group: Titan 700 + 600, players 300 + 200, stomp 11 + 9.8 per extra player", () => {
   assert.deepEqual([1, 2, 5, 20].map(titanHp), [700, 1300, 3100, 12100]);
   assert.deepEqual([1, 2, 5, 20].map(raiderHp), [300, 500, 1100, 4100]);
-  assert.deepEqual([1, 2, 5, 20].map(stompDamage), [16, 30, 72, 282]);
+  assert.deepEqual([1, 2, 5, 20].map(stompDamage), [11, 21, 50, 197]);
   const r = newRaid("hs", picks(5));
   assert.equal(r.titan.hp, 3100);
   assert.ok(Object.values(r.raiders).every((x) => x.hp === 1100));
@@ -28,11 +28,12 @@ t("anyone with a monster joins (duplicates allowed), up to 20, in the order they
 
 t("a right answer hits the Titan for 50; FAST 63; the 5th in a row is a super move (100, or 125 if fast)", () => {
   const r = newRaid("hs", picks(3));
-  assert.deepEqual(raidHit(r, "u0", false), { dmg: 50, sup: false, blocked: 0, rage: false });
+  assert.deepEqual(raidHit(r, "u0", false), { dmg: 50, sup: false, blocked: 0, rage: false, counter: 0 });
   assert.equal(raidHit(r, "u0", true)!.dmg, 63);
   raidHit(r, "u0", false);
   raidHit(r, "u0", false);
-  assert.deepEqual(raidHit(r, "u0", true), { dmg: 125, sup: true, blocked: 0, rage: false });
+  const s5 = raidHit(r, "u0", true)!;
+  assert.deepEqual([s5.dmg, s5.sup], [125, true]);
   raidHit(r, "u0", false);
   raidMiss(r, "u0");
   assert.equal(r.streak.u0, 0);
@@ -46,7 +47,7 @@ t("the stomp hits every monster still standing; a fainted one gets one revive qu
   const s = raidStomp(r);
   assert.deepEqual(s.hit.sort(), ["u0", "u1"]);
   assert.deepEqual(s.fainted, ["u1"]);
-  assert.equal(r.raiders.u0.hp, 500 - 30);
+  assert.equal(r.raiders.u0.hp, 500 - 21);
   assert.equal(raiderState(r.raiders.u1), "down");
   assert.equal(raidHit(r, "u1", false), null, "a fainted monster cannot attack");
   assert.equal(raidRevive(r, "u1", true), true);
@@ -65,19 +66,35 @@ t("a wrong revive answer is out for good", () => {
 });
 
 t("at 30% HP the Titan is ENRAGED: a shield of 10% of its HP takes damage first, and stomps hit 30% harder", () => {
-  const r = newRaid("hs", picks(2)); // Titan 1300 HP, stomp 30
+  const r = newRaid("hs", picks(2)); // Titan 1300 HP, stomp 21
   r.titan.hp = 400;
+  r.mark = 0;
   const h = raidHit(r, "u0", false)!;
   assert.equal(h.rage, true);
   assert.equal(r.titan.hp, 350);
-  assert.deepEqual([r.titan.rage, r.titan.sh, r.stomp], [true, 130, 39]);
+  assert.deepEqual([r.titan.rage, r.titan.sh, r.stomp], [true, 130, 27]);
   const b = raidHit(r, "u1", false)!;
   assert.deepEqual([b.blocked, b.rage, r.titan.sh, r.titan.hp], [50, false, 80, 350]);
   r.titan.sh = 20;
   raidHit(r, "u1", false);
   assert.deepEqual([r.titan.sh, r.titan.hp], [0, 320], "the rest goes through once the shield breaks");
   raidStomp(r);
-  assert.equal(r.raiders.u0.hp, 500 - 39);
+  assert.equal(r.raiders.u0.hp, 500 - 27);
+});
+
+t("the Titan strikes back: one counter-stomp for every 10% of its HP lost", () => {
+  const r = newRaid("ta", picks(1)); // Titan 700 HP: marks at 630, 560, 490, …
+  assert.equal(raidHit(r, "u0", false)!.counter, 0); // 650
+  assert.equal(raidHit(r, "u0", false)!.counter, 1); // 600: passed 90%
+  r.titan.hp = 570;
+  assert.equal(raidHit(r, "u0", false)!.counter, 1); // 520: passed 80%
+  r.titan.hp = 230;
+  assert.equal(raidHit(r, "u0", false)!.counter, 5, "a big drop counts every 10% passed (70, 60, 50, 40, 30)"); // 180
+  r.titan.hp = 60;
+  const last = raidHit(r, "u0", false)!;
+  assert.equal(r.winner, null);
+  assert.equal(last.counter, 2); // 10 HP: passed 20% and 10%
+  assert.equal(raidHit(r, "u0", false)!.counter, 0, "no counter on the final blow");
 });
 
 t("players win at Titan 0 HP; the Titan wins when every monster is out", () => {
@@ -122,8 +139,10 @@ function raid(k: number, seed: number) {
       const took = 2 + rnd() * 8;
       const ok = rnd() < 0.7;
       if (st === "down") raidRevive(r, u, ok);
-      else if (ok) raidHit(r, u, took < 3);
-      else raidMiss(r, u);
+      else if (ok) {
+        const h = raidHit(r, u, took < 3);
+        for (let c = 0; c < (h?.counter ?? 0); c++) for (const f of raidStomp(r).fainted) next[f] = time + 0.5;
+      } else raidMiss(r, u);
       next[u] = time + took + (ok ? 1.8 : 3);
     }
     if (r.winner) return { time, winner: r.winner };

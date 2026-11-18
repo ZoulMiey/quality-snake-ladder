@@ -10,6 +10,9 @@ import { CLASH_QUESTION_MS, type ClashQ } from "./engine.ts";
 import { STOMP_EVERY_MS, newRaid, raidHit, raidMiss, raidRanking, raidRevive, raidStomp, raiderState, type BossMode, type Raid } from "./boss.ts";
 
 const RESULT_MS = 1_800;
+/** A counter-stomp lands this long after the hit that set it off (more than one: spaced out). */
+const COUNTER_DELAY_MS = 1_200;
+const COUNTER_GAP_MS = 1_500;
 const GRACE_MS = 600;
 const EVENTS_KEEP = 24;
 const TF_OPTS = [
@@ -18,12 +21,12 @@ const TF_OPTS = [
 ];
 
 /** What the screens see. nextStomp: server time of the next stomp. pausedMs: time spent paused (left out of the clock). */
-export type RaidBoard = Raid & { nextStomp: number; stun?: Record<string, number>; pausedMs: number };
+export type RaidBoard = Raid & { nextStomp: number; stun?: Record<string, number>; pausedMs: number; counters?: number; counterAt?: number | null };
 export type RaidEvent =
   | { n: number; at: number; kind: "atk"; uid: string; dmg: number; fast: boolean; sup: boolean; blk?: number }
   | { n: number; at: number; kind: "rage"; sh: number; stomp: number }
   | { n: number; at: number; kind: "wrong"; uid: string; timeout: boolean }
-  | { n: number; at: number; kind: "stomp"; dmg: number; hit: string[]; fainted: string[] }
+  | { n: number; at: number; kind: "stomp"; dmg: number; hit: string[]; fainted: string[]; counter?: boolean }
   | { n: number; at: number; kind: "revive"; uid: string; ok: boolean };
 /** Best Time Attack time, kept until the host presses "Clear records". */
 export type RaidBest = { ms: number; n: number; at: number; names: string[] };
@@ -150,6 +153,7 @@ export class BossEngine {
     if (this.game.goAt && this.game.goAt > pausedAt) updates["game/goAt"] = this.game.goAt + shift;
     else r.pausedMs += shift;
     r.nextStomp += shift;
+    if (r.counterAt) r.counterAt += shift;
     for (const uid of Object.keys(r.stun ?? {})) r.stun![uid] += shift;
     for (const [uid, q] of Object.entries(this.qs)) {
       q.nextAt += shift;
@@ -175,6 +179,13 @@ export class BossEngine {
     if (this.game.goAt && now < this.game.goAt) return;
     const updates: Record<string, unknown> = {};
     let changed = false;
+    if ((r.counters ?? 0) > 0 && r.counterAt && now >= r.counterAt && !r.winner) {
+      const s = raidStomp(r);
+      this.push({ n: 0, at: now, kind: "stomp", dmg: r.stomp, hit: s.hit, fainted: s.fainted, counter: true });
+      r.counters = (r.counters ?? 1) - 1;
+      r.counterAt = r.counters > 0 ? now + COUNTER_GAP_MS : null;
+      changed = true;
+    }
     if (now >= r.nextStomp && !r.winner) {
       r.nextStomp += STOMP_EVERY_MS;
       const s = raidStomp(r);
@@ -258,6 +269,10 @@ export class BossEngine {
       if (!hit) return false;
       this.push({ n: 0, at: now, kind: "atk", uid, dmg: hit.dmg, fast, sup: hit.sup, blk: hit.blocked });
       if (hit.rage) this.push({ n: 0, at: now + 700, kind: "rage", sh: r.titan.sh, stomp: r.stomp });
+      if (hit.counter > 0 && !r.winner) {
+        r.counters = (r.counters ?? 0) + hit.counter;
+        r.counterAt ??= now + COUNTER_DELAY_MS;
+      }
       result = { correct: true, timeout: false, correctIdx: q.correctIdx, dmg: hit.dmg, hits: 1, fast, sup: hit.sup };
       q.nextAt = now + RESULT_MS;
     } else {
@@ -319,7 +334,10 @@ export function fixRaid(x: unknown): RaidBoard | null {
     raiders: r.raiders ?? {},
     streak: r.streak ?? {},
     stomp: r.stomp ?? 0,
+    mark: r.mark ?? 9,
     winner: r.winner ?? null,
+    counters: r.counters ?? 0,
+    counterAt: r.counterAt ?? null,
     nextStomp: r.nextStomp ?? 0,
     stun: r.stun ?? {},
     pausedMs: r.pausedMs ?? 0,

@@ -59,6 +59,7 @@ type View = {
   hop: Record<string, number>;
   down: Record<string, boolean>;
   warn: number;
+  counter: boolean;
   shake: number;
   stompAge: number;
   revived: Record<string, number>;
@@ -78,6 +79,7 @@ function view(r: RaidBoard, events: RaidEvent[], players: Record<string, Player>
     hop: {},
     down: {},
     warn: -1,
+    counter: false,
     shake: 0,
     stompAge: -1,
     revived: {},
@@ -134,7 +136,9 @@ function view(r: RaidBoard, events: RaidEvent[], players: Record<string, Player>
         if (age < 1.1) V.pops.push({ at: u, text: `-${e.dmg}`, age, col: "#ff8a8a", big: false });
       }
       for (const u of e.fainted) if (age < 0.5) V.down[u] = false;
-      if (age < 1.8) say(e.at, `STOMP! Every monster takes ${e.dmg} damage.`, `HENTAKAN! Semua raksasa terkena ${e.dmg}.`);
+      if (age < 1.8)
+        if (e.counter) say(e.at, `COUNTER-STOMP! The Titan strikes back: ${e.dmg} to everyone.`, `SERANG BALAS! Semua raksasa terkena ${e.dmg}.`);
+        else say(e.at, `STOMP! Every monster takes ${e.dmg} damage.`, `HENTAKAN! Semua raksasa terkena ${e.dmg}.`);
       if (e.fainted.length && age > 0.6 && age < 3.5) {
         const who = e.fainted.map((u) => name(players, u)).join(", ");
         say(e.at + 1, `${who} fainted! Revive question sent.`, "Pengsan! Soalan hidup semula dihantar.");
@@ -150,6 +154,10 @@ function view(r: RaidBoard, events: RaidEvent[], players: Record<string, Player>
       V.warn = left / 1000;
       if (now - msgAt > 1200) V.msg = ["The Titan is about to STOMP!", "Titan akan menghentak!"];
     }
+  }
+  if (!r.winner && (r.counters ?? 0) > 0 && r.counterAt && now < r.counterAt && game.status === "playing") {
+    V.counter = true;
+    if (now - msgAt > 900) V.msg = ["The Titan strikes back!", "Titan menyerang balas!"];
   }
   if (r.winner === "players") V.msg = ["DEFECT TITAN DEFEATED!", "Gergasi Kecacatan tumpas!"];
   else if (r.winner === "titan") V.msg = ["The Defect Titan wins this time!", "Gergasi Kecacatan menang kali ini!"];
@@ -204,6 +212,7 @@ function drawTitan(c: Ctx, V: View, r: RaidBoard, cx: number, feet: number, scal
   const w = 64 * scale;
   let y = feet - 63 * scale;
   if (V.warn >= 0) y -= (1 - V.warn / 3) * 14;
+  if (V.counter) y -= 10;
   if (r.winner === "players") {
     c.globalAlpha = Math.max(0, 1 - endAge / 1.6);
     y += Math.min(endAge, 2) * 30;
@@ -395,6 +404,13 @@ function rageBanner(c: Ctx, V: View, W: number, y: number, fz: number) {
 }
 
 function warnText(c: Ctx, V: View, cx: number, y: number, size: number) {
+  if (V.counter) {
+    if (Math.floor(Date.now() / 120) % 2 === 0) {
+      txt(c, "⚡ COUNTER!", cx, y, size, "#ff9a3b", "center", PX, true);
+      txt(c, "Serang balas!", cx, y + size + 8, size * 0.7, "#ffe0c0", "center", `700 ${BODY}`, true);
+    }
+    return;
+  }
   if (V.warn < 0) return;
   const n = Math.ceil(V.warn);
   if (Math.floor(V.warn * 6) % 2 === 0) {

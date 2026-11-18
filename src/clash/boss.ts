@@ -12,8 +12,10 @@ export const TITAN_BASE = 700;
 export const TITAN_PER_PLAYER = 600;
 export const RAIDER_BASE = 300;
 export const RAIDER_PER_PLAYER = 200;
-export const STOMP_BASE = 16;
-export const STOMP_PER_PLAYER = 14;
+export const STOMP_BASE = 11;
+export const STOMP_PER_PLAYER = 9.8;
+/** The Titan strikes back: an extra stomp every time it loses another 10% of its HP. */
+export const COUNTER_STEP = 10;
 /** At 30% HP the Titan is ENRAGED: a shield of 10% of its total HP, and stomps 30% harder. */
 export const RAGE_AT = 0.3;
 export const RAGE_SHIELD = 0.1;
@@ -24,7 +26,7 @@ export const MAX_RAIDERS = 20;
 
 export const titanHp = (n: number) => TITAN_BASE + TITAN_PER_PLAYER * (Math.max(1, n) - 1);
 export const raiderHp = (n: number) => RAIDER_BASE + RAIDER_PER_PLAYER * (Math.max(1, n) - 1);
-export const stompDamage = (n: number) => STOMP_BASE + STOMP_PER_PLAYER * (Math.max(1, n) - 1);
+export const stompDamage = (n: number) => Math.round(STOMP_BASE + STOMP_PER_PLAYER * (Math.max(1, n) - 1));
 
 /** revive: "ready" until the player has used their one revive question. */
 export type Raider = { uid: string; c: string; slot: number; hp: number; max: number; lv: number; pts: number; rights: number; revive: "ready" | "used" };
@@ -35,6 +37,8 @@ export type Raid = {
   raiders: Record<string, Raider>;
   streak: Record<string, number>;
   stomp: number;
+  /** The next counter-stomp comes when the Titan's HP drops to mark × 10% (9 = 90%, … 1 = 10%). */
+  mark: number;
   winner: "players" | "titan" | null;
 };
 export type RaiderState = "alive" | "down" | "out";
@@ -54,11 +58,14 @@ export function newRaid(mode: BossMode, picks: { uid: string; c: string[]; at?: 
     raiders[p.uid] = { uid: p.uid, c: p.c[0], slot, hp: raiderHp(n), max: raiderHp(n), lv: 1, pts: 0, rights: 0, revive: "ready" };
     streak[p.uid] = 0;
   });
-  return { mode, titan: { hp: titanHp(n), max: titanHp(n), sh: 0, rage: false }, raiders, streak, stomp: stompDamage(n), winner: null };
+  return { mode, titan: { hp: titanHp(n), max: titanHp(n), sh: 0, rage: false }, raiders, streak, stomp: stompDamage(n), mark: 100 / COUNTER_STEP - 1, winner: null };
 }
 
-/** A right answer: the player's monster hits the Titan (the enraged shield takes the damage first). rage: this hit enraged it. */
-export function raidHit(r: Raid, uid: string, fast: boolean): { dmg: number; sup: boolean; blocked: number; rage: boolean } | null {
+/**
+ * A right answer: the player's monster hits the Titan (the enraged shield takes the damage first).
+ * rage: this hit enraged it. counter: how many counter-stomps this hit set off (one per 10% of HP lost).
+ */
+export function raidHit(r: Raid, uid: string, fast: boolean): { dmg: number; sup: boolean; blocked: number; rage: boolean; counter: number } | null {
   const x = r.raiders[uid];
   if (!x || r.winner || raiderState(x) !== "alive") return null;
   const streak = (r.streak[uid] ?? 0) + 1;
@@ -75,6 +82,11 @@ export function raidHit(r: Raid, uid: string, fast: boolean): { dmg: number; sup
   x.rights += 1;
   x.lv += 1;
   let rage = false;
+  let counter = 0;
+  while (r.titan.hp > 0 && r.mark >= 1 && r.titan.hp * 100 <= r.titan.max * r.mark * COUNTER_STEP) {
+    counter++;
+    r.mark--;
+  }
   if (r.titan.hp === 0) r.winner = "players";
   else if (!r.titan.rage && r.titan.hp <= r.titan.max * RAGE_AT) {
     rage = true;
@@ -82,7 +94,7 @@ export function raidHit(r: Raid, uid: string, fast: boolean): { dmg: number; sup
     r.titan.sh = Math.round(r.titan.max * RAGE_SHIELD);
     r.stomp = Math.round(stompDamage(Object.keys(r.raiders).length) * RAGE_STOMP);
   }
-  return { dmg, sup, blocked, rage };
+  return { dmg, sup, blocked, rage, counter };
 }
 
 /** A wrong answer or no answer (the engine adds the stun). */
