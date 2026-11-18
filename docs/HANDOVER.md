@@ -62,6 +62,17 @@ The Firebase web settings are in `src/lib/firebase.ts`. They are not secret; the
 - **Security rules:** a new `clash` section was added to `database.rules.json`. Paste the whole file into Firebase before playing Quality Clash.
 - End-to-end: `node scripts/e2e/clash.cjs` (Team, 6 fighters + 1 watcher) and `MODE=solo node scripts/e2e/clash.cjs`.
 
+### Boss Raid (third Quality Clash mode, added 18 Nov 2026)
+- Lobby order: Single 1 v 1 · Team 3 v 3 · **Boss Raid** · Mini Tournament (soon). Boss Raid then offers **Time Attack** or **High Score**. Phones only pick a monster (duplicates allowed), 1–20 players, no minimum.
+- HP grows with the group (n = players): **Defect Titan 700 + 600 per extra player**, **each monster 300 + 200 per extra player**, **stomp 20 + 13 per extra player**. Simulated raid length about 2–2.5 minutes for any group size (`npm test`).
+- Right answer = 50 damage to the Titan (FAST 63, super move 100, both 125). Wrong = 3 s stun.
+- Both modes: every 8 s the Titan stomps every monster still standing, after a 3-second warning (red flashing Titan, projector shake, phone shake + vibration). A fainted monster gets **one revive question per raid**: right = back with half its total HP, wrong/timeout = out.
+- Time Attack: clock counts up (paused time is left out). Win screen: time, top 3 damage, best time today. The best time is in `clash/records/best` and stays until the host presses **Clear records** in the lobby ("New game" keeps it). Only wins count.
+- High Score: points = damage dealt; podium top 3, tie = more right answers. If every monster is out, the Titan wins (top scorer still shown).
+- Host "End game" before the Titan falls = Titan wins; the table is shown as it stands.
+- Code: rules `src/clash/boss.ts`; referee `src/clash/bossEngine.ts`; drawing `src/clash/raidDraw.ts` (wide projector / tall phone); projector + results `src/clash/RaidView.tsx`; phone + monster pick `src/clash/RaidPhone.tsx`; the Titan's pixel art `src/clash/titan.ts`. Data: `clash/raid`, `clash/rev` (last 24 events), `clash/q/{uid}` (with `revive: true` for the revive question), `clash/result`, `clash/records/best`. No new database rules were needed.
+- End-to-end: `MODE=ta N=12 node scripts/e2e/boss.cjs`, `MODE=hs N=1 ACC=0.3 node scripts/e2e/boss.cjs` (one weak player: tests fainting and the revive).
+
 ### Data in Firebase (Realtime Database)
 `game` (status, mode, countdown, winners, event boxes) · `players` · `tokens` (who has which piece) · `questions` (host only) · `state` (Snake & Ladder per player) · `private` and `used` (host only: correct answers, used questions, race snapshot) · `answers` (each phone writes its own) · `feed` · `kart/me`, `kart/q`, `kart/pos`, `kart/input` (phones write their own steering), `kart/results`.
 

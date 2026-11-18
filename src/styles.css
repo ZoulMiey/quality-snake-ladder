@@ -570,3 +570,56 @@ button:disabled { cursor: default; }
 .cph-sheet .pen-num { font-size: 40px; }
 .cph-note { text-align: center; padding: 6px; }
 @keyframes sheet-up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+/* ---------- Boss Raid ---------- */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.raid-frame { background: #2a1030; }
+.cf-boss { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; width: 100%; }
+.cf-btn.small { padding: 6px 12px; }
+.cf-btn.small .en { font-size: 16px; }
+.cf-best { display: flex; align-items: center; gap: 10px; font-size: 15px; opacity: .9; }
+.cr-col.boss { border-color: #ff5a6e; }
+.cr-stats { margin: 0 0 8px; opacity: .85; }
+.cr-raiders { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.cr-raider { display: flex; align-items: center; gap: 6px; background: #fff; color: var(--ink); border-radius: 10px; padding: 4px 8px; font-weight: 700; font-size: 16px; animation: pop .35s ease-out; min-width: 0; }
+.cr-raider span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cp-raid-note { margin: 0; font-size: 13px; }
+/* results (projector overlay and phone card) */
+.raid-win { flex-direction: column; gap: 16px; display: flex; align-items: center; justify-content: center; animation: fade-in .6s ease-out 1.2s both; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.raid-res { text-align: center; display: grid; gap: 8px; justify-items: center; color: #fff; }
+.raid-res h2 { margin: 0; font-family: "Press Start 2P", var(--display); font-size: clamp(24px, 4vw, 52px); color: var(--gold); text-shadow: 4px 4px 0 #000; }
+.raid-res.lost h2 { color: #ff5a6e; }
+.raid-sub { font-size: 22px; font-weight: 700; }
+.raid-best { font-weight: 800; color: #7ae0ff; font-size: 18px; }
+.raid-best.new { font-size: 22px; animation: pop .5s ease-out; }
+.raid-podium-label { opacity: .8; margin-top: 6px; }
+.raid-podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 10px; width: min(620px, 100%); }
+.rp { display: grid; justify-items: center; gap: 4px; min-width: 0; }
+.rp-name { font-weight: 800; font-size: 20px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-block { width: 100%; display: grid; place-items: center; gap: 2px; color: #1b1530; border-radius: 8px 8px 0 0; padding: 8px 4px; }
+.rp-block b { font-family: "Press Start 2P", var(--display); font-size: 18px; }
+.rp-block span { font-weight: 700; font-size: 14px; }
+.rp1 .rp-block { background: var(--gold); min-height: 120px; }
+.rp2 .rp-block { background: #cfd6e6; min-height: 84px; }
+.rp3 .rp-block { background: #d4925a; min-height: 60px; }
+.rp.me .rp-name { color: var(--gold); }
+.raid-res.phone { color: var(--ink); }
+.raid-res.phone h2 { font-size: 20px; text-shadow: none; color: var(--felt-3); }
+.raid-res.phone.lost h2 { color: var(--bad); }
+.raid-res.phone .raid-sub { font-size: 15px; }
+.raid-res.phone .raid-best { color: #0e7490; font-size: 14px; }
+.raid-res.phone .rp-name { font-size: 14px; }
+.raid-res.phone .rp1 .rp-block { min-height: 70px; } .raid-res.phone .rp2 .rp-block { min-height: 50px; } .raid-res.phone .rp3 .rp-block { min-height: 36px; }
+.raid-res.phone .rp-block b { font-size: 12px; } .raid-res.phone .rp-block span { font-size: 11px; }
+.raid-mine { margin: 4px 0 0; font-weight: 700; }
+.cph-center .cph-end { max-height: 100%; overflow-y: auto; }
+/* phone: revive and stomp */
+.raid-revive { background: #2a1030; color: #fff; border: 2px solid #7affaa; border-radius: 12px; padding: 8px 10px; display: grid; gap: 4px; margin-bottom: 8px; font-size: 13px; }
+.raid-revive b { color: #7affaa; font-size: 14px; }
+.cph-sheet.revive { box-shadow: 0 0 0 3px #7affaa, 0 -6px 24px rgba(0,0,0,.35); }
+.cph-stage.raid { background: #5d5a7c; }
+.cph-stage.shake { animation: shake .3s linear infinite; }
+@keyframes shake { 0%,100% { transform: translate(0,0); } 25% { transform: translate(-3px,1px); } 50% { transform: translate(2px,-2px); } 75% { transform: translate(-1px,2px); } }
+@media (prefers-reduced-motion: reduce) { .cph-stage.shake { animation: none; } }
+.clash-win.raid-win { background: rgba(10,8,30,.9); }
+.raid-win .big-btn { width: auto; display: inline-block; padding: 12px 28px; font-size: 20px; }

@@ -21,8 +21,16 @@ const CLASH_TILES = [
 import { MAX_WINNERS } from "../lib/engine.ts";
 
 /** The rules in four short tiles, used on the projector lobby and on phones. */
-export default function Rules({ compact, mode }: { compact?: boolean; mode?: GameMode }) {
-  const tiles = mode === "kart" ? CART_TILES : mode === "clash" ? CLASH_TILES : [
+const BOSS_TILES = [
+  { icon: "👹", en: "Everyone vs the\nDefect Titan", ms: "Semua lawan Gergasi Kecacatan" },
+  { icon: "⚔️", en: "Right answer =\n50 damage", ms: "Betul = 50 kerosakan" },
+  { icon: "🔥", en: "FAST +25%\n5 in a row = super ×2", ms: "Pantas +25% · 5 berturut = super" },
+  { icon: "⚠️", en: "Every 8 s the Titan\nstomps everyone", ms: "Setiap 8 saat Titan menghentak" },
+  { icon: "💫", en: "Fainted? One revive\nquestion per raid", ms: "Pengsan? Satu soalan hidup semula" },
+];
+
+export default function Rules({ compact, mode, variant }: { compact?: boolean; mode?: GameMode; variant?: string }) {
+  const tiles = mode === "kart" ? CART_TILES : mode === "clash" ? (variant === "boss" ? BOSS_TILES : CLASH_TILES) : [
     { icon: "🎲", en: "Right = roll 1 dice\nWrong = wait 5 sec", ms: "Betul = baling 1 dadu · Salah = tunggu 5 saat" },
     { icon: "🔥", en: `${BONUS_STREAK} right in a row\n= 2 dice`, ms: `${BONUS_STREAK} betul berturut = 2 dadu` },
     { icon: "🐍🪜", en: "Answer right to\nstay safe or climb", ms: "Jawab betul untuk selamat atau naik" },

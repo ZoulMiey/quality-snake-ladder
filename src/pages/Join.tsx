@@ -6,6 +6,7 @@ import Countdown from "../components/Countdown.tsx";
 import Rules from "../components/Rules.tsx";
 import KartPhone from "../kart/KartPhone.tsx";
 import ClashPhone, { ClashPick } from "../clash/ClashPhone.tsx";
+import RaidPhone, { RaidPick } from "../clash/RaidPhone.tsx";
 import { useDbValue, useNow } from "../lib/useDb.ts";
 import { MAX_PLAYERS, TOKENS, tokenById } from "../lib/tokens.ts";
 import { LADDERS, SNAKES, LAST_BOX } from "../lib/board.ts";
@@ -73,10 +74,12 @@ export default function Join() {
   } else if (!game || game.status === "lobby")
     body = (
       <>
-        {game?.mode === "clash" && <ClashPick uid={uid} format={game.clashFormat ?? "team"} key={game.clashFormat ?? "team"} />}
-        <Lobby uid={uid} me={me} tokens={tokens ?? {}} mode={game?.mode} />
+        {game?.mode === "clash" && game.clashFormat === "boss" && <RaidPick uid={uid} />}
+        {game?.mode === "clash" && game.clashFormat !== "boss" && <ClashPick uid={uid} format={game.clashFormat === "solo" ? "solo" : "team"} key={game.clashFormat ?? "team"} />}
+        <Lobby uid={uid} me={me} tokens={tokens ?? {}} mode={game?.mode} variant={game?.clashFormat} />
       </>
     );
+  else if (game.mode === "clash" && game.clashFormat === "boss") body = <RaidPhone uid={uid} me={me} game={game} onExit={exit} />;
   else if (game.mode === "clash") body = <ClashPhone uid={uid} me={me} game={game} onExit={exit} />;
   else if (game.mode === "kart") body = <KartPhone uid={uid} me={me} game={game} onExit={exit} />;
   else body = <Play uid={uid} me={me} game={game} state={state ?? null} onExit={exit} />;
@@ -186,7 +189,7 @@ function JoinForm({ uid, tokens }: { uid: string; tokens: Record<string, string>
   );
 }
 
-function Lobby({ uid, me, tokens, mode }: { uid: string; me: Player; tokens: Record<string, string>; mode?: GameMode }) {
+function Lobby({ uid, me, tokens, mode, variant }: { uid: string; me: Player; tokens: Record<string, string>; mode?: GameMode; variant?: string }) {
   const [changing, setChanging] = useState(false);
   const t = tokenById(me.token);
   async function pick(id: string) {
@@ -209,7 +212,7 @@ function Lobby({ uid, me, tokens, mode }: { uid: string; me: Player; tokens: Rec
       </div>
       <h2>{me.name}</h2>
       <Bi en="You're in! Watch the big screen. The game starts soon." ms="Anda sudah masuk! Lihat skrin besar. Permainan akan bermula." />
-      <Rules compact mode={mode} />
+      <Rules compact mode={mode} variant={variant} />
       {changing ? (
         <TokenPicker uid={uid} tokens={tokens} value={me.token} onPick={pick} />
       ) : (

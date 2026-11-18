@@ -348,7 +348,13 @@ export async function resetGame() {
     answers: null,
     feed: null,
     kart: null,
-    clash: null,
+    "clash/b": null,
+    "clash/ev": null,
+    "clash/q": null,
+    "clash/pick": null,
+    "clash/raid": null,
+    "clash/rev": null,
+    "clash/result": null,
   });
 }
 
@@ -365,6 +371,9 @@ export async function playAgain() {
     "clash/b": null,
     "clash/ev": null,
     "clash/q": null,
+    "clash/raid": null,
+    "clash/rev": null,
+    "clash/result": null,
   });
 }
 

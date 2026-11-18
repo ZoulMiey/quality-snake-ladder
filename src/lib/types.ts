@@ -70,8 +70,10 @@ export type Game = {
   status: "lobby" | "playing" | "ended";
   /** Which game the host picked: Snake & Ladder, Quality Cart or Quality Clash. */
   mode?: GameMode;
-  /** Quality Clash only: Team 3 v 3 or Single 1 v 1. */
-  clashFormat?: "team" | "solo";
+  /** Quality Clash only: Single 1 v 1, Team 3 v 3 or Boss Raid. */
+  clashFormat?: "team" | "solo" | "boss";
+  /** Boss Raid only: Time Attack or High Score. */
+  bossMode?: "ta" | "hs";
   engine: string | null;
   paused: boolean;
   pausedAt: number | null;

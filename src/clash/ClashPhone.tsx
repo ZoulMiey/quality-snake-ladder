@@ -223,7 +223,7 @@ export default function ClashPhone({ uid, me, game, onExit }: { uid: string; me:
   );
 }
 
-function Question({ uid, q, paused, now, streak }: { uid: string; q: ClashQ; paused: boolean; now: number; streak: number }) {
+export function Question({ uid, q, paused, now, streak }: { uid: string; q: ClashQ; paused: boolean; now: number; streak: number }) {
   const qq = q.q!;
   const [sent, setSent] = useState<number | null>(null);
   const lastBeep = useRef(-1);

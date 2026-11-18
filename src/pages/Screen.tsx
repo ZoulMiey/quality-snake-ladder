@@ -10,6 +10,8 @@ import Header, { GAME_NAMES } from "../components/Header.tsx";
 import { KartEngine } from "../kart/engine.ts";
 import KartView from "../kart/KartView.tsx";
 import { ClashEngine } from "../clash/engine.ts";
+import { BossEngine } from "../clash/bossEngine.ts";
+import RaidView from "../clash/RaidView.tsx";
 import ClashView from "../clash/ClashView.tsx";
 import { ClashFormatPick, ClashRoster, useLineUp } from "../clash/ClashLobby.tsx";
 import Qr from "../components/Qr.tsx";
@@ -21,9 +23,9 @@ import QuestionManager, { seedQuestionsIfEmpty } from "../components/QuestionMan
 import { fixStates, type FeedItem, type Game, type GameMode, type Player, type PlayerState, type Question } from "../lib/types.ts";
 
 /** The referee for the chosen game, with sounds on the projector for the race. */
-type AnyEngine = Engine | KartEngine | ClashEngine;
-function makeEngine(mode: GameMode | undefined, tab: string): AnyEngine {
-  if (mode === "clash") return new ClashEngine(tab);
+type AnyEngine = Engine | KartEngine | ClashEngine | BossEngine;
+function makeEngine(mode: GameMode | undefined, tab: string, format?: string): AnyEngine {
+  if (mode === "clash") return format === "boss" ? new BossEngine(tab) : new ClashEngine(tab);
   if (mode !== "kart") return new Engine(tab);
   const e = new KartEngine(tab);
   e.onEvent = (ev) => {
@@ -138,7 +140,7 @@ function HostScreen() {
   // If this window was running the game and got reloaded, carry on.
   useEffect(() => {
     if (iRun && !engine.current) {
-      const e = makeEngine(game?.mode, tabId);
+      const e = makeEngine(game?.mode, tabId, game?.clashFormat);
       engine.current = e;
       e.resume().catch(() => (engine.current = null));
     }
@@ -198,7 +200,7 @@ function HostScreen() {
   async function start() {
     unlockAudio();
     setMsg("");
-    const e = makeEngine(game?.mode, tabId);
+    const e = makeEngine(game?.mode, tabId, game?.clashFormat);
     try {
       engine.current = e;
       await e.start();
@@ -209,7 +211,7 @@ function HostScreen() {
   }
   async function takeOver() {
     unlockAudio();
-    const e = makeEngine(game?.mode, tabId);
+    const e = makeEngine(game?.mode, tabId, game?.clashFormat);
     engine.current = e;
     await e.resume();
   }
@@ -305,10 +307,13 @@ function HostScreen() {
           onMode={(m) => update(ref(db, "game"), { mode: m, status: game?.status ?? "lobby" })}
           clashFormat={game?.clashFormat ?? "team"}
           onClashFormat={(f) => update(ref(db, "game"), { clashFormat: f, status: game?.status ?? "lobby" })}
+          bossMode={game?.bossMode ?? "ta"}
+          onBossMode={(m) => update(ref(db, "game"), { bossMode: m, status: game?.status ?? "lobby" })}
         />
       )}
       {status !== "lobby" && game?.mode === "kart" && <KartView game={game} players={players ?? {}} feed={feed} onAgain={() => playAgain()} />}
-      {status !== "lobby" && game?.mode === "clash" && <ClashView game={game} players={players ?? {}} onAgain={() => playAgain()} />}
+      {status !== "lobby" && game?.mode === "clash" && game.clashFormat === "boss" && <RaidView game={game} players={players ?? {}} onAgain={() => playAgain()} />}
+      {status !== "lobby" && game?.mode === "clash" && game.clashFormat !== "boss" && <ClashView game={game} players={players ?? {}} onAgain={() => playAgain()} />}
       {status !== "lobby" && game?.mode !== "kart" && game?.mode !== "clash" && (
         <GameView game={game!} players={players ?? {}} states={states ?? {}} feed={feed} highlight={highlight} lastRoll={lastRoll} hop={hop} onAgain={() => playAgain()} />
       )}
@@ -325,14 +330,18 @@ function LobbyView({
   onMode,
   clashFormat,
   onClashFormat,
+  bossMode,
+  onBossMode,
 }: {
   players: Record<string, Player>;
   onStart: () => void;
   enabledQs: number;
   mode: GameMode;
   onMode: (m: GameMode) => void;
-  clashFormat: "team" | "solo";
-  onClashFormat: (f: "team" | "solo") => void;
+  clashFormat: "team" | "solo" | "boss";
+  onClashFormat: (f: "team" | "solo" | "boss") => void;
+  bossMode: "ta" | "hs";
+  onBossMode: (m: "ta" | "hs") => void;
 }) {
   const url = `${location.origin}/join`;
   const clash = useLineUp(clashFormat, players);
@@ -360,7 +369,7 @@ function LobbyView({
             </button>
           ))}
         </div>
-        {mode === "clash" && <ClashFormatPick format={clashFormat} onFormat={onClashFormat} />}
+        {mode === "clash" && <ClashFormatPick format={clashFormat} onFormat={onClashFormat} bossMode={bossMode} onBossMode={onBossMode} />}
         <div className="lobby-head">
           <h2>
             Players <span className="count">{list.length}/{MAX_PLAYERS}</span>
@@ -373,7 +382,7 @@ function LobbyView({
         {mode === "clash" && list.length > 0 && <ClashRoster format={clashFormat} players={players} />}
         {mode === "clash" && list.length > 0 && !clash.ready && (
           <p className="waiting">
-            {clashFormat === "solo" ? "Waiting for one player on Red and one on Blue, each with 3 monsters." : "Waiting for at least one player on each team."} Players pick on their phones.
+            {clashFormat === "boss" ? "Waiting for at least one player to pick a monster." : clashFormat === "solo" ? "Waiting for one player on Red and one on Blue, each with 3 monsters." : "Waiting for at least one player on each team."} Players pick on their phones.
           </p>
         )}
         <ul className={`lobby-players ${list.length > 10 ? "many" : ""}`}>
@@ -390,7 +399,7 @@ function LobbyView({
             );
           })}
         </ul>
-        <Rules mode={mode} />
+        <Rules mode={mode} variant={mode === "clash" ? clashFormat : undefined} />
       </section>
     </main>
   );
