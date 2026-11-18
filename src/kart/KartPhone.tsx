@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ref, set, update } from "firebase/database";
 import { db, serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
@@ -9,6 +9,7 @@ import Countdown from "../components/Countdown.tsx";
 import { ITEMS, type ItemId } from "./sim.ts";
 import { LAPS } from "./track.ts";
 import { CART_QUESTION_MS, type CartMe, type CartQ, type CartResult } from "./engine.ts";
+import Chase3D from "./Chase3D.tsx";
 
 type TiltState = "checking" | "need-permission" | "on" | "none";
 
@@ -85,6 +86,18 @@ export default function KartPhone({ uid, me, game, onExit }: { uid: string; me: 
   const results = useDbValue<CartResult[]>(game.status === "ended" ? "kart/results" : null);
   const tilt = useTilt();
   const hold = useRef(0); // -1 / 0 / 1 from the arrow buttons
+  const players = useDbValue<Record<string, Player>>("players");
+  // Current steering for the driver's view: the arrow buttons win over tilt.
+  const steerNow = useMemo(
+    () => ({
+      get current() {
+        return hold.current || tilt.steer.current;
+      },
+      set current(_v: number) {},
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
   const [shownSteer, setShownSteer] = useState(0);
   const useCount = useRef(0);
   const t = tokenById(me.token);
@@ -187,28 +200,27 @@ export default function KartPhone({ uid, me, game, onExit }: { uid: string; me: 
         </>
       ) : (
         <>
-          {fx && (
-            <div className={`fx-banner ${fx.cls}`} key={cart?.fx ?? ""}>
-              <span className="fx-icon">{fx.icon}</span>
-              <span className="en">{fx.en}</span>
-              <span className="ms">{fx.ms}</span>
-            </div>
-          )}
+          <div className="chase-wrap">
+            <Chase3D uid={uid} players={players ?? {}} steer={steerNow} />
+            {fx && (
+              <div className={`fx-banner over ${fx.cls}`} key={cart?.fx ?? ""}>
+                <span className="fx-icon">{fx.icon}</span>
+                <span className="en">{fx.en}</span>
+                <span className="ms">{fx.ms}</span>
+              </div>
+            )}
+          </div>
           {q && q.q && (q.result ? q.until > now : q.deadline > now - 600) ? (
             <CartQuestion uid={uid} q={q} paused={game.paused} pausedAt={game.pausedAt} />
           ) : (
-            <div className="wheel-card">
-              <div className="wheel" style={{ transform: `rotate(${shownSteer * 70}deg)` }} aria-hidden="true">
-                <svg viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" strokeWidth="10" />
-                  <circle cx="50" cy="50" r="9" fill="currentColor" />
-                  <path d="M50 50 L10 46 M50 50 L90 46 M50 50 L50 92" stroke="currentColor" strokeWidth="9" strokeLinecap="round" />
-                </svg>
-              </div>
-              <div className="bi center">
-                <div className="en">{tilt.state === "on" ? "Tilt your phone to steer" : "Hold ◀ ▶ to steer"}</div>
-                <div className="ms">{tilt.state === "on" ? "Condongkan telefon untuk memandu" : "Tekan ◀ ▶ untuk memandu"}</div>
-              </div>
+            <div className="steer-hint">
+              <span className="tilt-meter" aria-hidden="true">
+                <span style={{ left: `${50 + shownSteer * 45}%` }} />
+              </span>
+              <span className="bi">
+                <span className="en">{tilt.state === "on" ? "Tilt your phone to steer" : "Hold ◀ ▶ to steer"}</span>
+                <span className="ms">{tilt.state === "on" ? "Condongkan telefon untuk memandu" : "Tekan ◀ ▶ untuk memandu"}</span>
+              </span>
               <TiltHelp state={tilt.state} onEnable={tilt.enable} />
             </div>
           )}

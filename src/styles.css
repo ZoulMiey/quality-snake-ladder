@@ -446,3 +446,15 @@ button:disabled { cursor: default; }
 .cart-result.good .cr-mark { background: var(--good); }
 .cart-result.bad .cr-mark { background: var(--bad); }
 .cart-result .bi .en { font-family: var(--display); font-weight: 800; font-size: 24px; }
+
+/* Driver's view on the phone (16-bit style) */
+.chase-wrap { position: relative; border-radius: 14px; overflow: hidden; box-shadow: 0 0 0 3px var(--felt), 0 6px 16px rgba(0,0,0,.2); background: #3b82f6; }
+.chase { display: block; width: 100%; height: auto; aspect-ratio: 320 / 200; image-rendering: pixelated; image-rendering: crisp-edges; }
+.fx-banner.over { position: absolute; top: 8px; left: 8px; right: 8px; padding: 4px 10px; }
+.fx-banner.over .fx-icon { font-size: 24px; }
+.fx-banner.over .en { font-size: 18px; }
+.steer-hint { background: #fff; border-radius: 14px; padding: 10px 12px; display: grid; gap: 8px; justify-items: center; text-align: center; }
+.steer-hint .bi .en { display: block; font-weight: 700; }
+.steer-hint .bi .ms { display: block; font-size: 13px; color: var(--muted); }
+.tilt-meter { position: relative; width: 100%; height: 12px; border-radius: 999px; background: linear-gradient(90deg, #dbeafe, #e5e7eb 45%, #e5e7eb 55%, #dbeafe); }
+.tilt-meter span { position: absolute; top: -3px; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: var(--felt); transition: left .1s linear; }

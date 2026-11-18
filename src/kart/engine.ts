@@ -33,6 +33,9 @@ export type CartQ = {
   result: { correct: boolean; timeout: boolean; correctIdx: number } | null;
   until: number;
 };
+/** Live positions for the phones: c = { uid: [distance, side, speed, flags] }, b = hidden box numbers, o = oil spills [s, d].
+ * flags: 1 spinning, 2 turbo, 4 shield, 8 slowed, 16 finished. */
+export type CartPos = { t: number; c: Record<string, number[]>; b?: number[]; o?: number[][] };
 export type CartResult = { uid: string; rank: number; finished: boolean; time: number | null; lap: number };
 
 export class KartEngine {
@@ -51,6 +54,7 @@ export class KartEngine {
   private lastTick = 0;
   private lastSync = 0;
   private lastSnap = 0;
+  private lastPos = 0;
   private feedDirty = false;
   onEvent?: (e: RaceEvent | { type: "item"; uid: string; item: string }) => void;
 
@@ -190,6 +194,23 @@ export class KartEngine {
       }
       if (q.open && now > q.deadline + 600) this.judge(c.uid, null, updates);
       else if (!q.open && w.t >= q.nextAt && c.p > 0) this.ask(c.uid, now, updates);
+    }
+
+    // Every cart's position, about 6 times a second, for the drivers' view on the phones.
+    if (nowMs - this.lastPos > 160) {
+      this.lastPos = nowMs;
+      const c: Record<string, number[]> = {};
+      for (const k of w.carts) {
+        const flags = (k.spinUntil > w.t ? 1 : 0) | (k.boostUntil > w.t ? 2 : 0) | (k.shieldUntil > w.t ? 4 : 0) | (k.slowUntil > w.t ? 8 : 0) | (k.finished ? 16 : 0);
+        c[k.uid] = [Math.round(k.p * 10) / 10, Math.round(k.d * 100) / 100, Math.round(k.v * 10) / 10, flags];
+      }
+      const pos: CartPos = {
+        t: Math.round(w.t * 100) / 100,
+        c,
+        b: w.boxes.map((b, i) => (b.hiddenUntil > w.t ? i : -1)).filter((i) => i >= 0),
+        o: w.oils.map((o) => [Math.round(o.s), Math.round(o.d * 100) / 100]),
+      };
+      updates["kart/pos"] = pos;
     }
 
     if (nowMs - this.lastSync > 250) {
