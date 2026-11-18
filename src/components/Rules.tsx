@@ -26,6 +26,7 @@ const BOSS_TILES = [
   { icon: "⚔️", en: "Right answer =\n50 damage", ms: "Betul = 50 kerosakan" },
   { icon: "🔥", en: "FAST +25%\n5 in a row = super ×2", ms: "Pantas +25% · 5 berturut = super" },
   { icon: "⚠️", en: "Every 8 s the Titan\nstomps everyone", ms: "Setiap 8 saat Titan menghentak" },
+  { icon: "😡", en: "At 30% HP: ENRAGED!\nShield + harder stomps", ms: "30% HP: mengamuk, perisai + hentakan kuat" },
   { icon: "💫", en: "Fainted? One revive\nquestion per raid", ms: "Pengsan? Satu soalan hidup semula" },
 ];
 

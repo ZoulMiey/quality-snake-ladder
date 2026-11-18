@@ -57,6 +57,7 @@ export default function RaidView({ game, players, onAgain }: { game: Game; playe
     for (const e of events) {
       if (e.n <= lastN.current) continue;
       if (e.kind === "stomp") sfx.snake();
+      else if (e.kind === "rage") setTimeout(() => sfx.snake(), Math.max(0, e.at - serverNow()));
       else if (e.kind === "wrong") sfx.wrong();
       else if (e.kind === "revive") (e.ok ? sfx.ladder : sfx.wrong)();
       else if (e.sup) sfx.ladder();

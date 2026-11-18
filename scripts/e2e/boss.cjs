@@ -54,7 +54,7 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
   await proj.getByRole("button", { name: "▶ Start game" }).click();
 
   const start = Date.now();
-  let answered = 0, shots = 0, sawWarn = false, sawRevive = false;
+  let answered = 0, shots = 0, sawWarn = false, sawRevive = false, sawRage = false;
   while (Date.now() - start < 7 * 60 * 1000) {
     if (errors.length) break;
     if (await proj.locator(".raid-win").count()) break;
@@ -79,6 +79,13 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
       }),
     );
     const t = (Date.now() - start) / 1000;
+    const rage = (all.clash?.rev || []).find((e) => e && e.kind === "rage");
+    if (rage && !sawRage && Date.now() > rage.at + 900) {
+      sawRage = true;
+      await proj.screenshot({ path: `${OUT}/${TAG}-rage.png` });
+      await phones[0].p.screenshot({ path: `${OUT}/${TAG}-phone-rage.png` });
+      log("Titan enraged; shield", rage.sh, "stomp", rage.stomp);
+    }
     if (!sawWarn && t > 8 && (await phones[0].p.locator(".cph-stage.shake").count())) {
       sawWarn = true;
       await proj.screenshot({ path: `${OUT}/${TAG}-warn.png` });
@@ -98,7 +105,7 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
   log("winner:", r?.winner, "titan:", r?.titan?.hp + "/" + r?.titan?.max, "stomp:", r?.stomp);
   log("raiders:", Object.values(r?.raiders || {}).map((x) => `${all.players[x.uid]?.name}:${x.hp}/${x.max}:${x.pts}pts:${x.revive}`).join(" "));
   log("result:", JSON.stringify({ ...all.clash?.result, rank: (all.clash?.result?.rank || []).slice(0, 3).map((x) => all.players[x.uid]?.name + " " + x.pts) }));
-  log("best:", JSON.stringify(all.clash?.records?.best?.ms), "saw warning:", sawWarn, "saw revive:", sawRevive);
+  log("best:", JSON.stringify(all.clash?.records?.best?.ms), "saw warning:", sawWarn, "saw revive:", sawRevive, "saw rage:", sawRage);
   await proj.screenshot({ path: `${OUT}/${TAG}-end.png` });
   await phones[0].p.screenshot({ path: `${OUT}/${TAG}-phone-end.png` });
   log("errors:", errors.length ? errors.slice(0, 8) : "none");

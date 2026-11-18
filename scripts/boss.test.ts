@@ -10,10 +10,10 @@ const t = (name: string, fn: () => void) => {
 };
 const picks = (k: number) => Array.from({ length: k }, (_, i) => ({ uid: "u" + i, c: ["dragon"], at: i }));
 
-t("HP grows with the group: Titan 700 + 600, players 300 + 200, stomp 20 + 13 per extra player", () => {
+t("HP grows with the group: Titan 700 + 600, players 300 + 200, stomp 16 + 14 per extra player", () => {
   assert.deepEqual([1, 2, 5, 20].map(titanHp), [700, 1300, 3100, 12100]);
   assert.deepEqual([1, 2, 5, 20].map(raiderHp), [300, 500, 1100, 4100]);
-  assert.deepEqual([1, 2, 5, 20].map(stompDamage), [20, 33, 72, 267]);
+  assert.deepEqual([1, 2, 5, 20].map(stompDamage), [16, 30, 72, 282]);
   const r = newRaid("hs", picks(5));
   assert.equal(r.titan.hp, 3100);
   assert.ok(Object.values(r.raiders).every((x) => x.hp === 1100));
@@ -28,11 +28,11 @@ t("anyone with a monster joins (duplicates allowed), up to 20, in the order they
 
 t("a right answer hits the Titan for 50; FAST 63; the 5th in a row is a super move (100, or 125 if fast)", () => {
   const r = newRaid("hs", picks(3));
-  assert.deepEqual(raidHit(r, "u0", false), { dmg: 50, sup: false });
+  assert.deepEqual(raidHit(r, "u0", false), { dmg: 50, sup: false, blocked: 0, rage: false });
   assert.equal(raidHit(r, "u0", true)!.dmg, 63);
   raidHit(r, "u0", false);
   raidHit(r, "u0", false);
-  assert.deepEqual(raidHit(r, "u0", true), { dmg: 125, sup: true });
+  assert.deepEqual(raidHit(r, "u0", true), { dmg: 125, sup: true, blocked: 0, rage: false });
   raidHit(r, "u0", false);
   raidMiss(r, "u0");
   assert.equal(r.streak.u0, 0);
@@ -46,7 +46,7 @@ t("the stomp hits every monster still standing; a fainted one gets one revive qu
   const s = raidStomp(r);
   assert.deepEqual(s.hit.sort(), ["u0", "u1"]);
   assert.deepEqual(s.fainted, ["u1"]);
-  assert.equal(r.raiders.u0.hp, 500 - 33);
+  assert.equal(r.raiders.u0.hp, 500 - 30);
   assert.equal(raiderState(r.raiders.u1), "down");
   assert.equal(raidHit(r, "u1", false), null, "a fainted monster cannot attack");
   assert.equal(raidRevive(r, "u1", true), true);
@@ -64,9 +64,26 @@ t("a wrong revive answer is out for good", () => {
   assert.equal(raiderState(r.raiders.u0), "out");
 });
 
+t("at 30% HP the Titan is ENRAGED: a shield of 10% of its HP takes damage first, and stomps hit 30% harder", () => {
+  const r = newRaid("hs", picks(2)); // Titan 1300 HP, stomp 30
+  r.titan.hp = 400;
+  const h = raidHit(r, "u0", false)!;
+  assert.equal(h.rage, true);
+  assert.equal(r.titan.hp, 350);
+  assert.deepEqual([r.titan.rage, r.titan.sh, r.stomp], [true, 130, 39]);
+  const b = raidHit(r, "u1", false)!;
+  assert.deepEqual([b.blocked, b.rage, r.titan.sh, r.titan.hp], [50, false, 80, 350]);
+  r.titan.sh = 20;
+  raidHit(r, "u1", false);
+  assert.deepEqual([r.titan.sh, r.titan.hp], [0, 320], "the rest goes through once the shield breaks");
+  raidStomp(r);
+  assert.equal(r.raiders.u0.hp, 500 - 39);
+});
+
 t("players win at Titan 0 HP; the Titan wins when every monster is out", () => {
   const a = newRaid("ta", picks(1));
   a.titan.hp = 40;
+  a.titan.rage = true;
   raidHit(a, "u0", false);
   assert.equal(a.winner, "players");
   const b = newRaid("hs", picks(1));
@@ -113,14 +130,15 @@ function raid(k: number, seed: number) {
   }
   return { time: 1200, winner: null };
 }
-t("raids always end, typically in 2–2.5 minutes for any group size", () => {
+t("raids always end in about 2–3 minutes, and the Titan wins roughly 1 in 3 for any group size", () => {
   for (const k of [1, 3, 8, 20]) {
     const runs = Array.from({ length: 101 }, (_, i) => raid(k, (i + 1) * 7919));
     const times = runs.map((x) => x.time).sort((a, b) => a - b);
     const lost = runs.filter((x) => x.winner === "titan").length;
     console.log(`   ${String(k).padStart(2)} players: median ${(times[50] / 60).toFixed(1)} min, Titan wins ${lost}/101`);
     assert.ok(runs.every((x) => x.winner), "every raid ends");
-    assert.ok(times[50] / 60 > 1.6 && times[50] / 60 < 3, `median ${times[50]}`);
+    assert.ok(times[50] / 60 > 1.8 && times[50] / 60 < 3.2, `median ${times[50]}`);
+    assert.ok(lost >= 15 && lost <= 60, `Titan wins ${lost}/101`);
   }
 });
 

@@ -50,7 +50,7 @@ export default function RaidPhone({ uid, me, game, onExit }: { uid: string; me: 
   }, [warn]);
   const lastStomp = useRef<number | null>(null);
   useEffect(() => {
-    const s = events.filter((e) => e.kind === "stomp").reduce((m, e) => Math.max(m, e.n), 0);
+    const s = events.filter((e) => e.kind === "stomp" || e.kind === "rage").reduce((m, e) => Math.max(m, e.n), 0);
     if (lastStomp.current !== null && s > lastStomp.current) {
       sfx.snake();
       try {

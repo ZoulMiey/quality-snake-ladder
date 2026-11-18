@@ -2,6 +2,7 @@
 // 1–20 players each have one monster and fight the Defect Titan together.
 // Time Attack: beat it as fast as possible. High Score: most damage (points) wins.
 // In both modes the Titan stomps every player every 8 seconds; a fainted monster gets one revive question per raid.
+// At 30% HP it becomes ENRAGED: a shield (10% of its HP) that must be broken first, and harder stomps.
 import { CREATURE_IDS } from "./creatures.ts";
 import { FAST_MULT, SUPER_MULT, SUPER_STREAK } from "./sim.ts";
 
@@ -11,8 +12,12 @@ export const TITAN_BASE = 700;
 export const TITAN_PER_PLAYER = 600;
 export const RAIDER_BASE = 300;
 export const RAIDER_PER_PLAYER = 200;
-export const STOMP_BASE = 20;
-export const STOMP_PER_PLAYER = 13;
+export const STOMP_BASE = 16;
+export const STOMP_PER_PLAYER = 14;
+/** At 30% HP the Titan is ENRAGED: a shield of 10% of its total HP, and stomps 30% harder. */
+export const RAGE_AT = 0.3;
+export const RAGE_SHIELD = 0.1;
+export const RAGE_STOMP = 1.3;
 export const STOMP_EVERY_MS = 8_000;
 export const STOMP_WARN_MS = 3_000;
 export const MAX_RAIDERS = 20;
@@ -25,7 +30,8 @@ export const stompDamage = (n: number) => STOMP_BASE + STOMP_PER_PLAYER * (Math.
 export type Raider = { uid: string; c: string; slot: number; hp: number; max: number; lv: number; pts: number; rights: number; revive: "ready" | "used" };
 export type Raid = {
   mode: BossMode;
-  titan: { hp: number; max: number };
+  /** sh: the enraged shield still left. rage: true once the Titan is enraged. */
+  titan: { hp: number; max: number; sh: number; rage: boolean };
   raiders: Record<string, Raider>;
   streak: Record<string, number>;
   stomp: number;
@@ -48,11 +54,11 @@ export function newRaid(mode: BossMode, picks: { uid: string; c: string[]; at?: 
     raiders[p.uid] = { uid: p.uid, c: p.c[0], slot, hp: raiderHp(n), max: raiderHp(n), lv: 1, pts: 0, rights: 0, revive: "ready" };
     streak[p.uid] = 0;
   });
-  return { mode, titan: { hp: titanHp(n), max: titanHp(n) }, raiders, streak, stomp: stompDamage(n), winner: null };
+  return { mode, titan: { hp: titanHp(n), max: titanHp(n), sh: 0, rage: false }, raiders, streak, stomp: stompDamage(n), winner: null };
 }
 
-/** A right answer: the player's monster hits the Titan. */
-export function raidHit(r: Raid, uid: string, fast: boolean): { dmg: number; sup: boolean } | null {
+/** A right answer: the player's monster hits the Titan (the enraged shield takes the damage first). rage: this hit enraged it. */
+export function raidHit(r: Raid, uid: string, fast: boolean): { dmg: number; sup: boolean; blocked: number; rage: boolean } | null {
   const x = r.raiders[uid];
   if (!x || r.winner || raiderState(x) !== "alive") return null;
   const streak = (r.streak[uid] ?? 0) + 1;
@@ -62,12 +68,21 @@ export function raidHit(r: Raid, uid: string, fast: boolean): { dmg: number; sup
   if (fast) dmg *= FAST_MULT;
   if (sup) dmg *= SUPER_MULT;
   dmg = Math.round(dmg);
-  r.titan.hp = Math.max(0, r.titan.hp - dmg);
+  const blocked = Math.min(r.titan.sh, dmg);
+  r.titan.sh -= blocked;
+  r.titan.hp = Math.max(0, r.titan.hp - (dmg - blocked));
   x.pts += dmg;
   x.rights += 1;
   x.lv += 1;
+  let rage = false;
   if (r.titan.hp === 0) r.winner = "players";
-  return { dmg, sup };
+  else if (!r.titan.rage && r.titan.hp <= r.titan.max * RAGE_AT) {
+    rage = true;
+    r.titan.rage = true;
+    r.titan.sh = Math.round(r.titan.max * RAGE_SHIELD);
+    r.stomp = Math.round(stompDamage(Object.keys(r.raiders).length) * RAGE_STOMP);
+  }
+  return { dmg, sup, blocked, rage };
 }
 
 /** A wrong answer or no answer (the engine adds the stun). */

@@ -51,6 +51,8 @@ const name = (players: Record<string, Player>, uid: string) => players[uid]?.nam
 /** What the frame shows right now, with HP still to drop for hits in flight. */
 type View = {
   titanHp: number;
+  titanSh: number;
+  rageAge: number;
   titanFlash: boolean;
   hp: Record<string, number>;
   flash: Record<string, boolean>;
@@ -68,6 +70,8 @@ type View = {
 function view(r: RaidBoard, events: RaidEvent[], players: Record<string, Player>, game: Game, now: number): View {
   const V: View = {
     titanHp: r.titan.hp,
+    titanSh: r.titan.sh,
+    rageAge: -1,
     titanFlash: false,
     hp: {},
     flash: {},
@@ -98,7 +102,9 @@ function view(r: RaidBoard, events: RaidEvent[], players: Record<string, Player>
     if (age < 0 || age > 4) continue;
     if (e.kind === "atk") {
       const k = clamp01((age - HIT) / 0.4);
-      V.titanHp += e.dmg * (1 - k);
+      const blk = e.blk ?? 0;
+      V.titanHp += (e.dmg - blk) * (1 - k);
+      V.titanSh += blk * (1 - k);
       if (age < HIT + 0.2) V.shots.push({ uid: e.uid, age, sup: e.sup });
       if (age < 0.3) V.hop[e.uid] = Math.sin((age / 0.3) * Math.PI);
       if (age >= HIT && age < HIT + 0.3) V.titanFlash = Math.floor((age - HIT) * 14) % 2 === 0;
@@ -107,6 +113,14 @@ function view(r: RaidBoard, events: RaidEvent[], players: Record<string, Player>
         const c = creatureById(r.raiders[e.uid]?.c);
         if (e.sup) say(e.at, `SUPER MOVE! ${name(players, e.uid)} hits for ${e.dmg}!`, `Gerakan super! ${e.dmg} kerosakan!`);
         else say(e.at, `${name(players, e.uid)}'s ${c.en} used ${c.move.en}!`, `${c.ms} guna ${c.move.ms}!`);
+      }
+      if ((e.blk ?? 0) > 0 && age > HIT && age < 1.8) say(e.at + 1, `The shield blocked ${e.blk}! Keep hitting to break it.`, `Perisai menahan ${e.blk}! Terus serang.`);
+    } else if (e.kind === "rage") {
+      if (age >= 0) {
+        V.titanSh -= e.sh * (1 - clamp01(age / 0.5));
+        if (age < 2.4) V.rageAge = age;
+        if (age < 0.5) V.shake = Math.max(V.shake, (1 - age / 0.5) * 7);
+        if (age < 3) say(e.at, `ENRAGED! The Titan raises a ${e.sh} shield and stomps harder!`, `MENGAMUK! Titan dapat perisai ${e.sh} dan menghentak lebih kuat!`);
       }
     } else if (e.kind === "wrong") {
       if (age < 1.6) say(e.at, `${name(players, e.uid)} ${e.timeout ? "ran out of time" : "answered wrong"}. Stunned!`, `${name(players, e.uid)} ${e.timeout ? "kehabisan masa" : "salah"}. Pening!`);
@@ -140,6 +154,7 @@ function view(r: RaidBoard, events: RaidEvent[], players: Record<string, Player>
   if (r.winner === "players") V.msg = ["DEFECT TITAN DEFEATED!", "Gergasi Kecacatan tumpas!"];
   else if (r.winner === "titan") V.msg = ["The Defect Titan wins this time!", "Gergasi Kecacatan menang kali ini!"];
   V.titanHp = Math.min(r.titan.max, Math.max(0, V.titanHp));
+  V.titanSh = Math.max(0, V.titanSh);
   return V;
 }
 
@@ -198,10 +213,31 @@ function drawTitan(c: Ctx, V: View, r: RaidBoard, cx: number, feet: number, scal
   c.beginPath();
   c.ellipse(cx, feet, w * 0.7, w * 0.14, 0, 0, 7);
   c.fill();
+  const raging = r.titan.rage && r.winner !== "players";
+  if (raging) {
+    const g = c.createRadialGradient(cx, y + w * 0.5, w * 0.1, cx, y + w * 0.5, w * 0.75);
+    g.addColorStop(0, `rgba(255,40,60,${0.35 + 0.15 * Math.sin(t * 5)})`);
+    g.addColorStop(1, "rgba(255,40,60,0)");
+    c.fillStyle = g;
+    c.fillRect(cx - w, y - w * 0.3, w * 2, w * 1.6);
+  }
   c.imageSmoothingEnabled = false;
-  const mode = V.titanFlash || (r.winner === "players" && Math.floor(endAge * 10) % 2 === 0) ? "white" : V.warn >= 0 && Math.floor(t * 6) % 2 === 0 ? "red" : "";
+  const blink = V.warn >= 0 && Math.floor(t * 6) % 2 === 0;
+  const mode = V.titanFlash || (r.winner === "players" && Math.floor(endAge * 10) % 2 === 0) ? "white" : raging ? (blink ? "" : "red") : blink ? "red" : "";
   c.drawImage(titan(mode), cx - w / 2, y, w, w);
   c.globalAlpha = 1;
+  if (V.titanSh > 0.5 && r.winner !== "players") {
+    c.save();
+    c.globalAlpha = 0.35 + 0.15 * Math.sin(t * 6);
+    c.strokeStyle = "#7ae0ff";
+    c.lineWidth = 5;
+    c.fillStyle = "rgba(122,224,255,.10)";
+    c.beginPath();
+    c.ellipse(cx, y + w * 0.52, w * 0.58, w * 0.56, 0, 0, 7);
+    c.fill();
+    c.stroke();
+    c.restore();
+  }
   if (V.stompAge >= 0)
     for (let k = 0; k < 3; k++) {
       const a = V.stompAge - k * 0.15;
@@ -315,8 +351,10 @@ function titanBar(c: Ctx, V: View, r: RaidBoard, x: number, y: number, w: number
   c.lineWidth = 3;
   c.stroke();
   txt(c, "DEFECT TITAN", x + 12, y + 18 * fz, 10 * fz, "#ff8a8a");
-  txt(c, "Gergasi Kecacatan", x + 12 + 130 * fz, y + 18 * fz, 12 * fz, "#cfc8f0", "left", `600 ${BODY}`);
-  txt(c, `${Math.ceil(V.titanHp).toLocaleString()} / ${r.titan.max.toLocaleString()}`, x + w - 12, y + 18 * fz, 9 * fz, "#fff", "right");
+  if (r.titan.rage && r.winner !== "players") txt(c, "ENRAGED", x + 12 + 130 * fz, y + 18 * fz, 9 * fz, Math.floor(Date.now() / 300) % 2 ? "#ff3b3b" : "#ffcf40");
+  else txt(c, "Gergasi Kecacatan", x + 12 + 130 * fz, y + 18 * fz, 12 * fz, "#cfc8f0", "left", `600 ${BODY}`);
+  const shTxt = V.titanSh > 0.5 ? `  🛡${Math.ceil(V.titanSh)}` : "";
+  txt(c, `${Math.ceil(V.titanHp).toLocaleString()} / ${r.titan.max.toLocaleString()}${shTxt}`, x + w - 12, y + 18 * fz, 9 * fz, "#fff", "right");
   const bx = x + 12;
   const bw = w - 24;
   const by = y + 26 * fz;
@@ -329,6 +367,31 @@ function titanBar(c: Ctx, V: View, r: RaidBoard, x: number, y: number, w: number
   c.fillRect(bx, by, bw * f, 14 * fz);
   c.fillStyle = "rgba(255,255,255,.25)";
   c.fillRect(bx, by, bw * f, 4 * fz);
+  // 30% mark and the shield (blue, on top of the HP bar)
+  c.fillStyle = "rgba(255,255,255,.6)";
+  c.fillRect(bx + bw * 0.3 - 1, by - 3, 2, 14 * fz + 6);
+  if (V.titanSh > 0.5) {
+    c.fillStyle = "#7ae0ff";
+    c.fillRect(bx, by + 8 * fz, bw * Math.min(1, V.titanSh / r.titan.max) , 6 * fz);
+  }
+}
+
+function rageBanner(c: Ctx, V: View, W: number, y: number, fz: number) {
+  if (V.rageAge < 0) return;
+  const k = V.rageAge;
+  if (k < 0.3) {
+    c.fillStyle = `rgba(255,40,60,${0.45 * (1 - k / 0.3)})`;
+    c.fillRect(0, 0, W, 2000);
+  }
+  const sl = Math.min(1, k * 5);
+  c.globalAlpha = k > 1.9 ? Math.max(0, 1 - (k - 1.9) * 2) : 1;
+  c.fillStyle = "rgba(170,10,30,.94)";
+  c.fillRect(0, y, W * sl, 70 * fz);
+  if (sl >= 1) {
+    txt(c, "ENRAGED!", W / 2, y + 32 * fz, 24 * fz, "#ffcf40", "center", PX, true);
+    txt(c, "MENGAMUK! Shield up · stomps hit harder", W / 2, y + 56 * fz, 13 * fz, "#fff", "center", `700 ${BODY}`);
+  }
+  c.globalAlpha = 1;
 }
 
 function warnText(c: Ctx, V: View, cx: number, y: number, size: number) {
@@ -411,6 +474,7 @@ export function drawRaidWide(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
   titanBar(c, V, r, 16, 10, 680, 1);
   warnText(c, V, TX, 140, 22);
   messageBox(c, V, TX, 312, 600, 1);
+  rageBanner(c, V, 700, 200, 1);
   // leaderboard
   rr(c, 712, 10, 236, 520, 10);
   c.fillStyle = "rgba(16,10,30,.85)";
@@ -447,60 +511,66 @@ export function drawRaidTall(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
   c.setTransform(2, 0, 0, 2, 0, 0);
   c.clearRect(0, 0, W, H);
   if (V.shake) c.translate((Math.random() - 0.5) * V.shake * 2, (Math.random() - 0.5) * V.shake * 2);
-  floor(c, W, H, 230);
+  floor(c, W, H, 200);
+  // Everything important sits in the top ~45%, so the question card never hides it.
   const TX = 270;
-  const TF = 330;
-  drawTitan(c, V, r, TX, TF, 3.1, t, endAge);
+  const TF = 288;
+  drawTitan(c, V, r, TX, TF, 2.4, t, endAge);
   const mine = r.raiders[me];
   const others = Object.values(r.raiders)
     .filter((x) => x.uid !== me)
     .sort((a, b) => a.slot - b.slot);
-  const per = Math.min(10, Math.max(1, Math.ceil(others.length / 2)));
+  // Other players stand on both sides of yours, in two rows.
+  const cols = Math.max(1, Math.ceil(others.length / 4));
+  const scale = others.length <= 4 ? 1.15 : others.length <= 8 ? 0.95 : 0.78;
   const pos: Record<string, [number, number, number]> = {};
   others.forEach((x, i) => {
-    const row = Math.floor(i / per);
-    const k = i % per;
-    const count = Math.min(per, others.length - row * per);
-    const gap = Math.min(76, 500 / count);
-    const scale = others.length <= 6 ? 1.2 : 0.95;
-    pos[x.uid] = [W / 2 - (gap * (count - 1)) / 2 + k * gap, row ? 404 : 374, scale];
+    const row = Math.floor(i / (cols * 2));
+    const k = i % (cols * 2);
+    const right = k % 2 === 1;
+    const col = Math.floor(k / 2);
+    const span = 150;
+    const gx = cols === 1 ? span / 2 : (col * span) / (cols - 1);
+    const px = right ? 360 + gx : 180 - gx;
+    pos[x.uid] = [px, row ? 372 : 340, scale];
   });
   const myX = 270;
-  const myFeet = 520;
+  const myFeet = 398;
   for (const s of V.shots) {
-    const p = s.uid === me ? [myX, 450] : pos[s.uid] ? [pos[s.uid][0], pos[s.uid][1] - 20] : null;
+    const p = s.uid === me ? [myX, 340] : pos[s.uid] ? [pos[s.uid][0], pos[s.uid][1] - 18] : null;
     if (p) shot(c, p as [number, number], [TX, 200], creatureById(r.raiders[s.uid]?.c).type, s.age, s.sup ? 2 : 1, t);
   }
   const stun = r.stun ?? {};
   for (const x of others) raider(c, V, x, pos[x.uid][0], pos[x.uid][1], pos[x.uid][2], t, (stun[x.uid] ?? 0) > now, players, {});
-  if (mine) raider(c, V, mine, myX, myFeet, 3, t, (stun[me] ?? 0) > now, players, { me: true });
+  if (mine) raider(c, V, mine, myX, myFeet, 2.3, t, (stun[me] ?? 0) > now, players, { me: true });
   for (const p of V.pops) {
     if (p.at !== "titan" && p.at !== me) continue;
-    const [x, y] = p.at === "titan" ? [TX + 70, 170] : [myX + 80, 410];
+    const [x, y] = p.at === "titan" ? [TX + 70, 170] : [myX + 70, 330];
     c.globalAlpha = Math.min(1, (1.1 - p.age) * 3);
     txt(c, p.text, x, y - p.age * 40, p.big ? 28 : 20, p.col, "center", PX, true);
     c.globalAlpha = 1;
   }
   titanBar(c, V, r, 10, 10, 520, 1.1);
   if (mine) {
-    rr(c, 150, 532, 240, 54, 8);
+    rr(c, 150, 406, 240, 52, 8);
     c.fillStyle = "rgba(16,14,40,.9)";
     c.fill();
     const label = `${name(players, me)} · ${creatureById(mine.c).en}`;
-    txt(c, label, 162, 552, fit(c, label, 216, 15, 10, `700 ${BODY}`), "#fff", "left", `700 ${BODY}`);
+    txt(c, label, 162, 425, fit(c, label, 216, 15, 10, `700 ${BODY}`), "#fff", "left", `700 ${BODY}`);
     c.fillStyle = "#3a3560";
-    c.fillRect(162, 560, 216, 8);
+    c.fillRect(162, 432, 216, 8);
     const hp = V.hp[me] ?? 0;
     c.fillStyle = hpCol(hp / mine.max);
-    c.fillRect(162, 560, (216 * hp) / mine.max, 8);
-    txt(c, `${Math.ceil(hp)}/${mine.max} HP · ${mine.pts.toLocaleString()} ${r.mode === "hs" ? "pts" : "dmg"}`, 162, 580, 12, "#cfc8f0", "left", `600 ${BODY}`);
+    c.fillRect(162, 432, (216 * hp) / mine.max, 8);
+    txt(c, `${Math.ceil(hp)}/${mine.max} HP · ${mine.pts.toLocaleString()} ${r.mode === "hs" ? "pts" : "dmg"}`, 162, 452, 12, "#cfc8f0", "left", `600 ${BODY}`);
   }
-  warnText(c, V, TX, 150, 26);
-  messageBox(c, V, W / 2, 76, 500, 1.2);
-  rr(c, W - 92, 136, 82, 28, 6);
+  warnText(c, V, TX, 196, 26);
+  messageBox(c, V, W / 2, 66, 500, 1.2);
+  rageBanner(c, V, W, 190, 1.2);
+  rr(c, W - 92, 120, 82, 28, 6);
   c.fillStyle = "rgba(16,10,30,.85)";
   c.fill();
-  txt(c, clock(raidElapsed(r, game, now)), W - 51, 156, 12, "#ffcf40", "center");
+  txt(c, clock(raidElapsed(r, game, now)), W - 51, 140, 12, "#ffcf40", "center");
   c.setTransform(1, 0, 0, 1, 0, 0);
 }
 

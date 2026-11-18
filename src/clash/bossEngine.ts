@@ -20,7 +20,8 @@ const TF_OPTS = [
 /** What the screens see. nextStomp: server time of the next stomp. pausedMs: time spent paused (left out of the clock). */
 export type RaidBoard = Raid & { nextStomp: number; stun?: Record<string, number>; pausedMs: number };
 export type RaidEvent =
-  | { n: number; at: number; kind: "atk"; uid: string; dmg: number; fast: boolean; sup: boolean }
+  | { n: number; at: number; kind: "atk"; uid: string; dmg: number; fast: boolean; sup: boolean; blk?: number }
+  | { n: number; at: number; kind: "rage"; sh: number; stomp: number }
   | { n: number; at: number; kind: "wrong"; uid: string; timeout: boolean }
   | { n: number; at: number; kind: "stomp"; dmg: number; hit: string[]; fainted: string[] }
   | { n: number; at: number; kind: "revive"; uid: string; ok: boolean };
@@ -255,7 +256,8 @@ export class BossEngine {
       const fast = now - q.askedAt <= FAST_MS;
       const hit = raidHit(r, uid, fast);
       if (!hit) return false;
-      this.push({ n: 0, at: now, kind: "atk", uid, dmg: hit.dmg, fast, sup: hit.sup });
+      this.push({ n: 0, at: now, kind: "atk", uid, dmg: hit.dmg, fast, sup: hit.sup, blk: hit.blocked });
+      if (hit.rage) this.push({ n: 0, at: now + 700, kind: "rage", sh: r.titan.sh, stomp: r.stomp });
       result = { correct: true, timeout: false, correctIdx: q.correctIdx, dmg: hit.dmg, hits: 1, fast, sup: hit.sup };
       q.nextAt = now + RESULT_MS;
     } else {
@@ -313,7 +315,7 @@ export function fixRaid(x: unknown): RaidBoard | null {
   const r = x as Partial<RaidBoard>;
   return {
     mode: r.mode === "hs" ? "hs" : "ta",
-    titan: r.titan ?? { hp: 0, max: 1 },
+    titan: { hp: r.titan?.hp ?? 0, max: r.titan?.max ?? 1, sh: r.titan?.sh ?? 0, rage: !!r.titan?.rage },
     raiders: r.raiders ?? {},
     streak: r.streak ?? {},
     stomp: r.stomp ?? 0,
