@@ -30,7 +30,7 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
   await proj.getByPlaceholder("PIN").fill("2468");
   await proj.getByRole("button", { name: "Save PIN" }).click();
   await proj.getByText("Scan to join").waitFor({ timeout: 15000 });
-  await proj.getByRole("radio", { name: /Quality Clash/ }).click();
+  await proj.getByRole("button", { name: /Quality Clash/ }).click();
   await proj.getByRole("radio", { name: /Boss Raid/ }).click();
   await proj.getByRole("radio", { name: MODE === "hs" ? /High Score/ : /Time Attack/ }).click();
   await proj.waitForTimeout(400);

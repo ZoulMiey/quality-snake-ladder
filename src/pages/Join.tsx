@@ -211,8 +211,14 @@ function Lobby({ uid, me, tokens, mode, variant }: { uid: string; me: Player; to
         {t.emoji}
       </div>
       <h2>{me.name}</h2>
-      <Bi en="You're in! Watch the big screen. The game starts soon." ms="Anda sudah masuk! Lihat skrin besar. Permainan akan bermula." />
-      <Rules compact mode={mode} variant={variant} />
+      {mode ? (
+        <>
+          <Bi en="You're in! Watch the big screen. The game starts soon." ms="Anda sudah masuk! Lihat skrin besar. Permainan akan bermula." />
+          <Rules compact mode={mode} variant={variant} />
+        </>
+      ) : (
+        <Bi en="You're in! Waiting for the host to choose a game…" ms="Anda sudah masuk! Menunggu hos memilih permainan…" />
+      )}
       {changing ? (
         <TokenPicker uid={uid} tokens={tokens} value={me.token} onPick={pick} />
       ) : (

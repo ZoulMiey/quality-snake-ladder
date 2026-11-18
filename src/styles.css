@@ -623,3 +623,26 @@ button:disabled { cursor: default; }
 @media (prefers-reduced-motion: reduce) { .cph-stage.shake { animation: none; } }
 .clash-win.raid-win { background: rgba(10,8,30,.9); }
 .raid-win .big-btn { width: auto; display: inline-block; padding: 12px 28px; font-size: 20px; }
+/* ---------- Lobby: game list, then the chosen game ---------- */
+.game-list { display: grid; gap: 14px; }
+.gl-title { font-family: var(--display); font-size: 38px; margin: 0 0 4px; line-height: 1.1; }
+.gl-title span { display: block; font-family: var(--body); font-size: 18px; font-weight: 500; opacity: .75; }
+.game-card { display: grid; grid-template-columns: clamp(180px, 16vw, 280px) minmax(0, 1fr) auto; gap: 18px; align-items: center; text-align: left; padding: 14px; border-radius: 18px; border: 3px solid rgba(255,255,255,.16); background: rgba(0,0,0,.2); color: #fff; transition: border-color .15s, background .15s, transform .1s; }
+.game-card:hover { border-color: var(--gold); background: rgba(245,197,66,.12); }
+.game-card:active { transform: scale(.99); }
+.game-preview { display: block; width: 100%; aspect-ratio: 16 / 9; height: auto; border-radius: 10px; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+.gc-text { display: grid; gap: 2px; min-width: 0; }
+.gc-name { font-family: var(--display); font-weight: 800; font-size: clamp(24px, 2.2vw, 34px); line-height: 1.05; }
+.gc-ms { font-size: 16px; opacity: .75; margin-bottom: 6px; }
+.gc-desc { font-size: 17px; line-height: 1.3; }
+.gc-desc.ms { font-size: 14px; opacity: .7; }
+.gc-go { font-size: 48px; color: var(--gold); padding: 0 8px; }
+.game-detail { display: grid; gap: 4px; }
+.gd-head { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,.15); }
+.game-preview.small { width: 150px; flex: none; }
+.gd-name { display: grid; line-height: 1.05; min-width: 0; }
+.gd-name .en { font-family: var(--display); font-weight: 800; font-size: 34px; }
+.gd-name .ms { font-size: 16px; opacity: .75; }
+.gd-change { margin-left: auto; font-size: 16px; padding: 10px 14px; }
+.gd-change span { opacity: .75; font-weight: 500; }
+@media (max-width: 900px) { .game-card { grid-template-columns: 1fr; } .gc-go { display: none; } .gd-head { flex-wrap: wrap; } }

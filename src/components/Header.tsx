@@ -7,7 +7,7 @@ export const GAME_NAMES: Record<GameMode, { en: string; ms: string; icon: string
 };
 
 export default function Header({ small, children, mode }: { small?: boolean; children?: React.ReactNode; mode?: GameMode }) {
-  const name = GAME_NAMES[mode ?? "snake"];
+  const name = mode ? GAME_NAMES[mode] : { en: "Quality Games", ms: "Permainan Kualiti", icon: "🎮" };
   return (
     <header className={`qm-header ${small ? "small" : ""}`}>
       <div className="qm-ribbon">Quality Month 2026</div>

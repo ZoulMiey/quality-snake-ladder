@@ -12,7 +12,7 @@ A web app with three live, projector-based games for Quality Month 2026. Players
 | **Quality Cart** (Kart Kualiti) | Tilt to steer, use items, answer pop-up questions, 16-bit driver's view | Top-down race track with all carts, positions, live feed |
 | **Quality Clash** (Pertempuran Kualiti) | Pick a team and creature(s), answer questions to attack | 16-bit 3 v 3 battle arena with HP bars, attacks, shields |
 
-The host chooses the game in the projector lobby. Everything is bilingual: English on top, Malay underneath.
+The host chooses the game in the projector lobby: the big QR code stays on the left; on the right is a list of game cards (with a small preview picture). Picking one hides the others and shows that game's options, players, rules and Start button; "← Change game" goes back to the list. Until a game is picked, phones that join see "Waiting for the host to choose a game". The picked game is `game.mode` (no mode = the list); "New game" keeps the picked game. Everything is bilingual: English on top, Malay underneath.
 
 ## Where things are
 

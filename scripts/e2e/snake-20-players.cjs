@@ -21,6 +21,7 @@ const NAMES = ["Aina", "Bala", "Chong", "Dewi", "Eric", "Farah", "Gopal", "Hana"
   await proj.getByPlaceholder("PIN").fill("2468");
   await proj.getByRole("button", { name: "Save PIN" }).click();
   await proj.getByText("Scan to join").waitFor({ timeout: 15000 });
+  await proj.getByRole("button", { name: /Snake & Ladder/ }).click();
 
   const phones = [];
   for (const name of NAMES) {

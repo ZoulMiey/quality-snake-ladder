@@ -37,7 +37,7 @@ const PLAYERS =
   await proj.getByPlaceholder("PIN").fill("2468");
   await proj.getByRole("button", { name: "Save PIN" }).click();
   await proj.getByText("Scan to join").waitFor({ timeout: 15000 });
-  await proj.getByRole("radio", { name: /Quality Clash/ }).click();
+  await proj.getByRole("button", { name: /Quality Clash/ }).click();
   await proj.getByRole("radio", { name: MODE === "solo" ? /Single 1 v 1/ : /Team 3 v 3/ }).click();
   await proj.waitForTimeout(500);
 

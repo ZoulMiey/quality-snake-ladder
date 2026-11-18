@@ -20,7 +20,7 @@ const NAMES = ["Aina", "Bala", "Chong", "Dewi", "Eric", "Farah"];
   await proj.getByPlaceholder("PIN").fill("2468");
   await proj.getByRole("button", { name: "Save PIN" }).click();
   await proj.getByText("Scan to join").waitFor({ timeout: 15000 });
-  await proj.getByRole("radio", { name: /Quality Cart/ }).click();
+  await proj.getByRole("button", { name: /Quality Cart/ }).click();
   await proj.waitForTimeout(500);
 
   const phones = [];

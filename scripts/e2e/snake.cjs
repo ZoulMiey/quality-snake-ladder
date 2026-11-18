@@ -18,6 +18,7 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
   await proj.getByPlaceholder("PIN").fill("2468");
   await proj.getByRole("button", { name: "Save PIN" }).click();
   await proj.getByText("Scan to join").waitFor({ timeout: 15000 });
+  await proj.getByRole("button", { name: /Snake & Ladder/ }).click();
   log("projector ready (PIN created)");
 
   const names = [["Aina", "Lion"], ["Bala", "Rocket"], ["Chong", "Bee"]];

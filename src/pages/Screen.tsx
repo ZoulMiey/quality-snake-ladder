@@ -17,6 +17,7 @@ import { ClashFormatPick, ClashRoster, useLineUp } from "../clash/ClashLobby.tsx
 import Qr from "../components/Qr.tsx";
 import Countdown from "../components/Countdown.tsx";
 import Rules from "../components/Rules.tsx";
+import GamePreview from "../components/GamePreview.tsx";
 import { eventById } from "../lib/specials.ts";
 import { DiceRoll } from "../components/Dice.tsx";
 import QuestionManager, { seedQuestionsIfEmpty } from "../components/QuestionManager.tsx";
@@ -303,7 +304,7 @@ function HostScreen() {
           players={players ?? {}}
           onStart={start}
           enabledQs={enabledQs}
-          mode={game?.mode ?? "snake"}
+          mode={game?.mode ?? null}
           onMode={(m) => update(ref(db, "game"), { mode: m, status: game?.status ?? "lobby" })}
           clashFormat={game?.clashFormat ?? "team"}
           onClashFormat={(f) => update(ref(db, "game"), { clashFormat: f, status: game?.status ?? "lobby" })}
@@ -322,6 +323,12 @@ function HostScreen() {
   );
 }
 
+const GAMES: { m: GameMode; desc: string; ms: string }[] = [
+  { m: "snake", desc: "Answer to roll the dice. Climb ladders, dodge snakes, reach box 100.", ms: "Jawab untuk baling dadu. Panjat tangga, elak ular, sampai petak 100." },
+  { m: "kart", desc: "Tilt your phone to steer. Right answers give turbo. 3 laps.", ms: "Condongkan telefon untuk memandu. Jawapan betul beri turbo. 3 pusingan." },
+  { m: "clash", desc: "Monster battles: Single 1 v 1, Team 3 v 3 or Boss Raid.", ms: "Pertarungan raksasa: 1 lawan 1, 3 lawan 3 atau Serangan Bos." },
+];
+
 function LobbyView({
   players,
   onStart,
@@ -336,8 +343,8 @@ function LobbyView({
   players: Record<string, Player>;
   onStart: () => void;
   enabledQs: number;
-  mode: GameMode;
-  onMode: (m: GameMode) => void;
+  mode: GameMode | null;
+  onMode: (m: GameMode | null) => void;
   clashFormat: "team" | "solo" | "boss";
   onClashFormat: (f: "team" | "solo" | "boss") => void;
   bossMode: "ta" | "hs";
@@ -345,7 +352,7 @@ function LobbyView({
 }) {
   const url = `${location.origin}/join`;
   const clash = useLineUp(clashFormat, players);
-  const canStart = !!list0(players).length && !!enabledQs && (mode !== "clash" || clash.ready);
+  const canStart = !!mode && !!list0(players).length && !!enabledQs && (mode !== "clash" || clash.ready);
   const list = Object.entries(players).sort((a, b) => (a[1].joinedAt ?? 0) - (b[1].joinedAt ?? 0));
   return (
     <main className="lobby">
@@ -358,48 +365,75 @@ function LobbyView({
         <div className="url">{url.replace(/^https?:\/\//, "")}</div>
       </section>
       <section className="lobby-side">
-        <div className="mode-pick" role="radiogroup" aria-label="Choose the game">
-          {(["snake", "kart", "clash"] as GameMode[]).map((m) => (
-            <button key={m} role="radio" aria-checked={mode === m} className={`mode-btn ${mode === m ? "on" : ""}`} onClick={() => onMode(m)}>
-              <span className="mode-icon">{GAME_NAMES[m].icon}</span>
-              <span className="mode-text">
-                <span className="en">{GAME_NAMES[m].en}</span>
-                <span className="ms">{GAME_NAMES[m].ms}</span>
-              </span>
-            </button>
-          ))}
-        </div>
-        {mode === "clash" && <ClashFormatPick format={clashFormat} onFormat={onClashFormat} bossMode={bossMode} onBossMode={onBossMode} />}
-        <div className="lobby-head">
-          <h2>
-            Players <span className="count">{list.length}/{MAX_PLAYERS}</span>
-          </h2>
-          <button className="big-btn start" disabled={!canStart} onClick={onStart}>
-            ▶ Start game
-          </button>
-        </div>
-        {!list.length && <p className="waiting">Waiting for players to scan the QR code… / Menunggu pemain…</p>}
-        {mode === "clash" && list.length > 0 && <ClashRoster format={clashFormat} players={players} />}
-        {mode === "clash" && list.length > 0 && !clash.ready && (
-          <p className="waiting">
-            {clashFormat === "boss" ? "Waiting for at least one player to pick a monster." : clashFormat === "solo" ? "Waiting for one player on Red and one on Blue, each with 3 monsters." : "Waiting for at least one player on each team."} Players pick on their phones.
-          </p>
+        {!mode ? (
+          <div className="game-list">
+            <h2 className="gl-title">
+              Choose a game <span>Pilih permainan</span>
+            </h2>
+            {GAMES.map((g) => (
+              <button key={g.m} className="game-card" onClick={() => onMode(g.m)}>
+                <GamePreview mode={g.m} />
+                <span className="gc-text">
+                  <span className="gc-name">
+                    {GAME_NAMES[g.m].icon} {GAME_NAMES[g.m].en}
+                  </span>
+                  <span className="gc-ms">{GAME_NAMES[g.m].ms}</span>
+                  <span className="gc-desc">{g.desc}</span>
+                  <span className="gc-desc ms">{g.ms}</span>
+                </span>
+                <span className="gc-go" aria-hidden="true">
+                  ›
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="game-detail">
+            <div className="gd-head">
+              <GamePreview mode={mode} className="small" />
+              <div className="gd-name">
+                <span className="en">
+                  {GAME_NAMES[mode].icon} {GAME_NAMES[mode].en}
+                </span>
+                <span className="ms">{GAME_NAMES[mode].ms}</span>
+              </div>
+              <button className="btn gd-change" onClick={() => onMode(null)}>
+                ← Change game <span>/ Tukar permainan</span>
+              </button>
+            </div>
+            {mode === "clash" && <ClashFormatPick format={clashFormat} onFormat={onClashFormat} bossMode={bossMode} onBossMode={onBossMode} />}
+            <div className="lobby-head">
+              <h2>
+                Players <span className="count">{list.length}/{MAX_PLAYERS}</span>
+              </h2>
+              <button className="big-btn start" disabled={!canStart} onClick={onStart}>
+                ▶ Start game
+              </button>
+            </div>
+            {!list.length && <p className="waiting">Waiting for players to scan the QR code… / Menunggu pemain…</p>}
+            {mode === "clash" && list.length > 0 && <ClashRoster format={clashFormat} players={players} />}
+            {mode === "clash" && list.length > 0 && !clash.ready && (
+              <p className="waiting">
+                {clashFormat === "boss" ? "Waiting for at least one player to pick a monster." : clashFormat === "solo" ? "Waiting for one player on Red and one on Blue, each with 3 monsters." : "Waiting for at least one player on each team."} Players pick on their phones.
+              </p>
+            )}
+            <ul className={`lobby-players ${list.length > 10 ? "many" : ""}`}>
+              {list.map(([uid, p]) => {
+                const t = tokenById(p.token);
+                return (
+                  <li key={uid} style={{ ["--c" as string]: t.color }}>
+                    <span className="lp-emoji">{t.emoji}</span>
+                    <span className="lp-name">{p.name}</span>
+                    <button className="x" aria-label={`Remove ${p.name}`} onClick={() => removePlayer(uid, p.token)}>
+                      ×
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            <Rules mode={mode} variant={mode === "clash" ? clashFormat : undefined} />
+          </div>
         )}
-        <ul className={`lobby-players ${list.length > 10 ? "many" : ""}`}>
-          {list.map(([uid, p]) => {
-            const t = tokenById(p.token);
-            return (
-              <li key={uid} style={{ ["--c" as string]: t.color }}>
-                <span className="lp-emoji">{t.emoji}</span>
-                <span className="lp-name">{p.name}</span>
-                <button className="x" aria-label={`Remove ${p.name}`} onClick={() => removePlayer(uid, p.token)}>
-                  ×
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-        <Rules mode={mode} variant={mode === "clash" ? clashFormat : undefined} />
       </section>
     </main>
   );
