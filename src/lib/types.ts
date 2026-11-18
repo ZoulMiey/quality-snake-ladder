@@ -68,6 +68,8 @@ export type Game = {
   paused: boolean;
   pausedAt: number | null;
   startedAt: number | null;
+  /** When the "get ready" countdown ends and the first questions appear. */
+  goAt?: number | null;
   endedAt: number | null;
   winners: string[] | null;
 };

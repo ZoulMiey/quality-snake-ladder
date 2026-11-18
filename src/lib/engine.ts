@@ -7,7 +7,9 @@ import { LAST_BOX } from "./board.ts";
 import { tokenById } from "./tokens.ts";
 import { fixStates, type FeedItem, type Game, type Player, type PlayerState, type Question, type QuestionKind, type Result } from "./types.ts";
 
-export const QUESTION_MS = 20_000;
+export const QUESTION_MS = 30_000;
+/** "Get ready" countdown before the first question. */
+export const COUNTDOWN_MS = 5_000;
 export const MAX_WINNERS = 5;
 const RESULT_MS_DICE = 3_000;
 const RESULT_MS_SHORT = 2_200;
@@ -49,7 +51,7 @@ export class Engine {
     this.priv = {};
     this.used = {};
     this.feed = [{ at: now, uid: "", text: "Game started! Good luck everyone.", tone: "info" }];
-    this.game = { status: "playing", engine: this.tabId, paused: false, pausedAt: null, startedAt: now, endedAt: null, winners: [] };
+    this.game = { status: "playing", engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt: now + COUNTDOWN_MS, endedAt: null, winners: [] };
 
     const updates: Record<string, unknown> = {
       answers: null,
@@ -74,8 +76,8 @@ export class Engine {
         correct: 0,
         answered: 0,
       };
-      this.ask(uid, "turn", now, updates);
     }
+    // The first questions go out when the countdown ends (see tick).
     // One write for each section (Firebase refuses a section and an item inside it in the same update).
     for (const k of Object.keys(updates)) if (k.includes("/")) delete updates[k];
     updates.state = this.states;
@@ -149,6 +151,10 @@ export class Engine {
     if (!this.game || !this.game.paused) return;
     const shift = serverNow() - (this.game.pausedAt ?? serverNow());
     const updates: Record<string, unknown> = { "game/paused": false, "game/pausedAt": null };
+    if (this.game.goAt && this.game.goAt > (this.game.pausedAt ?? 0)) {
+      this.game.goAt += shift;
+      updates["game/goAt"] = this.game.goAt;
+    }
     for (const [uid, st] of Object.entries(this.states)) {
       if (st.phase === "question") {
         st.deadline += shift;
@@ -198,8 +204,13 @@ export class Engine {
   private tick() {
     if (!this.game || this.game.status !== "playing" || this.game.paused) return;
     const now = serverNow();
+    if (this.game.goAt && now < this.game.goAt) return;
     for (const [uid, st] of Object.entries(this.states)) {
       if (this.busy.has(uid)) continue;
+      if (st.phase === "wait") {
+        void this.next(uid);
+        continue;
+      }
       if (st.phase === "question" && now > st.deadline + GRACE_MS) void this.judge(uid, null);
       else if (st.phase === "result" && now > st.until) void this.next(uid);
     }
@@ -317,7 +328,7 @@ function describe(icon: string, name: string, r: Result): string {
 /** Remove everything from the last game. Players will need to join again. */
 export async function resetGame() {
   await update(ref(db), {
-    game: { status: "lobby", engine: null, paused: false, pausedAt: null, startedAt: null, endedAt: null, winners: [] },
+    game: { status: "lobby", engine: null, paused: false, pausedAt: null, startedAt: null, goAt: null, endedAt: null, winners: [] },
     players: null,
     tokens: null,
     state: null,
@@ -331,7 +342,7 @@ export async function resetGame() {
 /** Back to the lobby with the same players (they don't need to scan again). */
 export async function playAgain() {
   await update(ref(db), {
-    game: { status: "lobby", engine: null, paused: false, pausedAt: null, startedAt: null, endedAt: null, winners: [] },
+    game: { status: "lobby", engine: null, paused: false, pausedAt: null, startedAt: null, goAt: null, endedAt: null, winners: [] },
     state: null,
     private: null,
     used: null,

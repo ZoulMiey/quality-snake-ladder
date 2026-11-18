@@ -60,6 +60,13 @@ export const sfx = {
   win() {
     [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, i * 0.13, 0.22, "triangle", 0.2));
   },
+  count() {
+    tone(660, 0, 0.15, "square", 0.1);
+  },
+  go() {
+    tone(880, 0, 0.12, "square", 0.12);
+    tone(1320, 0.1, 0.35, "square", 0.12);
+  },
   join() {
     tone(784, 0, 0.1, "triangle", 0.12);
   },

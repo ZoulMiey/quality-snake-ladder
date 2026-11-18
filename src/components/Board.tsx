@@ -1,14 +1,15 @@
 import { useMemo } from "react";
-import { COLS, ROWS, LADDERS, SNAKES, LAST_BOX, FINAL_ZONE_START, cellOf } from "../lib/board.ts";
+import { COLS, ROWS, LADDERS, SNAKES, LAST_BOX, FINAL_ZONE_START, FINAL_ZONE_NEED, cellOf } from "../lib/board.ts";
 import { tokenById } from "../lib/tokens.ts";
 import type { Player, PlayerState } from "../lib/types.ts";
 
-const W = 1000;
-const H = 500;
+// Board units: 100 per box.
+const W = COLS * 100;
+const H = ROWS * 100;
 const CW = W / COLS;
 const CH = H / ROWS;
 
-/** Centre of a box in board units (0–1000 wide, 0–500 high). */
+/** Centre of a box in board units. */
 function centre(box: number) {
   const { col, row } = cellOf(box);
   return { x: col * CW + CW / 2, y: row * CH + CH / 2 };
@@ -47,7 +48,7 @@ function Snake({ head, tail, i }: { head: number; tail: number; i: number }) {
   const len = Math.hypot(dx, dy);
   const nx = -dy / len;
   const ny = dx / len;
-  const wig = Math.min(46, len / 4);
+  const wig = Math.min(40, len / 5);
   const p = (t: number, w: number) => `${a.x + dx * t + nx * w},${a.y + dy * t + ny * w}`;
   const d = `M${p(0, 0)} C${p(0.25, wig)} ${p(0.25, wig)} ${p(0.5, 0)} S${p(0.75, -wig)} ${p(1, 0)}`;
   const color = SNAKE_COLORS[i % SNAKE_COLORS.length];
@@ -99,9 +100,6 @@ export default function Board({ pieces, highlight }: { pieces: BoardPiece[]; hig
             ].join(" ");
             return (
               <div key={n} className={cls} style={{ gridColumn: col + 1, gridRow: row + 1 }}>
-                <span className="num">{n}</span>
-                {n === LAST_BOX && <span className="finish-label">🏆 FINISH</span>}
-                {n === FINAL_ZONE_START && <span className="zone-label">Need 6+</span>}
               </div>
             );
           })}
@@ -114,6 +112,19 @@ export default function Board({ pieces, highlight }: { pieces: BoardPiece[]; hig
             <Snake key={h} head={+h} tail={t} i={i} />
           ))}
         </svg>
+        {/* Box numbers sit above the snakes and ladders so they are never hidden. */}
+        <div className="cells nums" aria-hidden="true">
+          {cells.map((n) => {
+            const { col, row } = cellOf(n);
+            return (
+              <div key={n} style={{ gridColumn: col + 1, gridRow: row + 1, position: "relative" }}>
+                <span className="num">{n}</span>
+                {n === LAST_BOX && <span className="finish-label">🏆 FINISH</span>}
+                {n === FINAL_ZONE_START && <span className="zone-label">Need {FINAL_ZONE_NEED}+</span>}
+              </div>
+            );
+          })}
+        </div>
         <div className="pieces">
           {[...byBox.entries()]
             .filter(([box]) => box > 0)

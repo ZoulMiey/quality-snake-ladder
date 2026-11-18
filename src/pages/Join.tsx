@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ref, set, remove, serverTimestamp } from "firebase/database";
-import { db, ensureSignedIn, serverNow } from "../lib/firebase.ts";
+import { auth, db, ensureSignedIn, serverNow } from "../lib/firebase.ts";
+import { signOut } from "firebase/auth";
+import Countdown from "../components/Countdown.tsx";
 import { useDbValue, useNow } from "../lib/useDb.ts";
 import { TOKENS, tokenById } from "../lib/tokens.ts";
-import { LADDERS, SNAKES, LAST_BOX, inFinalZone, FINAL_ZONE_NEED } from "../lib/board.ts";
+import { LADDERS, SNAKES, LAST_BOX, inFinalZone, FINAL_ZONE_NEED, FINAL_ZONE_START } from "../lib/board.ts";
 import { QUESTION_MS } from "../lib/engine.ts";
 import { DiceRoll } from "../components/Dice.tsx";
 import { sfx, unlockAudio } from "../lib/sound.ts";
@@ -22,6 +24,7 @@ function Bi({ en, ms, className }: { en: string; ms: string; className?: string 
 export default function Join() {
   const [uid, setUid] = useState<string | null>(null);
   const [err, setErr] = useState("");
+  const [exited, setExited] = useState(false);
   useEffect(() => {
     ensureSignedIn()
       .then((u) => setUid(u.uid))
@@ -34,8 +37,24 @@ export default function Join() {
   const stateRaw = useDbValue<PlayerState>(uid ? `state/${uid}` : null);
   const state = useMemo(() => fixState(stateRaw), [stateRaw]);
 
+  async function exit() {
+    setExited(true);
+    await signOut(auth).catch(() => {});
+  }
+
   let body;
-  if (err) body = <p className="card error">{err}</p>;
+  if (exited)
+    body = (
+      <div className="card center won">
+        <div className="trophy">👋</div>
+        <Bi en="Thank you for playing!" ms="Terima kasih kerana bermain!" className="title" />
+        <p className="muted">You can close this page now. / Anda boleh tutup halaman ini.</p>
+        <button className="big-btn" onClick={() => location.reload()}>
+          Join a new game / Sertai permainan baharu
+        </button>
+      </div>
+    );
+  else if (err) body = <p className="card error">{err}</p>;
   else if (!uid || game === undefined || me === undefined || tokens === undefined) body = <p className="card muted">Connecting… / Menyambung…</p>;
   else if (!me) {
     if (game && game.status !== "lobby")
@@ -47,7 +66,7 @@ export default function Join() {
       );
     else body = <JoinForm uid={uid} tokens={tokens ?? {}} />;
   } else if (!game || game.status === "lobby") body = <Lobby uid={uid} me={me} tokens={tokens ?? {}} />;
-  else body = <Play uid={uid} me={me} game={game} state={state ?? null} />;
+  else body = <Play uid={uid} me={me} game={game} state={state ?? null} onExit={exit} />;
 
   return (
     <div className="phone">
@@ -210,8 +229,13 @@ function HowTo() {
         <small>Ular: betul = kekal, salah = turun. Tangga: betul = naik, salah = kekal.</small>
       </li>
       <li>
-        <b>Boxes 46–49:</b> you need 6 or more to finish. Wrong answer = no roll.
-        <small>Petak 46–49: perlu 6 atau lebih untuk tamat. Salah = tiada balingan.</small>
+        <b>
+          Boxes {FINAL_ZONE_START}–{LAST_BOX - 1}:
+        </b>{" "}
+        you need {FINAL_ZONE_NEED} or more to finish. Wrong answer = no roll.
+        <small>
+          Petak {FINAL_ZONE_START}–{LAST_BOX - 1}: perlu {FINAL_ZONE_NEED} atau lebih untuk tamat. Salah = tiada balingan.
+        </small>
       </li>
     </ul>
   );
@@ -234,11 +258,13 @@ function StatusStrip({ me, st }: { me: Player; st: PlayerState | null }) {
   );
 }
 
-function Play({ uid, me, game, state }: { uid: string; me: Player; game: Game; state: PlayerState | null }) {
+function Play({ uid, me, game, state, onExit }: { uid: string; me: Player; game: Game; state: PlayerState | null; onExit: () => void }) {
   if (!state) return <p className="card muted">Getting ready… / Bersedia…</p>;
   let inner;
+  const ended = game.status === "ended";
   if (state.phase === "won") inner = <Won rank={state.rank ?? 0} />;
-  else if (game.status === "ended") inner = <Ended st={state} />;
+  else if (ended) inner = <Ended st={state} />;
+  else if (state.phase === "wait" && game.goAt) inner = <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="phone-cd" />;
   else if (state.phase === "question") inner = <QuestionCard uid={uid} st={state} paused={game.paused} pausedAt={game.pausedAt} />;
   else if (state.phase === "result" && state.result) inner = <ResultCard r={state.result} seq={state.seq} />;
   else inner = <p className="card muted">Get ready… / Bersedia…</p>;
@@ -247,6 +273,11 @@ function Play({ uid, me, game, state }: { uid: string; me: Player; game: Game; s
       <StatusStrip me={me} st={state} />
       {game.paused && game.status === "playing" && <div className="paused-bar">Paused by host / Dihentikan seketika</div>}
       {inner}
+      {ended && (
+        <button className="big-btn exit-btn" onClick={onExit}>
+          Exit / Keluar
+        </button>
+      )}
     </>
   );
 }

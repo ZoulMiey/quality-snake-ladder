@@ -1,28 +1,33 @@
-// The board: 50 boxes, 5 rows of 10, zig-zag from box 1 (bottom left) to box 50 (top left).
+// The board: 100 boxes, 10 rows of 10, zig-zag from box 1 (bottom left) to box 100 (top left).
 
-export const LAST_BOX = 50;
-/** Boxes 46–49: a total of 6 or more is needed to finish. */
-export const FINAL_ZONE_START = 46;
+export const LAST_BOX = 100;
+/** Boxes 96–99: a total of 6 or more is needed to finish. */
+export const FINAL_ZONE_START = 96;
 export const FINAL_ZONE_NEED = 6;
 export const COLS = 10;
-export const ROWS = 5;
+export const ROWS = 10;
 
-/** bottom of ladder -> top of ladder */
+/** bottom of ladder -> top of ladder (mostly straight up, so the board stays easy to read) */
 export const LADDERS: Record<number, number> = {
-  3: 18,
+  4: 37,
   9: 32,
-  13: 28,
-  21: 40,
-  26: 35,
+  21: 60,
+  26: 55,
+  43: 78,
+  50: 71,
+  66: 86,
 };
 
 /** snake head -> snake tail */
 export const SNAKES: Record<number, number> = {
-  19: 2,
   30: 11,
-  34: 14,
-  44: 24,
-  47: 33,
+  36: 5,
+  47: 14,
+  48: 28,
+  62: 39,
+  87: 54,
+  89: 69,
+  97: 64,
 };
 
 export const inFinalZone = (box: number) => box >= FINAL_ZONE_START && box < LAST_BOX;

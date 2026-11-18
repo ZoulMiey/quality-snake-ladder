@@ -8,6 +8,9 @@ import { isMuted, setMuted, sfx, unlockAudio } from "../lib/sound.ts";
 import Board, { type BoardPiece } from "../components/Board.tsx";
 import Header from "../components/Header.tsx";
 import Qr from "../components/Qr.tsx";
+import { FINAL_ZONE_NEED, FINAL_ZONE_START, LAST_BOX } from "../lib/board.ts";
+import Countdown from "../components/Countdown.tsx";
+import { DiceRoll } from "../components/Dice.tsx";
 import QuestionManager, { seedQuestionsIfEmpty } from "../components/QuestionManager.tsx";
 import { fixStates, type FeedItem, type Game, type Player, type PlayerState, type Question } from "../lib/types.ts";
 
@@ -105,6 +108,7 @@ function HostScreen() {
   const [confirm, setConfirm] = useState<null | "reset" | "end">(null);
   const [msg, setMsg] = useState("");
   const [highlight, setHighlight] = useState<string | null>(null);
+  const [lastRoll, setLastRoll] = useState<{ uid: string; seq: number; dice: number[]; bonus: boolean } | null>(null);
 
   const status = game?.status ?? "lobby";
   const iRun = status === "playing" && game?.engine === tabId;
@@ -133,6 +137,7 @@ function HostScreen() {
       lastSeq.current[uid] = st.seq;
       if (prev === undefined || prev === st.seq || !st.result) continue;
       setHighlight(uid);
+      if (st.result.dice.length) setLastRoll({ uid, seq: st.seq, dice: st.result.dice, bonus: st.result.bonus });
       const o = st.result.outcome;
       if (o === "win") sfx.win();
       else if (o === "climb") sfx.ladder();
@@ -255,7 +260,7 @@ function HostScreen() {
 
       {status === "lobby" && <LobbyView players={players ?? {}} onStart={start} enabledQs={enabledQs} />}
       {status !== "lobby" && (
-        <GameView game={game!} players={players ?? {}} states={states ?? {}} feed={feed} highlight={highlight} onAgain={() => playAgain()} />
+        <GameView game={game!} players={players ?? {}} states={states ?? {}} feed={feed} highlight={highlight} lastRoll={lastRoll} onAgain={() => playAgain()} />
       )}
       {showQs && <QuestionManager onClose={() => setShowQs(false)} />}
     </div>
@@ -311,8 +316,10 @@ function LobbyView({ players, onStart, enabledQs }: { players: Record<string, Pl
               <small>Ular: betul = kekal, salah = turun. Tangga: betul = naik, salah = kekal.</small>
             </li>
             <li>
-              Boxes 46–49: roll 6 or more to finish. First {MAX_WINNERS} to box 50 win!
-              <small>Petak 46–49: perlu 6 atau lebih untuk tamat. {MAX_WINNERS} pemain pertama ke petak 50 menang!</small>
+              Boxes {FINAL_ZONE_START}–{LAST_BOX - 1}: roll {FINAL_ZONE_NEED} or more to finish. First {MAX_WINNERS} to box {LAST_BOX} win!
+              <small>
+                Petak {FINAL_ZONE_START}–{LAST_BOX - 1}: perlu {FINAL_ZONE_NEED} atau lebih untuk tamat. {MAX_WINNERS} pemain pertama ke petak {LAST_BOX} menang!
+              </small>
             </li>
           </ul>
         </div>
@@ -327,6 +334,7 @@ function GameView({
   states,
   feed,
   highlight,
+  lastRoll,
   onAgain,
 }: {
   game: Game;
@@ -334,6 +342,7 @@ function GameView({
   states: Record<string, PlayerState>;
   feed: FeedItem[];
   highlight: string | null;
+  lastRoll: { uid: string; seq: number; dice: number[]; bonus: boolean } | null;
   onAgain: () => void;
 }) {
   useNow(500);
@@ -355,6 +364,7 @@ function GameView({
       <section className="board-side">
         <Board pieces={pieces} highlight={highlight} />
         {game.paused && <div className="paused-overlay">⏸ Paused / Dihentikan seketika</div>}
+        {game.status === "playing" && game.goAt && <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="board-cd" />}
         {ended && (
           <div className="podium-overlay">
             <div className="podium">
@@ -380,6 +390,17 @@ function GameView({
         )}
       </section>
       <aside className="side">
+        {lastRoll && players[lastRoll.uid] && (
+          <div className="panel roll-panel">
+            <h3>Latest roll</h3>
+            <div className="roll-who" style={{ ["--c" as string]: tokenById(players[lastRoll.uid].token).color }}>
+              <span>{tokenById(players[lastRoll.uid].token).emoji}</span>
+              <span className="roll-name">{players[lastRoll.uid].name}</span>
+              {lastRoll.bonus && <span className="chip hot">🔥 3 dice</span>}
+            </div>
+            <DiceRoll values={lastRoll.dice} seed={`${lastRoll.uid}-${lastRoll.seq}`} size={58} />
+          </div>
+        )}
         <div className="panel">
           <h3>
             Players <span className="muted">· {winners.length}/{Math.min(MAX_WINNERS, pieces.length)} finished</span>
