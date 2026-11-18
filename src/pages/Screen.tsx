@@ -8,8 +8,8 @@ import { isMuted, setMuted, sfx, unlockAudio } from "../lib/sound.ts";
 import Board, { type BoardPiece } from "../components/Board.tsx";
 import Header from "../components/Header.tsx";
 import Qr from "../components/Qr.tsx";
-import { FINAL_ZONE_NEED, FINAL_ZONE_START, LAST_BOX } from "../lib/board.ts";
 import Countdown from "../components/Countdown.tsx";
+import Rules from "../components/Rules.tsx";
 import { DiceRoll } from "../components/Dice.tsx";
 import QuestionManager, { seedQuestionsIfEmpty } from "../components/QuestionManager.tsx";
 import { fixStates, type FeedItem, type Game, type Player, type PlayerState, type Question } from "../lib/types.ts";
@@ -304,25 +304,7 @@ function LobbyView({ players, onStart, enabledQs }: { players: Record<string, Pl
             );
           })}
         </ul>
-        <div className="rules">
-          <h3>How to play / Cara bermain</h3>
-          <ul>
-            <li>
-              Answer on your phone. <b>Right</b> = 2 dice, <b>wrong</b> = 1 die. <b>3 right in a row</b> = 3 dice!
-              <small>Jawab di telefon. Betul = 2 dadu, salah = 1 dadu. 3 betul berturut-turut = 3 dadu!</small>
-            </li>
-            <li>
-              🐍 Snake: right = stay, wrong = slide down. 🪜 Ladder: right = climb, wrong = stay.
-              <small>Ular: betul = kekal, salah = turun. Tangga: betul = naik, salah = kekal.</small>
-            </li>
-            <li>
-              Boxes {FINAL_ZONE_START}–{LAST_BOX - 1}: roll {FINAL_ZONE_NEED} or more to finish. First {MAX_WINNERS} to box {LAST_BOX} win!
-              <small>
-                Petak {FINAL_ZONE_START}–{LAST_BOX - 1}: perlu {FINAL_ZONE_NEED} atau lebih untuk tamat. {MAX_WINNERS} pemain pertama ke petak {LAST_BOX} menang!
-              </small>
-            </li>
-          </ul>
-        </div>
+        <Rules />
       </section>
     </main>
   );

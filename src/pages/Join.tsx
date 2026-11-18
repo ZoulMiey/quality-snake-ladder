@@ -3,6 +3,7 @@ import { ref, set, remove, serverTimestamp } from "firebase/database";
 import { auth, db, ensureSignedIn, serverNow } from "../lib/firebase.ts";
 import { signOut } from "firebase/auth";
 import Countdown from "../components/Countdown.tsx";
+import Rules from "../components/Rules.tsx";
 import { useDbValue, useNow } from "../lib/useDb.ts";
 import { TOKENS, tokenById } from "../lib/tokens.ts";
 import { LADDERS, SNAKES, LAST_BOX, inFinalZone, FINAL_ZONE_NEED, FINAL_ZONE_START } from "../lib/board.ts";
@@ -214,31 +215,7 @@ function Lobby({ uid, me, tokens }: { uid: string; me: Player; tokens: Record<st
 }
 
 function HowTo() {
-  return (
-    <ul className="howto">
-      <li>
-        <b>Right answer</b> → roll 2 dice. <b>Wrong</b> → roll 1 die.
-        <small>Betul → 2 dadu. Salah → 1 dadu.</small>
-      </li>
-      <li>
-        <b>3 right in a row</b> → 3 dice!
-        <small>3 betul berturut-turut → 3 dadu!</small>
-      </li>
-      <li>
-        🐍 <b>Snake:</b> right = stay, wrong = slide down. 🪜 <b>Ladder:</b> right = climb, wrong = stay.
-        <small>Ular: betul = kekal, salah = turun. Tangga: betul = naik, salah = kekal.</small>
-      </li>
-      <li>
-        <b>
-          Boxes {FINAL_ZONE_START}–{LAST_BOX - 1}:
-        </b>{" "}
-        you need {FINAL_ZONE_NEED} or more to finish. Wrong answer = no roll.
-        <small>
-          Petak {FINAL_ZONE_START}–{LAST_BOX - 1}: perlu {FINAL_ZONE_NEED} atau lebih untuk tamat. Salah = tiada balingan.
-        </small>
-      </li>
-    </ul>
-  );
+  return <Rules compact />;
 }
 
 function StatusStrip({ me, st }: { me: Player; st: PlayerState | null }) {

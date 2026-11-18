@@ -7,27 +7,28 @@ export const FINAL_ZONE_NEED = 6;
 export const COLS = 10;
 export const ROWS = 10;
 
-/** bottom of ladder -> top of ladder (mostly straight up, so the board stays easy to read) */
+/** bottom of ladder -> top of ladder (different angles and lengths; none of them cross) */
 export const LADDERS: Record<number, number> = {
-  4: 37,
-  9: 32,
-  21: 60,
-  26: 55,
-  43: 78,
-  50: 71,
-  66: 86,
+  7: 17,
+  12: 30,
+  21: 41,
+  24: 42,
+  28: 51,
+  44: 61,
+  55: 74,
+  70: 92,
 };
 
-/** snake head -> snake tail */
+/** snake head -> snake tail (straight down, sideways, 45°, short and long) */
 export const SNAKES: Record<number, number> = {
-  30: 11,
-  36: 5,
-  47: 14,
-  48: 28,
-  62: 39,
-  87: 54,
-  89: 69,
-  97: 64,
+  22: 18,
+  26: 9,
+  45: 25,
+  69: 35,
+  79: 57,
+  85: 82,
+  93: 88,
+  94: 56,
 };
 
 export const inFinalZone = (box: number) => box >= FINAL_ZONE_START && box < LAST_BOX;

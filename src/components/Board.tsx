@@ -15,7 +15,14 @@ function centre(box: number) {
   return { x: col * CW + CW / 2, y: row * CH + CH / 2 };
 }
 
-function Ladder({ from, to }: { from: number; to: number }) {
+const WOOD = [
+  ["#9a6a2f", "#c08a45"],
+  ["#7c4a1e", "#a8692f"],
+  ["#a5702c", "#d6a35a"],
+];
+
+function Ladder({ from, to, i }: { from: number; to: number; i: number }) {
+  const [rail, rung] = WOOD[i % WOOD.length];
   const a = centre(from);
   const b = centre(to);
   const dx = b.x - a.x;
@@ -26,20 +33,24 @@ function Ladder({ from, to }: { from: number; to: number }) {
   const rungs = Math.max(3, Math.round(len / 34));
   return (
     <g className="ladder">
-      <line x1={a.x + nx} y1={a.y + ny} x2={b.x + nx} y2={b.y + ny} className="rail" />
-      <line x1={a.x - nx} y1={a.y - ny} x2={b.x - nx} y2={b.y - ny} className="rail" />
+      <line x1={a.x + nx} y1={a.y + ny} x2={b.x + nx} y2={b.y + ny} className="rail" stroke={rail} />
+      <line x1={a.x - nx} y1={a.y - ny} x2={b.x - nx} y2={b.y - ny} className="rail" stroke={rail} />
       {Array.from({ length: rungs }, (_, i) => {
         const t = (i + 0.5) / rungs;
         const x = a.x + dx * t;
         const y = a.y + dy * t;
-        return <line key={i} x1={x + nx} y1={y + ny} x2={x - nx} y2={y - ny} className="rung" />;
+        return <line key={i} x1={x + nx} y1={y + ny} x2={x - nx} y2={y - ny} className="rung" stroke={rung} />;
       })}
     </g>
   );
 }
 
-const SNAKE_COLORS = ["#d9465f", "#7c3aed", "#0d9488", "#ea580c", "#2563eb"];
+const SNAKE_COLORS = ["#d9465f", "#7c3aed", "#0d9488", "#ea580c", "#2563eb", "#65a30d", "#db2777", "#0891b2"];
 
+/**
+ * A curvy snake with a tapering tail. The body wiggles along the line from head to tail;
+ * the number of bends and how wide they swing change from snake to snake.
+ */
 function Snake({ head, tail, i }: { head: number; tail: number; i: number }) {
   const a = centre(head);
   const b = centre(tail);
@@ -48,23 +59,44 @@ function Snake({ head, tail, i }: { head: number; tail: number; i: number }) {
   const len = Math.hypot(dx, dy);
   const nx = -dy / len;
   const ny = dx / len;
-  const wig = Math.min(40, len / 5);
-  const p = (t: number, w: number) => `${a.x + dx * t + nx * w},${a.y + dy * t + ny * w}`;
-  const d = `M${p(0, 0)} C${p(0.25, wig)} ${p(0.25, wig)} ${p(0.5, 0)} S${p(0.75, -wig)} ${p(1, 0)}`;
+  const waves = Math.max(1, Math.min(3, Math.round(len / 140))) + (i % 2 ? 0.5 : 0);
+  const amp = Math.min(34, 12 + len * 0.05) * (i % 3 === 1 ? -1 : 1);
+  const N = 48;
+  const centreAt = (t: number) => {
+    const env = Math.pow(Math.sin(Math.PI * Math.min(1, t * 1.15)), 0.7); // no swing at the head and tail
+    const w = amp * Math.sin(t * waves * Math.PI * 2) * env;
+    return { x: a.x + dx * t + nx * w, y: a.y + dy * t + ny * w };
+  };
+  const pts = Array.from({ length: N + 1 }, (_, k) => centreAt(k / N));
+  const left: string[] = [];
+  const right: string[] = [];
+  pts.forEach((p, k) => {
+    const q = pts[Math.min(N, k + 1)];
+    const o = pts[Math.max(0, k - 1)];
+    const tx = q.x - o.x;
+    const ty = q.y - o.y;
+    const tl = Math.hypot(tx, ty) || 1;
+    const t = k / N;
+    const half = (21 * (1 - 0.82 * Math.pow(t, 1.25))) / 2; // thick neck, thin tail
+    left.push(`${(p.x - (ty / tl) * half).toFixed(1)},${(p.y + (tx / tl) * half).toFixed(1)}`);
+    right.push(`${(p.x + (ty / tl) * half).toFixed(1)},${(p.y - (tx / tl) * half).toFixed(1)}`);
+  });
+  const body = `M${left.join(" L")} L${right.reverse().join(" L")} Z`;
+  const spine = `M${pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L")}`;
   const color = SNAKE_COLORS[i % SNAKE_COLORS.length];
-  const ang = (Math.atan2(-(dy * 0.25 + ny * wig), -(dx * 0.25 + nx * wig)) * 180) / Math.PI;
+  const ang = (Math.atan2(pts[0].y - pts[2].y, pts[0].x - pts[2].x) * 180) / Math.PI;
   return (
     <g className="snake">
-      <path d={d} stroke="rgba(0,0,0,.25)" strokeWidth={20} fill="none" strokeLinecap="round" transform="translate(3,4)" />
-      <path d={d} stroke={color} strokeWidth={18} fill="none" strokeLinecap="round" />
-      <path d={d} stroke="rgba(255,255,255,.35)" strokeWidth={4} fill="none" strokeLinecap="round" strokeDasharray="2 14" />
+      <path d={body} fill="rgba(0,0,0,.22)" transform="translate(3,4)" />
+      <path d={body} fill={color} />
+      <path d={spine} stroke="rgba(255,255,255,.45)" strokeWidth={3.5} fill="none" strokeLinecap="round" strokeDasharray="1 12" />
       <g transform={`translate(${a.x},${a.y}) rotate(${ang})`}>
-        <ellipse rx={20} ry={15} fill={color} />
-        <circle cx={8} cy={-7} r={4} fill="#fff" />
-        <circle cx={8} cy={7} r={4} fill="#fff" />
-        <circle cx={9} cy={-7} r={2} fill="#111" />
-        <circle cx={9} cy={7} r={2} fill="#111" />
-        <path d="M19,0 l12,0 m0,0 l5,-4 m-5,4 l5,4" stroke="#b91c1c" strokeWidth={2.5} fill="none" strokeLinecap="round" />
+        <ellipse rx={19} ry={14} fill={color} />
+        <circle cx={7} cy={-7} r={4.2} fill="#fff" />
+        <circle cx={7} cy={7} r={4.2} fill="#fff" />
+        <circle cx={8.5} cy={-7} r={2.1} fill="#111" />
+        <circle cx={8.5} cy={7} r={2.1} fill="#111" />
+        <path d="M18,0 l11,0 m0,0 l5,-4 m-5,4 l5,4" stroke="#b91c1c" strokeWidth={2.5} fill="none" strokeLinecap="round" />
       </g>
     </g>
   );
@@ -105,8 +137,8 @@ export default function Board({ pieces, highlight }: { pieces: BoardPiece[]; hig
           })}
         </div>
         <svg className="overlay" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
-          {Object.entries(LADDERS).map(([f, t]) => (
-            <Ladder key={f} from={+f} to={t} />
+          {Object.entries(LADDERS).map(([f, t], i) => (
+            <Ladder key={f} from={+f} to={t} i={i} />
           ))}
           {Object.entries(SNAKES).map(([h, t], i) => (
             <Snake key={h} head={+h} tail={t} i={i} />
