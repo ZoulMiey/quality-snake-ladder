@@ -373,7 +373,7 @@ function LobbyView({
         {mode === "clash" && list.length > 0 && <ClashRoster format={clashFormat} players={players} />}
         {mode === "clash" && list.length > 0 && !clash.ready && (
           <p className="waiting">
-            {clashFormat === "solo" ? "Waiting for one player on Red and one on Blue, each with 3 creatures." : "Waiting for at least one player on each team."} Players pick on their phones.
+            {clashFormat === "solo" ? "Waiting for one player on Red and one on Blue, each with 3 monsters." : "Waiting for at least one player on each team."} Players pick on their phones.
           </p>
         )}
         <ul className={`lobby-players ${list.length > 10 ? "many" : ""}`}>

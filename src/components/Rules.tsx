@@ -12,7 +12,7 @@ import { BONUS_STREAK } from "../lib/rules.ts";
 import { FAST_MS, SHIELD, SHIELD_EVERY, SUPER_STREAK } from "../clash/sim.ts";
 
 const CLASH_TILES = [
-  { icon: "⚔️", en: "Right answer =\nyour creature attacks", ms: "Betul = makhluk anda menyerang" },
+  { icon: "⚔️", en: "Right answer =\nyour monster attacks", ms: "Betul = raksasa anda menyerang" },
   { icon: "⚡", en: `Answer within ${FAST_MS / 1000} s\n= +25% damage`, ms: `Jawab dalam ${FAST_MS / 1000} saat = +25%` },
   { icon: "🔥", en: `${SUPER_STREAK} right in a row\n= super move ×2`, ms: `${SUPER_STREAK} betul berturut = gerakan super` },
   { icon: "🛡️", en: `Team: every ${SHIELD_EVERY} rights\n= +${SHIELD} shield`, ms: `Pasukan: setiap ${SHIELD_EVERY} betul = perisai +${SHIELD}` },

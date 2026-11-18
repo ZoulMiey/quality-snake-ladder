@@ -489,8 +489,8 @@ function message(c: Ctx, b: ClashBoard, events: ClashEvent[], players: Record<st
     const nm = players[last.uid]?.name ?? "Player";
     if (last.kind === "wrong") {
       if (b.format === "solo") {
-        en = `${nm} ${last.timeout ? "ran out of time" : "answered wrong"}. All creatures stunned!`;
-        ms = `${nm} ${last.timeout ? "kehabisan masa" : "salah"}. Semua makhluk pening!`;
+        en = `${nm} ${last.timeout ? "ran out of time" : "answered wrong"}. All monsters stunned!`;
+        ms = `${nm} ${last.timeout ? "kehabisan masa" : "salah"}. Semua raksasa pening!`;
       } else {
         const f = Object.values(b.fighters).find((x) => x.uid === last.uid);
         const cr = creatureById(f?.c);
@@ -501,8 +501,8 @@ function message(c: Ctx, b: ClashBoard, events: ClashEvent[], players: Record<st
       const f = b.fighters[last.hits[0]?.[0] ?? ""];
       const cr = creatureById(f?.c);
       if (b.format === "solo") {
-        en = `${nm} answered right! ${last.hits.length} creature${last.hits.length === 1 ? "" : "s"} attack!`;
-        ms = `${nm} betul! ${last.hits.length} makhluk menyerang!`;
+        en = `${nm} answered right! ${last.hits.length} monster${last.hits.length === 1 ? "" : "s"} attack!`;
+        ms = `${nm} betul! ${last.hits.length} raksasa menyerang!`;
       } else {
         en = `${nm}'s ${cr.en} used ${cr.move.en}!`;
         ms = `${cr.ms} guna ${cr.move.ms}!`;
@@ -632,7 +632,7 @@ function draw(c: Ctx, b: ClashBoard | null, events: ClashEvent[], game: Game, pl
     } else {
       const owner = all.find((f) => f.side === side);
       stxt(c, `${side === "red" ? "RED" : "BLUE"} · ${(players[owner?.uid ?? ""]?.name ?? "").toUpperCase()}`.slice(0, 18), x, y, 9, col);
-      txt(c, "3 creatures / makhluk", x, y + 17, 12, "#cfc8f0", "left", `600 ${BODY}`);
+      txt(c, "3 monsters / raksasa", x, y + 17, 12, "#cfc8f0", "left", `600 ${BODY}`);
     }
   };
   meter(TOP, ...Lay.meters.top);

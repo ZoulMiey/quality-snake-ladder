@@ -88,7 +88,7 @@ export function ClashPick({ uid, format }: { uid: string; format: Format }) {
 
   return (
     <div className="clash-pick">
-      <Bi en={format === "solo" ? "1 v 1: pick a side and 3 creatures" : "Team battle: pick a team and a creature"} ms={format === "solo" ? "1 lawan 1: pilih pihak dan 3 makhluk" : "Pertempuran pasukan: pilih pasukan dan makhluk"} className="cp-title" />
+      <Bi en={format === "solo" ? "1 v 1: pick a side and 3 monsters" : "Team battle: pick a team and a monster"} ms={format === "solo" ? "1 lawan 1: pilih pihak dan 3 raksasa" : "Pertempuran pasukan: pilih pasukan dan raksasa"} className="cp-title" />
       <div className="cp-sides">
         {(["red", "blue"] as Side[]).map((s) => {
           const n = count(s) + (side === s && ready ? 1 : 0);
@@ -102,7 +102,7 @@ export function ClashPick({ uid, format }: { uid: string; format: Format }) {
           );
         })}
       </div>
-      <div className="cp-grid" role="group" aria-label="Creatures">
+      <div className="cp-grid" role="group" aria-label="Monsters">
         {CREATURES.map((cr) => {
           const taken = teammateHas.has(cr.id);
           const on = chosen.includes(cr.id);
@@ -141,10 +141,10 @@ export function ClashPick({ uid, format }: { uid: string; format: Format }) {
         inBattle ? (
           <Bi className="cp-ready" en={`Ready! You are on ${SIDE_NAME[side!].en}. Watch the big screen.`} ms={`Sedia! Anda dalam pasukan ${SIDE_NAME[side!].ms}.`} />
         ) : (
-          <Bi className="cp-wait" en="That team is full, or a teammate has that creature. You will watch this battle." ms="Pasukan penuh. Anda akan menonton pertempuran ini." />
+          <Bi className="cp-wait" en="That team is full, or a teammate has that monster. You will watch this battle." ms="Pasukan penuh. Anda akan menonton pertempuran ini." />
         )
       ) : (
-        <Bi className="cp-wait" en={format === "solo" ? `Choose ${need - chosen.filter((c) => c !== "none").length} more creature(s).` : "Tap a creature."} ms={format === "solo" ? "Pilih 3 makhluk." : "Tekan satu makhluk."} />
+        <Bi className="cp-wait" en={format === "solo" ? `Choose ${need - chosen.filter((c) => c !== "none").length} more monster(s).` : "Tap a monster."} ms={format === "solo" ? "Pilih 3 raksasa." : "Tekan satu raksasa."} />
       )}
       {side && (
         <button

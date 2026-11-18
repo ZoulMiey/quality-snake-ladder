@@ -50,8 +50,8 @@ The Firebase web settings are in `src/lib/firebase.ts`. They are not secret; the
 - The projector sends all cart positions ~6×/second to `kart/pos`; phones smooth movement in between.
 
 ### Quality Clash rules (added 18 Nov 2026, second session)
-- Lobby: host picks **Quality Clash**, then Quick Match **Team 3 v 3** or **Single 1 v 1** (Mini Tournament shows "coming soon"). Phones pick Red/Blue and a creature (Team) or 3 creatures (1 v 1); players who don't get a place watch. Team mode also works with fewer players (1 v 1, 2 v 2, 2 v 3).
-- 15 equal creatures (`src/clash/creatures.ts`, pixel art in `src/clash/sprites.ts`), 300 HP each; the type only sets colours and the attack animation. No type advantage.
+- Lobby: host picks **Quality Clash**, then Quick Match **Team 3 v 3** or **Single 1 v 1** (Mini Tournament shows "coming soon"). Phones pick Red/Blue and a monster (Team) or 3 monsters (1 v 1); players who don't get a place watch. Team mode also works with fewer players (1 v 1, 2 v 2, 2 v 3).
+- 15 equal **monsters** (on screen: "monster" / "raksasa"; the code still calls them creatures) (`src/clash/creatures.ts`, pixel art in `src/clash/sprites.ts`), 300 HP each; the type only sets colours and the attack animation. No type advantage.
 - Each fighter gets their own question stream (15 s). Right = attack at once. A side's attack power is always **60**, shared by its creatures still standing: 3 left = 20 per hit, 2 left = 30 per hit, the last one = 3 hits of 20. Team: only the answering player's creature attacks. 1 v 1: all the player's creatures still standing attack (20+20+20, 30+30 or 3 × 20). Every hit goes to a **random** opponent creature (several hits can land on the same one).
 - FAST (answer within 3 s) +25%. 5 right in a row = super move ×2, count restarts. Wrong/timeout = stunned 3 s, right answer shown, streak 0.
 - Team only: every 5 right answers by the team = +50 shield for the teammate with the lowest HP; shields take damage first.

@@ -88,7 +88,7 @@ export class ClashEngine {
     const { fighters } = lineUp(format, picks);
     const sides = new Set(Object.values(fighters).map((f) => f.side));
     if (!sides.has("red") || !sides.has("blue"))
-      throw new Error(format === "solo" ? "1 v 1 needs one player on Red and one on Blue, each with 3 creatures." : "Each team needs at least one player with a creature.");
+      throw new Error(format === "solo" ? "1 v 1 needs one player on Red and one on Blue, each with 3 monsters." : "Each team needs at least one player with a monster.");
     const now = serverNow();
     this.b = { ...newBattle(format, fighters), stun: {} };
     this.used = {};
