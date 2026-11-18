@@ -380,7 +380,7 @@ function GameView({
               <span className="roll-name">{players[lastRoll.uid].name}</span>
               {lastRoll.bonus && <span className="chip hot">🔥 2 dice</span>}
             </div>
-            <DiceRoll values={lastRoll.dice} seed={`${lastRoll.uid}-${lastRoll.seq}`} size={58} />
+            <DiceRoll values={lastRoll.dice} seed={`${lastRoll.uid}-${lastRoll.seq}`} size={44} />
           </div>
         )}
         <div className="panel">

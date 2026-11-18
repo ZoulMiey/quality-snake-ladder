@@ -1,13 +1,18 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { COLS, ROWS, LADDERS, SNAKES, LAST_BOX, cellOf } from "../lib/board.ts";
 import { tokenById } from "../lib/tokens.ts";
 import type { Player, PlayerState } from "../lib/types.ts";
 
-// Board units: 100 per box.
-const W = COLS * 100;
+// Board units: each row is 100 high. The board stretches sideways to fill the screen, so a box can be
+// wider than it is tall; the drawing is done for the real shape so snakes and ladders never look squashed.
 const H = ROWS * 100;
-const CW = W / COLS;
 const CH = H / ROWS;
+let W = COLS * 100;
+let CW = W / COLS;
+function setShape(ratio: number) {
+  W = Math.round(H * ratio);
+  CW = W / COLS;
+}
 
 /** Centre of a box in board units. */
 function centre(box: number) {
@@ -106,6 +111,32 @@ export type BoardPiece = { uid: string; player: Player; state: PlayerState | und
 
 export default function Board({ pieces, highlight }: { pieces: BoardPiece[]; highlight?: string | null }) {
   const cells = useMemo(() => Array.from({ length: LAST_BOX }, (_, i) => i + 1), []);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const [ratio, setRatio] = useState(1);
+  useEffect(() => {
+    const el = boardRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      const r = el.clientWidth / Math.max(1, el.clientHeight);
+      if (r > 0) setRatio(Math.round(r * 100) / 100);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  setShape(ratio);
+  const drawing = useMemo(
+    () => (
+      <svg className="overlay" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
+        {Object.entries(LADDERS).map(([f, t], i) => (
+          <Ladder key={f} from={+f} to={t} i={i} />
+        ))}
+        {Object.entries(SNAKES).map(([h, t], i) => (
+          <Snake key={h} head={+h} tail={t} i={i} />
+        ))}
+      </svg>
+    ),
+    [ratio],
+  );
 
   // Group pieces by box so several on one box sit side by side.
   const byBox = new Map<number, BoardPiece[]>();
@@ -118,7 +149,7 @@ export default function Board({ pieces, highlight }: { pieces: BoardPiece[]; hig
 
   return (
     <div className="board-wrap">
-      <div className="board">
+      <div className="board" ref={boardRef}>
         <div className="cells">
           {cells.map((n) => {
             const { col, row } = cellOf(n);
@@ -135,14 +166,7 @@ export default function Board({ pieces, highlight }: { pieces: BoardPiece[]; hig
             );
           })}
         </div>
-        <svg className="overlay" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
-          {Object.entries(LADDERS).map(([f, t], i) => (
-            <Ladder key={f} from={+f} to={t} i={i} />
-          ))}
-          {Object.entries(SNAKES).map(([h, t], i) => (
-            <Snake key={h} head={+h} tail={t} i={i} />
-          ))}
-        </svg>
+        {drawing}
         {/* Box numbers sit above the snakes and ladders so they are never hidden. */}
         <div className="cells nums" aria-hidden="true">
           {cells.map((n) => {
@@ -165,14 +189,14 @@ export default function Board({ pieces, highlight }: { pieces: BoardPiece[]; hig
                 const per = Math.ceil(Math.sqrt(n));
                 const gx = (i % per) - (per - 1) / 2;
                 const gy = Math.floor(i / per) - (Math.ceil(n / per) - 1) / 2;
-                const spread = n > 1 ? 30 / per : 0;
+                const spread = n > 1 ? 30 / per : 0; // spread several pieces on one box
                 const t = tokenById(p.player.token);
                 return (
                   <div
                     key={p.uid}
                     className={`piece ${highlight === p.uid ? "hl" : ""} ${n > 3 ? "small" : ""}`}
                     style={{
-                      left: `${((c.x + gx * spread * 1.6) / W) * 100}%`,
+                      left: `${((c.x + gx * spread * 1.6 * (CW / CH)) / W) * 100}%`,
                       top: `${((c.y + gy * spread * 1.4) / H) * 100}%`,
                       ["--c" as string]: t.color,
                     }}
