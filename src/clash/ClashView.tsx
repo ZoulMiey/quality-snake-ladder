@@ -9,23 +9,69 @@ import Countdown from "../components/Countdown.tsx";
 import { ELEMENTS, creatureById } from "./creatures.ts";
 import { sprite } from "./sprites.ts";
 import { fixBoard, fixEvents, type ClashBoard, type ClashEvent } from "./engine.ts";
-import { HP, SHIELD, SHIELD_EVERY, SUPER_STREAK, type Fighter, type Side } from "./sim.ts";
+import { HP, SHIELD, SHIELD_EVERY, SUPER_STREAK, other, type Fighter, type Side } from "./sim.ts";
 
-const VW = 960;
-const VH = 540;
 /** Seconds from the answer to the hit landing on the target. */
 const HIT = 0.75;
 const SHIELD_AT = HIT + 1.1;
 
-type Slot = { x: number; y: number; s: number; back: boolean };
-const XS: Record<Side, number[][]> = {
-  blue: [[480], [390, 570], [300, 480, 660]],
-  red: [[480], [330, 630], [190, 480, 770]],
+/** Where everything goes: "wide" for the projector (16:9), "tall" for phones (9:16). */
+type Row = { y: number; s: number; plat: [number, number]; box: { y: number; w: number }; xs: number[][] };
+type Layout = { VW: number; VH: number; wall: number; dash: number; top: Row; bot: Row; msg: { y: number; w: number; h: number }; banner: number; meters: { top: [number, number]; bot: [number, number] }; clock: [number, number]; fz: number };
+const WIDE: Layout = {
+  VW: 960, VH: 540, wall: 150, dash: 335,
+  top: { y: 226, s: 2.6, plat: [72, 17], box: { y: 8, w: 170 }, xs: [[480], [390, 570], [300, 480, 660]] },
+  bot: { y: 452, s: 4.4, plat: [112, 27], box: { y: 470, w: 200 }, xs: [[480], [330, 630], [190, 480, 770]] },
+  msg: { y: 64, w: 600, h: 54 }, banner: 270, meters: { top: [16, 22], bot: [808, 62] }, clock: [848, 10], fz: 1,
 };
+const TALL: Layout = {
+  VW: 540, VH: 960, wall: 180, dash: 380,
+  top: { y: 290, s: 2.2, plat: [60, 14], box: { y: 64, w: 168 }, xs: [[270], [180, 360], [92, 270, 448]] },
+  bot: { y: 470, s: 3.2, plat: [78, 20], box: { y: 490, w: 168 }, xs: [[270], [180, 360], [92, 270, 448]] },
+  msg: { y: 120, w: 520, h: 54 }, banner: 360, meters: { top: [12, 22], bot: [392, 22] }, clock: [221, 8], fz: 1.2,
+};
+// The layout and the side shown at the bottom for the frame being drawn.
+let Lay = WIDE;
+let VW = 960;
+let VH = 540;
+let BOTTOM: Side = "red";
+let ME = "";
+
+type Slot = { x: number; y: number; s: number; back: boolean; top: boolean };
 function slotOf(f: Fighter, count: number): Slot {
-  const xs = XS[f.side][Math.max(0, Math.min(2, count - 1))];
+  const top = f.side !== BOTTOM;
+  const row = top ? Lay.top : Lay.bot;
+  const xs = row.xs[Math.max(0, Math.min(2, count - 1))];
   const x = xs[Math.min(f.slot, xs.length - 1)];
-  return f.side === "blue" ? { x, y: 226, s: 2.6, back: false } : { x, y: 452, s: 4.4, back: true };
+  return { x, y: row.y, s: row.s, back: !top, top };
+}
+
+/** The battle drawn on a canvas, kept in step with the database. */
+export function ArenaCanvas({ b, events, game, players, tall = false, bottom = "red", me = "", className }: { b: ClashBoard | null; events: ClashEvent[]; game: Game; players: Record<string, Player>; tall?: boolean; bottom?: Side; me?: string; className?: string }) {
+  const cv = useRef<HTMLCanvasElement>(null);
+  const live = useRef({ b, events, game, players, tall, bottom, me });
+  live.current = { b, events, game, players, tall, bottom, me };
+  useEffect(() => {
+    let raf = 0;
+    const loop = () => {
+      const ctx = cv.current?.getContext("2d");
+      if (ctx) {
+        const v = live.current;
+        Lay = v.tall ? TALL : WIDE;
+        VW = Lay.VW;
+        VH = Lay.VH;
+        BOTTOM = v.bottom;
+        ME = v.me;
+        const now = v.game.paused && v.game.pausedAt ? v.game.pausedAt : serverNow();
+        draw(ctx, v.b, v.events, v.game, v.players, now);
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  const lay = tall ? TALL : WIDE;
+  return <canvas ref={cv} width={lay.VW * 2} height={lay.VH * 2} className={className} aria-label="Quality Clash battle" />;
 }
 
 export default function ClashView({ game, players, onAgain }: { game: Game; players: Record<string, Player>; onAgain: () => void }) {
@@ -33,9 +79,6 @@ export default function ClashView({ game, players, onAgain }: { game: Game; play
   const evRaw = useDbValue<ClashEvent[]>("clash/ev");
   const b = useMemo(() => fixBoard(bRaw), [bRaw]);
   const events = useMemo(() => fixEvents(evRaw), [evRaw]);
-  const cv = useRef<HTMLCanvasElement>(null);
-  const live = useRef({ b, events, game, players });
-  live.current = { b, events, game, players };
 
   // Sounds for new events.
   const lastN = useRef<number | null>(null);
@@ -57,22 +100,6 @@ export default function ClashView({ game, players, onAgain }: { game: Game; play
     if (game.status === "ended") sfx.win();
   }, [game.status]);
 
-  useEffect(() => {
-    let raf = 0;
-    const loop = () => {
-      const c = cv.current;
-      const ctx = c?.getContext("2d");
-      if (c && ctx) {
-        const { b, events, game, players } = live.current;
-        const now = game.paused && game.pausedAt ? game.pausedAt : serverNow();
-        draw(ctx, b, events, game, players, now);
-      }
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
   const ended = game.status === "ended";
   const winner = b?.winner ?? null;
   const winNames = (game.winners ?? []).map((u) => players[u]?.name ?? "Player");
@@ -80,7 +107,7 @@ export default function ClashView({ game, players, onAgain }: { game: Game; play
   return (
     <main className="clash-stage">
       <div className="clash-frame">
-        <canvas ref={cv} width={VW * 2} height={VH * 2} className="clash-canvas" aria-label="Quality Clash battle" />
+        <ArenaCanvas b={b} events={events} game={game} players={players} className="clash-canvas" />
         {game.paused && <div className="paused-overlay">⏸ Paused / Dihentikan seketika</div>}
         {game.status === "playing" && game.goAt && <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="board-cd" />}
         {ended && (
@@ -187,36 +214,37 @@ function looks(b: ClashBoard, events: ClashEvent[], now: number): Record<string,
 }
 
 function drawBg(c: Ctx) {
-  const g = c.createLinearGradient(0, 0, 0, 150);
+  const W = Lay.wall;
+  const g = c.createLinearGradient(0, 0, 0, W);
   g.addColorStop(0, "#1a1840");
   g.addColorStop(1, "#2c2a5e");
   c.fillStyle = g;
-  c.fillRect(0, 0, VW, 150);
+  c.fillRect(0, 0, VW, W);
   c.fillStyle = "#24224f";
-  for (let x = 0; x < VW; x += 80) c.fillRect(x, 70, 2, 80);
+  for (let x = 0; x < VW; x += 80) c.fillRect(x, W - 80, 2, 80);
   for (let x = -20; x < VW; x += 24) {
     c.fillStyle = "#ffcf40";
     c.beginPath();
-    c.moveTo(x, 140);
-    c.lineTo(x + 12, 140);
-    c.lineTo(x + 20, 150);
-    c.lineTo(x + 8, 150);
+    c.moveTo(x, W - 10);
+    c.lineTo(x + 12, W - 10);
+    c.lineTo(x + 20, W);
+    c.lineTo(x + 8, W);
     c.fill();
   }
-  const fg = c.createLinearGradient(0, 150, 0, VH);
+  const fg = c.createLinearGradient(0, W, 0, VH);
   fg.addColorStop(0, "#3a4770");
   fg.addColorStop(1, "#5a6c9c");
   c.fillStyle = fg;
-  c.fillRect(0, 150, VW, VH - 150);
+  c.fillRect(0, W, VW, VH - W);
   c.strokeStyle = "rgba(255,255,255,.08)";
   c.lineWidth = 2;
   for (let i = -12; i <= 12; i++) {
     c.beginPath();
-    c.moveTo(480 + i * 40, 150);
-    c.lineTo(480 + i * 160, VH);
+    c.moveTo(VW / 2 + i * 40, W);
+    c.lineTo(VW / 2 + i * 160, VH);
     c.stroke();
   }
-  let y = 150;
+  let y = W;
   let step = 10;
   while (y < VH) {
     c.beginPath();
@@ -229,15 +257,14 @@ function drawBg(c: Ctx) {
   c.strokeStyle = "rgba(255,207,64,.5)";
   c.setLineDash([10, 8]);
   c.beginPath();
-  c.moveTo(0, 335);
-  c.lineTo(VW, 335);
+  c.moveTo(0, Lay.dash);
+  c.lineTo(VW, Lay.dash);
   c.stroke();
   c.setLineDash([]);
 }
 
 function platform(c: Ctx, s: Slot, side: Side) {
-  const rx = side === "blue" ? 72 : 112;
-  const ry = side === "blue" ? 17 : 27;
+  const [rx, ry] = (s.top ? Lay.top : Lay.bot).plat;
   c.fillStyle = "#1d2340";
   c.beginPath();
   c.ellipse(s.x, s.y + 4, rx + 6, ry + 6, 0, 0, 7);
@@ -260,7 +287,7 @@ function platform(c: Ctx, s: Slot, side: Side) {
 function creature(c: Ctx, f: Fighter, s: Slot, L: Look, stunned: boolean, t: number) {
   if (L.faint >= 1) return;
   const w = 40 * s.s;
-  const dy = -L.hop * (f.side === "blue" ? 10 : 14) + Math.sin(t * 3 + s.x) * 1.2;
+  const dy = -L.hop * (s.top ? 10 : 14) + Math.sin(t * 3 + s.x) * 1.2;
   let y = s.y - 37 * s.s + dy;
   const x = s.x - w / 2 + L.shake;
   c.save();
@@ -295,6 +322,17 @@ function creature(c: Ctx, f: Fighter, s: Slot, L: Look, stunned: boolean, t: num
     c.stroke();
     c.restore();
   }
+  if (ME && f.uid === ME) {
+    const ax = s.x;
+    const ay = y - 4 + Math.sin(t * 5) * 3;
+    c.fillStyle = "#ffcf40";
+    c.beginPath();
+    c.moveTo(ax - 9, ay - 12);
+    c.lineTo(ax + 9, ay - 12);
+    c.lineTo(ax, ay);
+    c.fill();
+    stxt(c, "YOU", ax, ay - 16, 10, "#ffcf40", "center");
+  }
   if (L.shPop >= 0) stxt(c, `+${SHIELD} SHIELD`, s.x, y - 6 - L.shPop * 20, 12, "#7ae0ff", "center");
   if (stunned) {
     for (let i = 0; i < 3; i++) {
@@ -322,10 +360,11 @@ function box(c: Ctx, f: Fighter, L: Look, x: number, y: number, w: number, playe
   c.fillStyle = f.side === "red" ? "#ff5a5f" : "#4aa8ff";
   c.fillRect(x + 3, y + 3, 7, 46);
   const name = cr.en.toUpperCase();
-  txt(c, name, x + 16, y + 17, fit(c, name, w - 66, 8, 5), "#1b1530");
+  const fz = Lay.fz;
+  txt(c, name, x + 16, y + 17, fit(c, name, w - 66, 8 * fz, 5), "#1b1530");
   txt(c, `Lv${f.lv}`, x + w - 8, y + 17, 8, "#1b1530", "right");
   const pn = players[f.uid]?.name ?? "Player";
-  txt(c, pn, x + 16, y + 32, fit(c, pn, w - 80, 13, 9, `700 ${BODY}`), "#4a4470", "left", `700 ${BODY}`);
+  txt(c, pn, x + 16, y + 32, fit(c, pn, w - 80, 13 * fz, 9, `700 ${BODY}`), "#4a4470", "left", `700 ${BODY}`);
   for (let i = 0; i < SUPER_STREAK; i++) {
     c.fillStyle = i < streak ? "#e0a000" : "#d6cfba";
     c.fillRect(x + w - 58 + i * 10, y + 24, 8, 8);
@@ -344,7 +383,7 @@ function box(c: Ctx, f: Fighter, L: Look, x: number, y: number, w: number, playe
     c.fillStyle = "#7ae0ff";
     c.fillRect(bx, y + 40, bw * Math.min(1, L.sh / HP), 3);
   }
-  if (showNums) txt(c, `${Math.ceil(L.hp)}/${HP}${L.sh > 0.5 ? `  +${Math.ceil(L.sh)} shield` : ""}`, x + w - 8, y + 64, 9, "#f4efe4", "right");
+  if (showNums) txt(c, `${Math.ceil(L.hp)}/${HP}${L.sh > 0.5 ? `  +${Math.ceil(L.sh)} shield` : ""}`, x + w - 8, y + 64, 9 * Lay.fz, "#f4efe4", "right");
   c.globalAlpha = 1;
 }
 
@@ -487,17 +526,17 @@ function message(c: Ctx, b: ClashBoard, events: ClashEvent[], players: Record<st
       }
     }
   }
-  const w = 600;
+  const w = Lay.msg.w;
   const x = (VW - w) / 2;
-  const y = 64;
-  rr(c, x, y, w, 54, 8);
+  const y = Lay.msg.y;
+  rr(c, x, y, w, Lay.msg.h, 8);
   c.fillStyle = "rgba(16,14,40,.92)";
   c.fill();
   c.strokeStyle = "#ffcf40";
   c.lineWidth = 3;
   c.stroke();
-  txt(c, en, VW / 2, y + 22, fit(c, en, w - 24, 11, 6.5), "#ffffff", "center");
-  txt(c, ms, VW / 2, y + 44, fit(c, ms, w - 24, 16, 10, `600 ${BODY}`), "#cfc8f0", "center", `600 ${BODY}`);
+  txt(c, en, VW / 2, y + 22, fit(c, en, w - 24, 11 * Lay.fz, 6.5), "#ffffff", "center");
+  txt(c, ms, VW / 2, y + 44, fit(c, ms, w - 24, 16 * Lay.fz, 10, `600 ${BODY}`), "#cfc8f0", "center", `600 ${BODY}`);
 }
 
 function draw(c: Ctx, b: ClashBoard | null, events: ClashEvent[], game: Game, players: Record<string, Player>, now: number) {
@@ -523,15 +562,15 @@ function draw(c: Ctx, b: ClashBoard | null, events: ClashEvent[], game: Game, pl
   for (const side of ["blue", "red"] as Side[]) {
     const xs = all.filter((f) => f.side === side).map((f) => slots[f.id].x);
     if (!xs.length) continue;
-    const y = side === "blue" ? 226 : 452;
+    const y = side === BOTTOM ? Lay.bot.y : Lay.top.y;
     c.beginPath();
     c.moveTo(Math.min(...xs), y);
     c.lineTo(Math.max(...xs), y);
     c.stroke();
   }
   c.beginPath();
-  c.moveTo(480, 226);
-  c.lineTo(480, 452);
+  c.moveTo(VW / 2, Lay.top.y);
+  c.lineTo(VW / 2, Lay.bot.y);
   c.stroke();
   for (const f of all) platform(c, slots[f.id], f.side);
 
@@ -546,10 +585,11 @@ function draw(c: Ctx, b: ClashBoard | null, events: ClashEvent[], game: Game, pl
       });
     }
   };
-  for (const f of all.filter((x) => x.side === "blue")) creature(c, f, slots[f.id], L[f.id], (stun[f.uid] ?? 0) > now && f.hp > 0, t);
-  drawShots("red");
-  for (const f of all.filter((x) => x.side === "red")) creature(c, f, slots[f.id], L[f.id], (stun[f.uid] ?? 0) > now && f.hp > 0, t);
-  drawShots("blue");
+  const TOP = other(BOTTOM);
+  for (const f of all.filter((x) => x.side === TOP)) creature(c, f, slots[f.id], L[f.id], (stun[f.uid] ?? 0) > now && f.hp > 0, t);
+  drawShots(BOTTOM);
+  for (const f of all.filter((x) => x.side === BOTTOM)) creature(c, f, slots[f.id], L[f.id], (stun[f.uid] ?? 0) > now && f.hp > 0, t);
+  drawShots(TOP);
 
   // damage numbers
   for (const e of recent) {
@@ -561,7 +601,7 @@ function draw(c: Ctx, b: ClashBoard | null, events: ClashEvent[], game: Game, pl
       const s = slots[tg];
       if (!s) continue;
       const [x, y] = center(tg);
-      const yy = (b.fighters[tg].side === "blue" ? y + 10 : y - 30) - age * 40;
+      const yy = (s.top ? y + 10 : y - 30) - age * 40;
       c.globalAlpha = Math.min(1, (1.3 - age) * 3);
       stxt(c, `-${d}`, x, yy, e.sup ? 26 : 18, "#ffffff", "center");
       if (e.fast) stxt(c, "FAST +25%", x, yy + 26, 10, "#7ae0ff", "center");
@@ -570,10 +610,12 @@ function draw(c: Ctx, b: ClashBoard | null, events: ClashEvent[], game: Game, pl
   }
 
   // HP boxes
-  const blue = all.filter((f) => f.side === "blue").sort((x, y) => x.slot - y.slot);
-  const red = all.filter((f) => f.side === "red").sort((x, y) => x.slot - y.slot);
-  for (const f of blue) box(c, f, L[f.id], slots[f.id].x - 85, 8, 170, players, b.streak[f.uid] ?? 0, false);
-  for (const f of red) box(c, f, L[f.id], Math.max(8, Math.min(VW - 208, slots[f.id].x - 100)), 470, 200, players, b.streak[f.uid] ?? 0, true);
+  for (const f of all) {
+    const row = slots[f.id].top ? Lay.top : Lay.bot;
+    const w = row.box.w;
+    const x = Math.max(4, Math.min(VW - w - 4, slots[f.id].x - w / 2));
+    box(c, f, L[f.id], x, row.box.y, w, players, b.streak[f.uid] ?? 0, !slots[f.id].top);
+  }
 
   // team labels / shield meters, and the battle clock (no time limit: it only counts up)
   const meter = (side: Side, x: number, y: number) => {
@@ -593,15 +635,16 @@ function draw(c: Ctx, b: ClashBoard | null, events: ClashEvent[], game: Game, pl
       txt(c, "3 creatures / makhluk", x, y + 17, 12, "#cfc8f0", "left", `600 ${BODY}`);
     }
   };
-  meter("blue", 16, 22);
-  meter("red", VW - 152, 62);
+  meter(TOP, ...Lay.meters.top);
+  meter(BOTTOM, ...Lay.meters.bot);
   if (game.goAt) {
     const end = game.status === "ended" && game.endedAt ? game.endedAt : now;
     const el = Math.max(0, (end - game.goAt) / 1000);
-    rr(c, VW - 112, 10, 98, 36, 6);
+    const [cx, cy] = Lay.clock;
+    rr(c, cx, cy, 98, 36, 6);
     c.fillStyle = "#10102a";
     c.fill();
-    txt(c, `${Math.floor(el / 60)}:${String(Math.floor(el % 60)).padStart(2, "0")}`, VW - 63, 36, 14, "#ffcf40", "center");
+    txt(c, `${Math.floor(el / 60)}:${String(Math.floor(el % 60)).padStart(2, "0")}`, cx + 49, cy + 26, 14, "#ffcf40", "center");
   }
 
   message(c, b, events, players, game, now);
@@ -616,11 +659,12 @@ function draw(c: Ctx, b: ClashBoard | null, events: ClashEvent[], game: Game, pl
     }
     const sl = Math.min(1, k * 5);
     c.fillStyle = sup.side === "red" ? "rgba(255,90,95,.92)" : "rgba(74,168,255,.92)";
-    c.fillRect(0, 270, VW * sl, 64);
+    const by = Lay.banner;
+    c.fillRect(0, by, VW * sl, 64);
     if (sl >= 1) {
-      stxt(c, "SUPER MOVE!", VW / 2, 300, 22, "#ffffff", "center");
+      stxt(c, "SUPER MOVE!", VW / 2, by + 30, 22, "#ffffff", "center");
       const who = b.format === "solo" ? players[sup.uid]?.name ?? "" : creatureById(b.fighters[sup.hits[0]?.[0] ?? ""]?.c).en;
-      txt(c, `GERAKAN SUPER! · ${who.toUpperCase()}`, VW / 2, 322, 9, "#1b1530", "center");
+      txt(c, `GERAKAN SUPER! · ${who.toUpperCase()}`, VW / 2, by + 52, 9 * Lay.fz, "#1b1530", "center");
     }
   }
 }

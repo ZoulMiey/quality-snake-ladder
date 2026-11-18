@@ -8,8 +8,9 @@ import type { Game, Player } from "../lib/types.ts";
 import Countdown from "../components/Countdown.tsx";
 import { CREATURES, ELEMENTS, creatureById } from "./creatures.ts";
 import CreatureImg from "./CreatureImg.tsx";
-import { CLASH_QUESTION_MS, fixBoard, type ClashBoard, type ClashQ } from "./engine.ts";
-import { HP, SHIELD, SHIELD_EVERY, SOLO_CREATURES, STUN_MS, SUPER_STREAK, TEAM_SIZE, fightersOf, isAlive, lineUp, type Format, type Side } from "./sim.ts";
+import { CLASH_QUESTION_MS, fixBoard, fixEvents, type ClashBoard, type ClashEvent, type ClashQ } from "./engine.ts";
+import { ArenaCanvas } from "./ClashView.tsx";
+import { SHIELD, SOLO_CREATURES, STUN_MS, SUPER_STREAK, TEAM_SIZE, fightersOf, isAlive, lineUp, type Format, type Side } from "./sim.ts";
 
 type RawPick = { side: Side; c: string[] | Record<string, string>; at?: number };
 const cList = (c: RawPick["c"] | undefined) => (Array.isArray(c) ? c : Object.values(c ?? {}));
@@ -164,105 +165,65 @@ export function ClashPick({ uid, format }: { uid: string; format: Format }) {
 
 const LETTERS = ["A", "B", "C", "D"];
 
-/** During the battle. */
+/** During the battle: the full arena from your side, with the question popping up over it. */
 export default function ClashPhone({ uid, me, game, onExit }: { uid: string; me: Player; game: Game; onExit: () => void }) {
   useNow(150);
   const bRaw = useDbValue<ClashBoard>("clash/b");
   const b = useMemo(() => fixBoard(bRaw), [bRaw]);
+  const evRaw = useDbValue<ClashEvent[]>("clash/ev");
+  const events = useMemo(() => fixEvents(evRaw), [evRaw]);
+  const players = useDbValue<Record<string, Player>>("players");
   const q = useDbValue<ClashQ>(`clash/q/${uid}`);
-  const mine = b ? fightersOf(b, uid) : [];
+  if (!b) return <p className="card muted">Getting ready… / Bersedia…</p>;
+  const mine = fightersOf(b, uid);
+  const side = mine[0]?.side ?? null;
   const ended = game.status === "ended";
   const now = game.paused && game.pausedAt ? game.pausedAt : serverNow();
   const counting = game.goAt && now < game.goAt + 1000;
+  const streak = b.streak[uid] ?? 0;
 
-  if (!b) return <p className="card muted">Getting ready… / Bersedia…</p>;
-  const side = mine[0]?.side ?? null;
-
-  let inner: React.ReactNode;
+  let sheet: React.ReactNode = null;
+  let center: React.ReactNode = null;
   if (ended) {
     const won = side && b.winner === side;
-    inner = (
-      <div className="card center won">
+    const w = b.winner === "red" ? SIDE_NAME.red : SIDE_NAME.blue;
+    center = (
+      <div className="card center won cph-end">
         <div className="trophy">{won ? "🏆" : side ? "⚔️" : "👀"}</div>
-        <Bi
-          className="title"
-          en={side ? (won ? "Your team wins!" : `${b.winner === "red" ? "Red" : "Blue"} wins. Good fight!`) : `${b.winner === "red" ? "Red" : "Blue"} wins!`}
-          ms={side ? (won ? "Pasukan anda menang!" : "Lawan menang. Syabas kerana mencuba!") : `${b.winner === "red" ? "Merah" : "Biru"} menang!`}
-        />
+        <Bi className="title" en={side ? (won ? "Your team wins!" : `${w.en} wins. Good fight!`) : `${w.en} wins!`} ms={side ? (won ? "Pasukan anda menang!" : "Lawan menang. Syabas kerana mencuba!") : `${w.ms} menang!`} />
         <p className="muted">Thank you for playing! / Terima kasih kerana bermain!</p>
-        <button className="big-btn exit-btn" onClick={onExit}>
+        <button className="big-btn" onClick={onExit}>
           Exit / Keluar
         </button>
       </div>
     );
-  } else if (!side) {
-    inner = (
-      <div className="card center">
-        <div className="trophy">👀</div>
-        <Bi className="title" en="You are watching this battle" ms="Anda menonton pertempuran ini" />
-        <p className="muted">Cheer for your favourite team on the big screen! / Sorak untuk pasukan kegemaran anda!</p>
-      </div>
-    );
   } else if (counting && game.goAt) {
-    inner = <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="phone-cd" />;
+    center = <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="phone-cd" />;
+  } else if (!side) {
+    sheet = <Bi className="cph-note" en="You are watching this battle. Cheer on the big screen!" ms="Anda menonton pertempuran ini. Sorak untuk pasukan anda!" />;
   } else if (!isAlive(b, uid)) {
-    inner = (
-      <div className="card center">
-        <div className="trophy">💫</div>
-        <Bi className="title" en="Fainted! Watch the big screen and cheer for your team." ms="Pengsan! Tonton skrin besar dan sorak untuk pasukan anda." />
-      </div>
-    );
+    sheet = <Bi className="cph-note" en="💫 Fainted! Watch and cheer for your team." ms="Pengsan! Tonton dan sorak untuk pasukan anda." />;
   } else if (q?.result && now < q.until) {
-    inner = <Result q={q} b={b} now={now} key={`r${q.seq}`} />;
+    sheet = <Result q={q} b={b} now={now} key={`r${q.seq}`} />;
   } else if (q?.q && !q.result) {
-    inner = <Question uid={uid} q={q} paused={game.paused} now={now} key={`q${q.seq}`} />;
-  } else inner = <p className="card muted center">Next question… / Soalan seterusnya…</p>;
+    sheet = <Question uid={uid} q={q} paused={game.paused} now={now} key={`q${q.seq}`} streak={streak} />;
+  } else sheet = <Bi className="cph-note" en="Next question…" ms="Soalan seterusnya…" />;
 
-  const streak = b.streak[uid] ?? 0;
   return (
-    <div className="clash-phone">
-      {side && (
-        <div className={`cph-top ${side}`}>
-          <div className="cph-name">
-            {me.name} · {SIDE_NAME[side].en.toUpperCase()}
-          </div>
-          <div className={`cph-trio n${mine.length}`}>
-            {mine.map((f) => (
-              <div key={f.id} className={`cph-f ${f.hp <= 0 ? "out" : ""}`}>
-                <CreatureImg id={f.c} size={mine.length > 1 ? 44 : 52} />
-                <div className="cph-fi">
-                  {mine.length === 1 && <div className="cph-cn">{creatureById(f.c).en}</div>}
-                  <div className="cph-hp">
-                    <i style={{ width: `${(f.hp / HP) * 100}%`, background: f.hp / HP > 0.5 ? "#4ade80" : f.hp / HP > 0.2 ? "#facc15" : "#ef4444" }} />
-                  </div>
-                  <div className="cph-num">
-                    {f.hp > 0 ? `${f.hp}/${HP}` : "Fainted"}
-                    {f.sh > 0 ? ` +${f.sh}🛡` : ""}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="cph-streak" title="Right answers in a row">
-            {Array.from({ length: SUPER_STREAK }, (_, i) => (
-              <i key={i} className={i < streak ? "on" : ""} />
-            ))}
-            <span>{streak === SUPER_STREAK - 1 ? "Next right = SUPER! / Seterusnya = SUPER!" : `${streak}/${SUPER_STREAK} → super`}</span>
-          </div>
-          {b.format === "team" && (
-            <div className="cph-team">
-              🛡 Team {b.rights[side] % SHIELD_EVERY}/{SHIELD_EVERY} → +{SHIELD} shield
-            </div>
-          )}
-        </div>
-      )}
-      {game.paused && game.status === "playing" && <div className="paused-bar">Paused by host / Dihentikan seketika</div>}
-      {inner}
+    <div className="cph-stage">
+      <ArenaCanvas b={b} events={events} game={game} players={players ?? {}} tall bottom={side ?? "red"} me={uid} className="cph-canvas" />
+      <div className="cph-me">
+        {me.name}
+        {side ? ` · ${SIDE_NAME[side].en.toUpperCase()}` : ""}
+      </div>
+      {game.paused && game.status === "playing" && <div className="paused-bar cph-paused">Paused by host / Dihentikan seketika</div>}
+      {center && <div className="cph-center">{center}</div>}
+      {sheet && <div className="cph-sheet">{sheet}</div>}
     </div>
   );
 }
 
-function Question({ uid, q, paused, now }: { uid: string; q: ClashQ; paused: boolean; now: number }) {
+function Question({ uid, q, paused, now, streak }: { uid: string; q: ClashQ; paused: boolean; now: number; streak: number }) {
   const qq = q.q!;
   const [sent, setSent] = useState<number | null>(null);
   const lastBeep = useRef(-1);
@@ -286,6 +247,7 @@ function Question({ uid, q, paused, now }: { uid: string; q: ClashQ; paused: boo
   }
   return (
     <div className="qcard">
+      {streak === SUPER_STREAK - 1 && <Bi className="kind bonus" en="🔥 Get this right for a SUPER MOVE!" ms="Jawab betul untuk gerakan super!" />}
       <div className={`timer ${warn ? "warn" : ""}`} aria-label={`${secs} seconds left`}>
         <div className="timer-fill" style={{ width: `${(left / CLASH_QUESTION_MS) * 100}%` }} />
         <span className="timer-num">{secs}s</span>

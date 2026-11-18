@@ -87,7 +87,7 @@ const PLAYERS =
       }),
     );
     const t = (Date.now() - start) / 1000;
-    if (shots === 0 && t > 14) {
+    if (shots === 0 && t > 12) {
       await proj.screenshot({ path: `${OUT}/clash-${MODE}-battle.png` });
       await phones[0].p.screenshot({ path: `${OUT}/clash-${MODE}-phone-q.png` });
       shots++;

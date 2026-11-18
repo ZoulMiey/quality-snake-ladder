@@ -57,6 +57,7 @@ The Firebase web settings are in `src/lib/firebase.ts`. They are not secret; the
 - Team only: every 5 right answers by the team = +50 shield for the teammate with the lowest HP; shields take damage first.
 - No time limit: the battle ends when one side is eliminated. "End game" by the host gives the win to the side with more HP + shield.
 - Simulated length (`npm test`): Team median about 4 min, 1 v 1 about 7 min.
+- Phones show the full battle arena from their own side (their team at the bottom, a "YOU" arrow), with the question popping up over it. The arena drawing is shared: `ArenaCanvas` in `src/clash/ClashView.tsx` (wide = projector, tall = phone).
 - Code: rules `src/clash/sim.ts`; referee `src/clash/engine.ts`; projector `src/clash/ClashView.tsx`; lobby `src/clash/ClashLobby.tsx`; phone `src/clash/ClashPhone.tsx`. Data: `clash/pick/{uid}` (phones, lobby only), `clash/b` (battle), `clash/ev` (last 16 events for animations), `clash/q/{uid}`, `private/clash`.
 - **Security rules:** a new `clash` section was added to `database.rules.json`. Paste the whole file into Firebase before playing Quality Clash.
 - End-to-end: `node scripts/e2e/clash.cjs` (Team, 6 fighters + 1 watcher) and `MODE=solo node scripts/e2e/clash.cjs`.

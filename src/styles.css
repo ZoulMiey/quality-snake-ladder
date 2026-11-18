@@ -550,3 +550,23 @@ button:disabled { cursor: default; }
 .clash-ko { background: #fde2e2; border-radius: 10px; padding: 6px 10px; }
 .clash-shield { background: #dff6ff; border-radius: 10px; padding: 6px 10px; }
 @media (max-width: 900px) { .cr-cols { grid-template-columns: 1fr; } .mode-pick { grid-template-columns: 1fr; } }
+/* Phone: the battle arena fills the screen; the question pops up over the bottom. */
+.cph-stage { position: relative; height: calc(100dvh - 92px); min-height: 520px; border-radius: 16px; overflow: hidden; background: #5a6c9c; }
+.cph-canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: top; image-rendering: pixelated; }
+.cph-me { position: absolute; left: 8px; bottom: 8px; font-size: 11px; color: rgba(255,255,255,.75); pointer-events: none; }
+.cph-paused { position: absolute; top: 8px; left: 8px; right: 8px; }
+.cph-center { position: absolute; inset: 0; display: grid; place-items: center; padding: 12px; background: rgba(10,8,30,.45); }
+.cph-center > * { width: 100%; }
+.cph-sheet { position: absolute; left: 8px; right: 8px; bottom: 22px; max-height: 64%; overflow-y: auto; border-radius: 18px; background: rgba(242,246,241,.97); padding: 10px; box-shadow: 0 -6px 24px rgba(0,0,0,.35); animation: sheet-up .25s ease-out; }
+.cph-sheet .question { padding: 12px; }
+.cph-sheet .question .en { font-size: 18px; }
+.cph-sheet .question .ms { font-size: 14px; }
+.cph-sheet .answers { gap: 8px; }
+.cph-sheet .ans { min-height: 52px; padding: 10px 12px; }
+.cph-sheet .qcard { gap: 8px; }
+.cph-sheet .rcard { padding: 12px; gap: 8px; box-shadow: none; }
+.cph-sheet .rcard .mark { width: 54px; height: 54px; font-size: 30px; }
+.cph-sheet .clash-dmg { font-size: 26px; }
+.cph-sheet .pen-num { font-size: 40px; }
+.cph-note { text-align: center; padding: 6px; }
+@keyframes sheet-up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
