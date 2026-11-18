@@ -378,7 +378,7 @@ function GameView({
             <div className="roll-who" style={{ ["--c" as string]: tokenById(players[lastRoll.uid].token).color }}>
               <span>{tokenById(players[lastRoll.uid].token).emoji}</span>
               <span className="roll-name">{players[lastRoll.uid].name}</span>
-              {lastRoll.bonus && <span className="chip hot">🔥 3 dice</span>}
+              {lastRoll.bonus && <span className="chip hot">🔥 2 dice</span>}
             </div>
             <DiceRoll values={lastRoll.dice} seed={`${lastRoll.uid}-${lastRoll.seq}`} size={58} />
           </div>
@@ -419,14 +419,17 @@ function RankRow({ p, paused, pausedAt }: { p: BoardPiece; paused: boolean; paus
     chip = <span className={`chip ${left <= 5 ? "hot" : ""} ${st.kind}`}>{label} {left}s</span>;
   } else if (st?.phase === "result" && st.result) {
     const r = st.result;
-    chip = <span className={`chip ${r.correct ? "ok" : "no"}`}>{r.timeout ? "⏰" : r.correct ? "✔" : "✘"} {r.dice.length ? `🎲 ${r.dice.reduce((a, b) => a + b, 0)}` : ""}</span>;
+    if (r.penalty) {
+      const wait = Math.max(0, Math.ceil((st.until - (paused && pausedAt ? pausedAt : serverNow())) / 1000));
+      chip = <span className="chip no">{r.timeout ? "⏰" : "✘"} ⏳ {wait}s</span>;
+    } else chip = <span className={`chip ${r.correct ? "ok" : "no"}`}>{r.timeout ? "⏰" : r.correct ? "✔" : "✘"} {r.dice.length ? `🎲 ${r.dice.reduce((a, b) => a + b, 0)}` : ""}</span>;
   }
   return (
     <li style={{ ["--c" as string]: t.color }}>
       <span className="r-emoji">{t.emoji}</span>
       <span className="r-name">{p.player.name}</span>
       <span className="r-streak" title="Right answers in a row">
-        {"🔥".repeat(Math.min(3, st?.streak ?? 0))}
+        {st?.streak ? `🔥${st.streak}` : ""}
       </span>
       <span className="r-box">{st?.pos ?? 0}</span>
       {chip}

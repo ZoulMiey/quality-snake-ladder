@@ -1,12 +1,14 @@
-import { FINAL_ZONE_NEED, FINAL_ZONE_START } from "../lib/board.ts";
+import { LAST_BOX } from "../lib/board.ts";
+import { BONUS_STREAK } from "../lib/rules.ts";
+import { MAX_WINNERS } from "../lib/engine.ts";
 
 /** The rules in four short tiles, used on the projector lobby and on phones. */
 export default function Rules({ compact }: { compact?: boolean }) {
   const tiles = [
-    { icon: "🎲", en: "Right = 2 dice\nWrong = 1 dice", ms: "Betul = 2 dadu · Salah = 1 dadu" },
-    { icon: "🔥", en: "3 right in a row\n= 3 dice", ms: "3 betul berturut = 3 dadu" },
+    { icon: "🎲", en: "Right = roll 1 dice\nWrong = wait 5 sec", ms: "Betul = baling 1 dadu · Salah = tunggu 5 saat" },
+    { icon: "🔥", en: `${BONUS_STREAK} right in a row\n= 2 dice`, ms: `${BONUS_STREAK} betul berturut = 2 dadu` },
     { icon: "🐍🪜", en: "Answer right to\nstay safe or climb", ms: "Jawab betul untuk selamat atau naik" },
-    { icon: "🏁", en: `Box ${FINAL_ZONE_START}+ needs\n${FINAL_ZONE_NEED} or more`, ms: `Petak ${FINAL_ZONE_START}+ perlu ${FINAL_ZONE_NEED} ke atas` },
+    { icon: "🏁", en: `First ${MAX_WINNERS} to box ${LAST_BOX}\nwin!`, ms: `${MAX_WINNERS} pemain pertama ke petak ${LAST_BOX} menang` },
   ];
   return (
     <ul className={`rule-tiles ${compact ? "compact" : ""}`} aria-label="How to play">

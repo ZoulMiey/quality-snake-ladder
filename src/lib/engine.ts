@@ -13,6 +13,8 @@ export const COUNTDOWN_MS = 5_000;
 export const MAX_WINNERS = 5;
 const RESULT_MS_DICE = 3_000;
 const RESULT_MS_SHORT = 2_200;
+/** Waiting time after a wrong answer (always 5 seconds, however many wrong answers). */
+export const PENALTY_MS = 5_000;
 const GRACE_MS = 800;
 const FEED_KEEP = 14;
 
@@ -264,7 +266,7 @@ export class Engine {
         this.pushFeed(now, uid, `🏆 ${icon} ${name} finished #${st.rank}!`, "win");
       } else {
         st.phase = "result";
-        st.until = now + (result.dice.length ? RESULT_MS_DICE : RESULT_MS_SHORT);
+        st.until = now + (result.penalty ? PENALTY_MS : result.dice.length ? RESULT_MS_DICE : RESULT_MS_SHORT);
       }
       updates[`state/${uid}`] = st;
       updates.feed = this.feed;
@@ -304,16 +306,14 @@ export class Engine {
 function describe(icon: string, name: string, r: Result): string {
   const who = `${icon} ${name}`;
   const mark = r.timeout ? "⏰" : r.correct ? "✔" : "✘";
-  const roll = r.dice.length ? ` rolled ${r.dice.join("+")}${r.bonus ? " (3-dice bonus!)" : ""}` : "";
+  const roll = r.dice.length ? ` rolled ${r.dice.join("+")}${r.bonus ? " (2-dice bonus!)" : ""}` : "";
   switch (r.outcome) {
     case "move":
       return `${who} ${mark}${roll} → box ${r.to}${r.next === "snake" ? " 🐍" : r.next === "ladder" ? " 🪜" : ""}`;
     case "win":
       return `${who} ${mark}${roll} → box ${LAST_BOX}!`;
-    case "stay":
-      return `${who} ${mark}${roll}: needs 6 or more, stays at box ${r.to}`;
     case "noroll":
-      return `${who} ${mark} no roll in the final zone`;
+      return `${who} ${mark} no roll, waits 5 seconds`;
     case "climb":
       return `🪜 ${who} ✔ climbed the ladder to box ${r.to}`;
     case "nolad":

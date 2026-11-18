@@ -1,13 +1,19 @@
-import { LADDERS, LAST_BOX, SNAKES, FINAL_ZONE_NEED, inFinalZone } from "./board.ts";
+import { LADDERS, LAST_BOX, SNAKES } from "./board.ts";
 import type { QuestionKind, Result } from "./types.ts";
 
-export const BONUS_STREAK = 3;
+/** Right answers in a row needed for the 2-dice bonus. */
+export const BONUS_STREAK = 5;
 
 export type Resolved = { result: Result; pos: number; streak: number };
 
 /**
  * The game rules in one place. Given where a player stands and whether they answered correctly,
  * work out the dice, the new box and what comes next.
+ * - Right answer: roll 1 dice (2 dice on the 5th right answer in a row, then the count restarts).
+ * - Wrong answer or no answer: no roll, and a 5-second penalty before the next question.
+ * - Snake question: right = stay, wrong = slide down (+ penalty).
+ * - Ladder question: right = climb, wrong = stay (+ penalty).
+ * - Reaching or passing the last box wins.
  */
 export function resolve(
   pos: number,
@@ -26,6 +32,7 @@ export function resolve(
     correctIdx: opts.correctIdx,
     from: pos,
     bonus: false,
+    penalty: !correct,
     next: null as QuestionKind | null,
     dice: [] as number[],
   };
@@ -39,30 +46,18 @@ export function resolve(
     return { result: { ...base, to, outcome: correct ? "climb" : "nolad" }, pos: to, streak: newStreak };
   }
 
-  // A normal turn.
-  if (inFinalZone(pos) && !correct) {
-    return { result: { ...base, to: pos, outcome: "noroll" }, pos, streak: newStreak };
-  }
+  // A normal turn. Wrong = no roll (the penalty is applied by the engine).
+  if (!correct) return { result: { ...base, to: pos, outcome: "noroll" }, pos, streak: newStreak };
 
   let count = 1;
   let bonus = false;
-  if (correct) {
-    if (newStreak >= BONUS_STREAK) {
-      count = 3;
-      bonus = true;
-      newStreak = 0;
-    } else count = 2;
+  if (newStreak >= BONUS_STREAK) {
+    count = 2;
+    bonus = true;
+    newStreak = 0;
   }
   const dice = Array.from({ length: count }, rollDie);
-  const sum = dice.reduce((a, b) => a + b, 0);
-
-  if (inFinalZone(pos)) {
-    const win = sum >= FINAL_ZONE_NEED;
-    const to = win ? LAST_BOX : pos;
-    return { result: { ...base, dice, bonus, to, outcome: win ? "win" : "stay" }, pos: to, streak: newStreak };
-  }
-
-  const land = pos + sum;
+  const land = pos + dice.reduce((a, b) => a + b, 0);
   if (land >= LAST_BOX) {
     return { result: { ...base, dice, bonus, to: LAST_BOX, outcome: "win" }, pos: LAST_BOX, streak: newStreak };
   }

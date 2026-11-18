@@ -24,8 +24,7 @@ export type QuestionKind = "turn" | "snake" | "ladder";
 export type Outcome =
   | "move" // normal move
   | "win" // reached box 50
-  | "stay" // final zone, total below 6
-  | "noroll" // final zone, wrong answer
+  | "noroll" // wrong answer: no roll, penalty
   | "climb" // ladder question correct
   | "nolad" // ladder question wrong
   | "safe" // snake question correct
@@ -41,7 +40,8 @@ export type Result = {
   from: number;
   to: number;
   outcome: Outcome;
-  bonus: boolean; // 3-dice bonus roll
+  bonus: boolean; // 2-dice bonus roll (5 right in a row)
+  penalty?: boolean; // wrong answer: wait 5 seconds before the next question
   next: QuestionKind | null; // question that follows because of where they landed
 };
 

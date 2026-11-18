@@ -12,12 +12,11 @@ A live 100-box Snake & Ladder quiz game for Quality Month 2026. Everyone plays a
 **Game rules**
 - After Start, a 5-second "Get ready" countdown shows on the projector and phones.
 - Each player answers a question (30 seconds, a warning beep in the last 5 seconds).
-- Right answer: roll 2 dice. Wrong answer or no answer: roll 1 dice.
-- 3 right answers in a row: roll 3 dice. The count then starts again from 0.
-- Land on a 🐍 snake head: answer a question. Right = stay, wrong = slide down.
-- Land at the bottom of a 🪜 ladder: answer a question. Right = climb, wrong = stay.
-- Boxes 96–99 (final zone): a wrong answer means no roll. A right answer rolls the dice, and a total of 6 or more finishes.
-- From box 95 or below, reaching or passing box 100 finishes.
+- Right answer: roll 1 dice. 5 right answers in a row: roll 2 dice, then the count starts again from 0.
+- Wrong answer or no answer: no roll, the right answer is shown, and the player waits 5 seconds (penalty) before the next question. The penalty is always 5 seconds.
+- Land on a 🐍 snake head: answer a question. Right = stay, wrong = slide down + 5-second penalty.
+- Land at the bottom of a 🪜 ladder: answer a question. Right = climb, wrong = stay + 5-second penalty.
+- Reaching or passing box 100 finishes.
 - A player never gets the same question twice (until they have had them all).
 - The game ends when 5 players have finished (or everyone, if fewer than 5 play).
 - Up to 10 players. Each player picks a different piece.

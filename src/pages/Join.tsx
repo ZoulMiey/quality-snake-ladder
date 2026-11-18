@@ -6,8 +6,9 @@ import Countdown from "../components/Countdown.tsx";
 import Rules from "../components/Rules.tsx";
 import { useDbValue, useNow } from "../lib/useDb.ts";
 import { TOKENS, tokenById } from "../lib/tokens.ts";
-import { LADDERS, SNAKES, LAST_BOX, inFinalZone, FINAL_ZONE_NEED, FINAL_ZONE_START } from "../lib/board.ts";
-import { QUESTION_MS } from "../lib/engine.ts";
+import { LADDERS, SNAKES, LAST_BOX } from "../lib/board.ts";
+import { BONUS_STREAK } from "../lib/rules.ts";
+import { PENALTY_MS, QUESTION_MS } from "../lib/engine.ts";
 import { DiceRoll } from "../components/Dice.tsx";
 import { sfx, unlockAudio } from "../lib/sound.ts";
 import { fixState, type Game, type Player, type PlayerState, type Result } from "../lib/types.ts";
@@ -227,7 +228,7 @@ function StatusStrip({ me, st }: { me: Player; st: PlayerState | null }) {
       <span className="me-name">{me.name}</span>
       <span className="box-pill">Box {st?.pos ?? 0}</span>
       <span className="streak" title="Right answers in a row">
-        {[0, 1, 2].map((i) => (
+        {Array.from({ length: BONUS_STREAK }, (_, i) => i).map((i) => (
           <i key={i} className={i < streak ? "on" : ""} />
         ))}
       </span>
@@ -243,7 +244,7 @@ function Play({ uid, me, game, state, onExit }: { uid: string; me: Player; game:
   else if (ended) inner = <Ended st={state} />;
   else if (state.phase === "wait" && game.goAt) inner = <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="phone-cd" />;
   else if (state.phase === "question") inner = <QuestionCard uid={uid} st={state} paused={game.paused} pausedAt={game.pausedAt} />;
-  else if (state.phase === "result" && state.result) inner = <ResultCard r={state.result} seq={state.seq} />;
+  else if (state.phase === "result" && state.result) inner = <ResultCard key={state.seq} r={state.result} st={state} frozenAt={game.paused ? game.pausedAt : null} />;
   else inner = <p className="card muted">Get ready… / Bersedia…</p>;
   return (
     <>
@@ -276,15 +277,7 @@ function kindIntro(st: PlayerState) {
         ms={`Soalan tangga! Betul = naik ke petak ${LADDERS[st.pos]}. Salah = kekal.`}
       />
     );
-  if (inFinalZone(st.pos))
-    return (
-      <Bi
-        className="kind final"
-        en={`🏁 Final zone! Right = roll, need ${FINAL_ZONE_NEED}+ to finish. Wrong = no roll.`}
-        ms={`Zon akhir! Betul = baling, perlu ${FINAL_ZONE_NEED}+ untuk tamat. Salah = tiada balingan.`}
-      />
-    );
-  if (st.streak === 2) return <Bi className="kind bonus" en="🔥 Get this right for a 3-dice bonus!" ms="Jawab betul untuk bonus 3 dadu!" />;
+  if (st.streak === BONUS_STREAK - 1) return <Bi className="kind bonus" en="🔥 Get this right for a 2-dice bonus!" ms="Jawab betul untuk bonus 2 dadu!" />;
   return null;
 }
 
@@ -361,10 +354,8 @@ function outcomeText(r: Result): { en: string; ms: string } {
       return { en: `Box ${r.from} → ${r.to}`, ms: `Petak ${r.from} → ${r.to}` };
     case "win":
       return { en: `You reached box ${LAST_BOX}!`, ms: `Anda sampai ke petak ${LAST_BOX}!` };
-    case "stay":
-      return { en: `Total under ${FINAL_ZONE_NEED}. Stay at box ${r.to}. Next question!`, ms: `Jumlah kurang ${FINAL_ZONE_NEED}. Kekal di petak ${r.to}. Soalan seterusnya!` };
     case "noroll":
-      return { en: "No roll in the final zone. Next question!", ms: "Tiada balingan di zon akhir. Soalan seterusnya!" };
+      return { en: `No roll. You stay at box ${r.to}.`, ms: `Tiada balingan. Anda kekal di petak ${r.to}.` };
     case "climb":
       return { en: `You climbed to box ${r.to}!`, ms: `Anda naik ke petak ${r.to}!` };
     case "nolad":
@@ -376,7 +367,8 @@ function outcomeText(r: Result): { en: string; ms: string } {
   }
 }
 
-function ResultCard({ r, seq }: { r: Result; seq: number }) {
+function ResultCard({ r, st, frozenAt }: { r: Result; st: PlayerState; frozenAt: number | null }) {
+  const seq = st.seq;
   const [rolled, setRolled] = useState(r.dice.length === 0);
   useEffect(() => {
     if (r.timeout || !r.correct) sfx.wrong();
@@ -394,9 +386,33 @@ function ResultCard({ r, seq }: { r: Result; seq: number }) {
     <div className={`rcard ${head.cls}`} key={seq}>
       <div className="mark">{head.icon}</div>
       <Bi en={head.en} ms={head.ms} className="rhead" />
-      {r.bonus && <div className="bonus-badge">🔥 3 in a row! 3-dice bonus / Bonus 3 dadu</div>}
+      {!r.correct && st.q?.opts[r.correctIdx] && (
+        <div className="right-answer">
+          <span className="ra-label">Right answer / Jawapan betul</span>
+          <span className="en">{st.q.opts[r.correctIdx].en}</span>
+          <span className="ms">{st.q.opts[r.correctIdx].ms}</span>
+        </div>
+      )}
+      {r.bonus && <div className="bonus-badge">🔥 {BONUS_STREAK} in a row! 2-dice bonus / Bonus 2 dadu</div>}
       {r.dice.length > 0 && <DiceRoll values={r.dice} seed={seq} size={72} onDone={() => setRolled(true)} />}
       {rolled && <Bi en={out.en} ms={out.ms} className="outcome" />}
+      {r.penalty && <Penalty until={st.until} frozenAt={frozenAt} />}
+    </div>
+  );
+}
+
+/** The 5-second wait after a wrong answer. */
+function Penalty({ until, frozenAt }: { until: number; frozenAt: number | null }) {
+  useNow(100);
+  const left = Math.max(0, until - (frozenAt ?? serverNow()));
+  const secs = Math.ceil(left / 1000);
+  return (
+    <div className="penalty" role="timer" aria-live="polite">
+      <div className="pen-num">{secs}</div>
+      <div className="pen-bar">
+        <div className="pen-fill" style={{ width: `${(left / PENALTY_MS) * 100}%` }} />
+      </div>
+      <Bi en="Penalty: next question in a moment" ms="Penalti: soalan seterusnya sebentar lagi" />
     </div>
   );
 }

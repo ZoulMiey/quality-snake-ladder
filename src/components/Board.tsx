@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { COLS, ROWS, LADDERS, SNAKES, LAST_BOX, FINAL_ZONE_START, FINAL_ZONE_NEED, cellOf } from "../lib/board.ts";
+import { COLS, ROWS, LADDERS, SNAKES, LAST_BOX, cellOf } from "../lib/board.ts";
 import { tokenById } from "../lib/tokens.ts";
 import type { Player, PlayerState } from "../lib/types.ts";
 
@@ -125,7 +125,6 @@ export default function Board({ pieces, highlight }: { pieces: BoardPiece[]; hig
             const cls = [
               "cell",
               (col + row) % 2 ? "alt" : "",
-              n >= FINAL_ZONE_START && n < LAST_BOX ? "final" : "",
               n === LAST_BOX ? "finish" : "",
               SNAKES[n] ? "has-snake" : "",
               LADDERS[n] ? "has-ladder" : "",
@@ -152,7 +151,6 @@ export default function Board({ pieces, highlight }: { pieces: BoardPiece[]; hig
               <div key={n} style={{ gridColumn: col + 1, gridRow: row + 1, position: "relative" }}>
                 <span className="num">{n}</span>
                 {n === LAST_BOX && <span className="finish-label">🏆 FINISH</span>}
-                {n === FINAL_ZONE_START && <span className="zone-label">Need {FINAL_ZONE_NEED}+</span>}
               </div>
             );
           })}

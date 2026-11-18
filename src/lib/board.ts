@@ -1,9 +1,6 @@
 // The board: 100 boxes, 10 rows of 10, zig-zag from box 1 (bottom left) to box 100 (top left).
 
 export const LAST_BOX = 100;
-/** Boxes 96–99: a total of 6 or more is needed to finish. */
-export const FINAL_ZONE_START = 96;
-export const FINAL_ZONE_NEED = 6;
 export const COLS = 10;
 export const ROWS = 10;
 
@@ -30,8 +27,6 @@ export const SNAKES: Record<number, number> = {
   93: 88,
   94: 56,
 };
-
-export const inFinalZone = (box: number) => box >= FINAL_ZONE_START && box < LAST_BOX;
 
 /** Column (0 = left) and row (0 = top) of a box on screen. Box 0 = start, shown beside box 1. */
 export function cellOf(box: number): { col: number; row: number } {
