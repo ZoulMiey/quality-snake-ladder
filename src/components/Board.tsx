@@ -228,7 +228,8 @@ export default function Board({ pieces, highlight, specials, posOverride }: { pi
           const t = tokenById(p.player.token);
           return (
             <span key={p.uid} className="start-piece" style={{ ["--c" as string]: t.color }}>
-              {t.emoji} {p.player.name}
+              {t.emoji}
+              {atStart.length <= 8 ? ` ${p.player.name}` : ""}
             </span>
           );
         })}

@@ -19,7 +19,7 @@ A live 100-box Snake & Ladder quiz game for Quality Month 2026. Everyone plays a
 - Reaching or passing box 100 finishes.
 - A player never gets the same question twice (until they have had them all).
 - The game ends when 5 players have finished (or everyone, if fewer than 5 play).
-- Up to 10 players. Each player picks a different piece.
+- Up to 20 players. Each player picks a different piece.
 
 The rules are in `src/lib/rules.ts` and the board (snakes and ladders) in `src/lib/board.ts`.
 

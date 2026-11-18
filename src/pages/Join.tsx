@@ -5,7 +5,7 @@ import { signOut } from "firebase/auth";
 import Countdown from "../components/Countdown.tsx";
 import Rules from "../components/Rules.tsx";
 import { useDbValue, useNow } from "../lib/useDb.ts";
-import { TOKENS, tokenById } from "../lib/tokens.ts";
+import { MAX_PLAYERS, TOKENS, tokenById } from "../lib/tokens.ts";
 import { LADDERS, SNAKES, LAST_BOX } from "../lib/board.ts";
 import { BONUS_STREAK } from "../lib/rules.ts";
 import { eventById } from "../lib/specials.ts";
@@ -153,7 +153,7 @@ function JoinForm({ uid, tokens }: { uid: string; tokens: Record<string, string>
   if (full)
     return (
       <div className="card center">
-        <Bi en="The game is full (10 players)." ms="Permainan sudah penuh (10 pemain)." />
+        <Bi en={`The game is full (${MAX_PLAYERS} players).`} ms={`Permainan sudah penuh (${MAX_PLAYERS} pemain).`} />
       </div>
     );
 

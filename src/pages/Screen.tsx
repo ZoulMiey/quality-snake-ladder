@@ -308,7 +308,7 @@ function LobbyView({ players, onStart, enabledQs }: { players: Record<string, Pl
           </button>
         </div>
         {!list.length && <p className="waiting">Waiting for players to scan the QR code… / Menunggu pemain…</p>}
-        <ul className="lobby-players">
+        <ul className={`lobby-players ${list.length > 10 ? "many" : ""}`}>
           {list.map(([uid, p]) => {
             const t = tokenById(p.token);
             return (
@@ -407,7 +407,7 @@ function GameView({
           <h3>
             Players <span className="muted">· {winners.length}/{Math.min(MAX_WINNERS, pieces.length)} finished</span>
           </h3>
-          <ul className="ranking">
+          <ul className={`ranking ${ranking.length > 10 ? "many" : ""}`}>
             {ranking.map((p) => (
               <RankRow key={p.uid} p={p} paused={game.paused} pausedAt={game.pausedAt} />
             ))}
