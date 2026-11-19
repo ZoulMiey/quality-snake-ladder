@@ -5,11 +5,16 @@ import { boatSpot } from "./rules.ts";
 import type { BoatInfo, LeapKind, PondApi } from "./pondApi.ts";
 
 const RX = 40;
-/** Fixed camera behind my boat: how far back, how high, and where it aims (towards the camera and down). */
-const CAM_BACK = 9;
-const CAM_UP = 6.2;
-const CAM_AIM = 0;
-const CAM_LOW = -0.8;
+/**
+ * Fixed camera (owner's tests, Nov 2026): low over-the-shoulder view behind my boat and a little to the
+ * side, so the boat is the main thing on screen and you can watch the fish leap from the bobber into it.
+ * BACK/SIDE/UP place the camera from my boat; it aims between the boat and the bobber (AIM), at height LOW.
+ */
+const CAM_BACK = 10;
+const CAM_SIDE = 4;
+const CAM_UP = 4.2;
+const CAM_AIM = 0.35;
+const CAM_LOW = -2.3;
 const RZ = 27;
 const PI = Math.PI;
 
@@ -395,8 +400,8 @@ export class PondScene implements PondApi {
     const out = me.pos.clone().setY(0).normalize();
     const side = new T.Vector3(-out.z, 0, out.x);
     return {
-      pos: me.pos.clone().addScaledVector(out, CAM_BACK).add(new T.Vector3(0, CAM_UP, 0)).addScaledVector(side, 1.4),
-      look: me.pos.clone().addScaledVector(out, CAM_AIM).setY(CAM_LOW),
+      pos: me.pos.clone().addScaledVector(out, CAM_BACK).add(new T.Vector3(0, CAM_UP, 0)).addScaledVector(side, CAM_SIDE),
+      look: me.pos.clone().lerp(me.bob, CAM_AIM).setY(CAM_LOW),
     };
   }
 
