@@ -4,7 +4,7 @@ import { db, ensureSignedIn, serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
 import { winnersNeeded } from "../lib/rules.ts";
 import { Engine, QUESTION_MS, playAgain, removePlayer, resetGame } from "../lib/engine.ts";
-import { tokenById, MAX_PLAYERS } from "../lib/tokens.ts";
+import { tokenById, MAX_PLAYERS, assignPieces, gameMaxPlayers } from "../lib/tokens.ts";
 import { isMuted, setMuted, sfx, unlockAudio } from "../lib/sound.ts";
 import Board, { type BoardPiece } from "../components/Board.tsx";
 import Header, { GAME_NAMES } from "../components/Header.tsx";
@@ -219,6 +219,9 @@ function HostScreen() {
     setMsg("");
     const e = makeEngine(game?.mode, tabId, game?.clashFormat);
     try {
+      // Everyone gets a different random piece (players who already have one keep it).
+      const pieces = assignPieces(players ?? {});
+      if (Object.keys(pieces).length) await update(ref(db), Object.fromEntries(Object.entries(pieces).map(([uid, id]) => [`players/${uid}/token`, id])));
       engine.current = e;
       await e.start();
     } catch (err) {
@@ -377,8 +380,12 @@ function LobbyView({
 }) {
   const url = `${location.origin}/join`;
   const clash = useLineUp(clashFormat, players);
-  const canStart = !!mode && !!list0(players).length && !!enabledQs && (qsetCounts[qset] ?? 0) > 0 && (mode !== "clash" || clash.ready);
-  const list = Object.entries(players).sort((a, b) => (a[1].joinedAt ?? 0) - (b[1].joinedAt ?? 0));
+  const cap = mode ? gameMaxPlayers(mode, clashFormat) : MAX_PLAYERS;
+  const tooMany = list0(players).length > cap;
+  const canStart = !!mode && !!list0(players).length && !tooMany && !!enabledQs && (qsetCounts[qset] ?? 0) > 0 && (mode !== "clash" || clash.ready);
+  // Only the 15 players who joined last are listed; the counter shows everyone.
+  const all = Object.entries(players).sort((a, b) => (b[1].joinedAt ?? 0) - (a[1].joinedAt ?? 0));
+  const list = all.slice(0, LIST_MAX);
   return (
     <main className="lobby">
       <section className="qr-side">
@@ -452,13 +459,19 @@ function LobbyView({
             {mode === "clash" && <ClashFormatPick format={clashFormat} onFormat={onClashFormat} bossMode={bossMode} onBossMode={onBossMode} />}
             <div className="lobby-head">
               <h2>
-                Players <span className="count">{list.length}/{MAX_PLAYERS}</span>
+                Players <span className="count">{all.length}/{cap}</span>
               </h2>
               <button className="big-btn start" disabled={!canStart} onClick={onStart}>
                 ▶ Start game
               </button>
             </div>
             {!list.length && <p className="waiting">Waiting for players to scan the QR code… / Menunggu pemain…</p>}
+            {tooMany && mode && (
+              <p className="waiting too-many">
+                {GAME_NAMES[mode].en}
+                {mode === "clash" ? ` (${clashFormat === "boss" ? "Boss Raid" : "Team"})` : ""}: max {cap} players ({all.length} joined). Remove players or pick another game. / Maksimum {cap} pemain.
+              </p>
+            )}
             {mode === "clash" && list.length > 0 && <ClashRoster format={clashFormat} players={players} />}
             {mode === "clash" && list.length > 0 && !clash.ready && (
               <p className="waiting">
@@ -472,13 +485,18 @@ function LobbyView({
                   <li key={uid} style={{ ["--c" as string]: t.color }}>
                     <span className="lp-emoji">{t.emoji}</span>
                     <span className="lp-name">{p.name}</span>
-                    <button className="x" aria-label={`Remove ${p.name}`} onClick={() => removePlayer(uid, p.token)}>
+                    <button className="x" aria-label={`Remove ${p.name}`} onClick={() => removePlayer(uid)}>
                       ×
                     </button>
                   </li>
                 );
               })}
             </ul>
+            {all.length > list.length && (
+              <p className="more-players">
+                + {all.length - list.length} more / lagi
+              </p>
+            )}
             <Rules mode={mode} variant={mode === "clash" ? clashFormat : undefined} />
           </div>
         )}
@@ -488,6 +506,8 @@ function LobbyView({
 }
 
 const list0 = (players: Record<string, Player>) => Object.keys(players);
+/** The projector lists at most this many players (lobby: the latest to join; games: the top). */
+const LIST_MAX = 15;
 
 function GameView({
   game,
@@ -578,10 +598,11 @@ function GameView({
             Players <span className="muted">· {winners.length}/{winnersNeeded(pieces.length)} finished</span>
           </h3>
           <ul className={`ranking ${ranking.length > 10 ? "many" : ""}`}>
-            {ranking.map((p) => (
+            {ranking.slice(0, LIST_MAX).map((p) => (
               <RankRow key={p.uid} p={p} paused={game.paused} pausedAt={game.pausedAt} />
             ))}
           </ul>
+          {ranking.length > LIST_MAX && <p className="more-players small">+ {ranking.length - LIST_MAX} more / lagi</p>}
         </div>
         <div className="panel feed-panel">
           <h3>Live</h3>

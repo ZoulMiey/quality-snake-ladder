@@ -41,7 +41,6 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
     watch(p, NAMES[i]);
     await p.goto(BASE + "/join");
     await p.locator("#name").fill(NAMES[i]);
-    await p.locator("button.token-btn:not([disabled])").first().click();
     await p.getByRole("button", { name: /Join/ }).click();
     await p.getByText("You're in!").waitFor({ timeout: 15000 });
     await p.getByRole("button", { name: MONS[i % MONS.length], exact: true }).click();

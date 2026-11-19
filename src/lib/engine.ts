@@ -378,7 +378,7 @@ export async function playAgain() {
   });
 }
 
-export async function removePlayer(uid: string, token: string | undefined) {
+export async function removePlayer(uid: string) {
   const updates: Record<string, unknown> = {
     [`players/${uid}`]: null,
     [`state/${uid}`]: null,
@@ -386,7 +386,6 @@ export async function removePlayer(uid: string, token: string | undefined) {
     [`answers/${uid}`]: null,
     [`clash/pick/${uid}`]: null,
   };
-  if (token) updates[`tokens/${token}`] = null;
   await update(ref(db), updates);
 }
 

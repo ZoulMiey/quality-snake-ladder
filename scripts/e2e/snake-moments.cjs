@@ -34,7 +34,6 @@ const NAMES = ["Aina", "Bala", "Chong", "Dewi", "Eric", "Farah", "Gopal", "Hana"
     watch(p, name);
     await p.goto(BASE + "/join");
     await p.locator("#name").fill(name);
-    await p.locator("button.token-btn:not([disabled])").first().click();
     await p.getByRole("button", { name: /Join/ }).click();
     await p.getByText("You're in!").waitFor({ timeout: 15000 });
     phones.push({ name, p });

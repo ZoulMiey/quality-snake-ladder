@@ -81,7 +81,7 @@ export default function SnakePhone({ uid, me, game, state, onExit }: { uid: stri
   const ended = game.status === "ended";
   // A winner keeps the board (their last move and the trophy) even when their win ends the game.
   const winner = state?.phase === "won";
-  const scene = state && (!ended || winner) ? buildScene(uid, game, state, t0, ended ? onExit : undefined) : null;
+  const scene = state && (!ended || winner) ? buildScene(uid, game, state, t0, ended ? onExit : undefined, me.token) : null;
   const sheetKey = scene?.sheet ? scene.sheetKey ?? "sheet" : "";
   useEffect(() => setPeek(false), [sheetKey]);
 
@@ -148,7 +148,7 @@ export default function SnakePhone({ uid, me, game, state, onExit }: { uid: stri
 }
 
 /** Work out what the phone shows right now, from the player's state and how long the scene has run. */
-function buildScene(uid: string, game: Game, st: PlayerState, t0: number, onExit?: () => void): Scene {
+function buildScene(uid: string, game: Game, st: PlayerState, t0: number, onExit?: () => void, meToken?: string): Scene {
   const still = (pos: number): Motion => ({ kind: "still", pos });
   const now = Date.now();
   const e = now - t0;
@@ -156,7 +156,7 @@ function buildScene(uid: string, game: Game, st: PlayerState, t0: number, onExit
 
   if (st.phase === "wait") {
     if (game.goAt && clock < game.goAt + 900)
-      return { camera: "full", motion: still(st.pos), overlay: <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="slp-cd" /> };
+      return { camera: "full", motion: still(st.pos), overlay: <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="slp-cd"  you={meToken} /> };
     return { camera: "split", motion: still(st.pos), banner: <Bi en="Get ready…" ms="Bersedia…" /> };
   }
 

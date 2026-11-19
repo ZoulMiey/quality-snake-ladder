@@ -267,7 +267,7 @@ export default function KartPhone({ uid, me, game, onExit }: { uid: string; me: 
       {warnSecs > 0 && <QuestionSoon secs={warnSecs} />}
       {counting && game.goAt && (
         <div className="kr-center">
-          <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="kr-cd" />
+          <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="kr-cd"  you={me.token} />
         </div>
       )}
       {tilt.state !== "on" && tilt.state !== "checking" && (

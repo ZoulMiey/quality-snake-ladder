@@ -6,6 +6,7 @@ import { placeSpecials, EVENTS, EVENT_SETS, eventById } from "../src/lib/special
 import { resultMs, moveTimeline, PENALTY_MS, VERDICT_MS, WRONG_MS, SLIDE_MS, SHAKE_MS, CLIMB_MS, ZOOM_OUT_MS, SL_ALERT_MS } from "../src/lib/phoneTiming.ts";
 import { currentMoments, verdictTimes, climbProgress, slideProgress, SPOTLIGHT_MAX_PLAYERS, type Verdict } from "../src/lib/moments.ts";
 import type { PlayerState } from "../src/lib/types.ts";
+import { TOKENS, MAX_PLAYERS, assignPieces, gameMaxPlayers, tokenById, NO_PIECE } from "../src/lib/tokens.ts";
 
 // A snake head and a ladder bottom that can be reached with two small dice from a plain box.
 const [HEAD, TAIL] = Object.entries(SNAKES).map(([a, b]) => [+a, b])[0];
@@ -211,5 +212,29 @@ t("projector snake/ladder moments follow the question, then the answer, in step 
     assert.ok(Math.abs(f(1) - 1) < 1e-9);
   }
   assert.equal(SPOTLIGHT_MAX_PLAYERS, 8, "spotlight for 1–8 players, glow + cards for 9–20");
+});
+t("50 different pieces, given at random at Start; per-game player limits", () => {
+  assert.equal(TOKENS.length, 50);
+  assert.equal(MAX_PLAYERS, 50);
+  assert.equal(new Set(TOKENS.map((x) => x.id)).size, 50, "ids are unique");
+  assert.equal(new Set(TOKENS.map((x) => x.emoji)).size, 50, "emoji are unique");
+  for (const x of TOKENS) assert.ok(x.id.length >= 1 && x.id.length <= 20, `id ${x.id} fits the database rule`);
+  assert.equal(tokenById(""), NO_PIECE);
+  // 50 new players: everyone gets a piece, all different.
+  const fresh = Object.fromEntries(Array.from({ length: 50 }, (_, i) => [`u${i}`, { token: "", joinedAt: i }]));
+  const got = assignPieces(fresh);
+  assert.equal(Object.keys(got).length, 50);
+  assert.equal(new Set(Object.values(got)).size, 50);
+  // Play again: players keep their piece; a newcomer and a duplicate get a free one.
+  const again = { a: { token: "lion", joinedAt: 1 }, b: { token: "fox", joinedAt: 2 }, c: { token: "fox", joinedAt: 3 }, d: { token: "", joinedAt: 4 } };
+  const g2 = assignPieces(again);
+  assert.deepEqual(Object.keys(g2).sort(), ["c", "d"]);
+  for (const id of Object.values(g2)) assert.ok(id !== "lion" && id !== "fox");
+  assert.notEqual(g2.c, g2.d);
+  assert.equal(gameMaxPlayers("snake"), 50);
+  assert.equal(gameMaxPlayers("kart"), 30);
+  assert.equal(gameMaxPlayers("clash", "team"), 30);
+  assert.equal(gameMaxPlayers("clash", "boss"), 30);
+  assert.equal(gameMaxPlayers("clash", "solo"), 50);
 });
 console.log(`\n${n} checks passed`);

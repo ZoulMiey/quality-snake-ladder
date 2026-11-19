@@ -916,3 +916,22 @@ button:disabled { cursor: default; }
 @keyframes m-card-out { to { transform: translateX(110%); opacity: 0; } }
 @keyframes m-card-pulse { 50% { box-shadow: 0 6px 16px rgba(0,0,0,.3), 0 0 0 3px #fff; } }
 @media (prefers-reduced-motion: reduce) { .fx .glow.ask, .piece.asking .emoji, .spot-ring, .m-card.ask-snake, .m-card.ask-ladder { animation: none; } }
+
+/* Random pieces (given at Start) and the 50-player lobby. */
+.cd-you { display: grid; justify-items: center; gap: 2px; margin-top: 10px; animation: slpop .5s ease-out both; }
+.cd-you-lbl { font-family: var(--display); font-weight: 800; font-size: 20px; line-height: 1; }
+.cd-you-lbl span { font-weight: 600; opacity: .75; font-size: 15px; }
+.cd-you-piece { width: 96px; height: 96px; border-radius: 50%; display: grid; place-items: center; font-size: 58px; background: #fff; border: 7px solid var(--c); box-shadow: 0 6px 16px rgba(0,0,0,.35); }
+.cd-you-name { font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1.1; }
+.kr-cd .cd-you { margin-top: 1cqh; }
+.kr-cd .cd-you-lbl { font-size: 5cqh; }
+.kr-cd .cd-you-lbl span { font-size: 3.6cqh; }
+.kr-cd .cd-you-piece { width: 20cqh; height: 20cqh; font-size: 12cqh; border-width: 1.4cqh; }
+.kr-cd .cd-you-name { font-size: 5cqh; }
+.me-piece.unknown { opacity: .7; border-style: dashed; }
+.piece-note { margin-bottom: 6px; }
+.piece-note .en { font-weight: 700; }
+.small-note { font-size: 13px; margin: 0; }
+.too-many { color: #fecaca; font-weight: 700; }
+.more-players { margin: 6px 0 0; font-weight: 700; opacity: .8; }
+.more-players.small { font-size: 13px; margin-top: 4px; }

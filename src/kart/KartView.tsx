@@ -357,7 +357,7 @@ export default function KartView({ game, players, feed, onAgain }: { game: Game;
             Positions <span className="muted">· {LAPS} laps</span>
           </h3>
           <ul className={`ranking cart-ranking ${order.length > 10 ? "many" : ""}`}>
-            {order.map(([uid, m]) => {
+            {order.slice(0, 15).map(([uid, m]) => {
               const p = players[uid];
               if (!p) return null;
               const t = tokenById(p.token);
@@ -372,6 +372,7 @@ export default function KartView({ game, players, feed, onAgain }: { game: Game;
               );
             })}
           </ul>
+          {order.length > 15 && <p className="more-players small">+ {order.length - 15} more / lagi</p>}
         </div>
         <div className="panel feed-panel">
           <h3>Live</h3>

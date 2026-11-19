@@ -29,19 +29,17 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
     watch(p, name);
     await p.goto(BASE + "/join");
     await p.locator("#name").fill(name);
-    await p.getByRole("radio", { name: new RegExp(tok) }).click();
     await p.getByRole("button", { name: /Join/ }).click();
     await p.getByText("You're in!").waitFor({ timeout: 10000 });
     phones.push({ name, p });
     if (name === "Aina") await p.screenshot({ path: OUT + "/phone-lobby.png" });
     log(name, "joined");
   }
-  // Taken token is disabled for a 4th phone.
+  // A 4th phone sees the join form (name only: pieces are given at random at Start).
   const extra = await (await browser.newContext({ ...devices["Pixel 7"] })).newPage();
   await extra.goto(BASE + "/join");
   await extra.locator("#name").waitFor();
-  const lionDisabled = await extra.getByRole("radio", { name: /Taken/ }).count();
-  log("4th phone sees taken pieces:", lionDisabled);
+  log("4th phone join form has no piece picker:", (await extra.locator("button.token-btn").count()) === 0);
   await extra.screenshot({ path: OUT + "/phone-join.png" });
 
   await proj.waitForTimeout(500);

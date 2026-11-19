@@ -8,7 +8,7 @@ import ClashPhone, { ClashPick } from "../clash/ClashPhone.tsx";
 import RaidPhone, { RaidPick } from "../clash/RaidPhone.tsx";
 import { useDbValue } from "../lib/useDb.ts";
 import SnakePhone from "./SnakePhone.tsx";
-import { MAX_PLAYERS, TOKENS, tokenById } from "../lib/tokens.ts";
+import { MAX_PLAYERS, hasPiece, tokenById } from "../lib/tokens.ts";
 import { unlockAudio } from "../lib/sound.ts";
 import { fixState, type Game, type GameMode, type Player, type PlayerState } from "../lib/types.ts";
 import Header from "../components/Header.tsx";
@@ -34,7 +34,7 @@ export default function Join() {
 
   const game = useDbValue<Game>(uid ? "game" : null);
   const me = useDbValue<Player>(uid ? `players/${uid}` : null);
-  const tokens = useDbValue<Record<string, string>>(uid ? "tokens" : null);
+  const players = useDbValue<Record<string, Player>>(uid ? "players" : null);
   const stateRaw = useDbValue<PlayerState>(uid ? `state/${uid}` : null);
   const state = useMemo(() => fixState(stateRaw), [stateRaw]);
 
@@ -56,7 +56,7 @@ export default function Join() {
       </div>
     );
   else if (err) body = <p className="card error">{err}</p>;
-  else if (!uid || game === undefined || me === undefined || tokens === undefined) body = <p className="card muted">Connecting… / Menyambung…</p>;
+  else if (!uid || game === undefined || me === undefined || players === undefined) body = <p className="card muted">Connecting… / Menyambung…</p>;
   else if (!me) {
     if (game && game.status !== "lobby")
       body = (
@@ -65,13 +65,13 @@ export default function Join() {
           <p className="muted">Please wait for the next game. / Sila tunggu permainan seterusnya.</p>
         </div>
       );
-    else body = <JoinForm uid={uid} tokens={tokens ?? {}} />;
+    else body = <JoinForm count={Object.keys(players ?? {}).length} />;
   } else if (!game || game.status === "lobby")
     body = (
       <>
         {game?.mode === "clash" && game.clashFormat === "boss" && <RaidPick uid={uid} />}
         {game?.mode === "clash" && game.clashFormat !== "boss" && <ClashPick uid={uid} format={game.clashFormat === "solo" ? "solo" : "team"} key={game.clashFormat ?? "team"} />}
-        <Lobby uid={uid} me={me} tokens={tokens ?? {}} mode={game?.mode} variant={game?.clashFormat} />
+        <Lobby uid={uid} me={me} mode={game?.mode} variant={game?.clashFormat} />
       </>
     );
   else if (game.mode === "clash" && game.clashFormat === "boss") body = <RaidPhone uid={uid} me={me} game={game} onExit={exit} />;
@@ -87,38 +87,7 @@ export default function Join() {
   );
 }
 
-function TokenPicker({ uid, tokens, value, onPick }: { uid: string; tokens: Record<string, string>; value: string; onPick: (id: string) => void }) {
-  return (
-    <div className="token-grid" role="radiogroup" aria-label="Choose your piece">
-      {TOKENS.map((t) => {
-        const taken = !!tokens[t.id] && tokens[t.id] !== uid;
-        return (
-          <button
-            key={t.id}
-            type="button"
-            role="radio"
-            aria-checked={value === t.id}
-            disabled={taken}
-            className={`token-btn ${value === t.id ? "on" : ""}`}
-            style={{ ["--c" as string]: t.color }}
-            onClick={() => onPick(t.id)}
-          >
-            <span className="emoji">{t.emoji}</span>
-            <span className="tname">{taken ? "Taken" : t.name}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-async function claimToken(uid: string, id: string, old: string | undefined) {
-  if (old === id) return;
-  await set(ref(db, `tokens/${id}`), uid);
-  if (old) await remove(ref(db, `tokens/${old}`)).catch(() => {});
-}
-
-function JoinForm({ uid, tokens }: { uid: string; tokens: Record<string, string> }) {
+function JoinForm({ count }: { count: number }) {
   const [name, setName] = useState(() => {
     try {
       return localStorage.getItem("qsl-name") ?? "";
@@ -126,33 +95,25 @@ function JoinForm({ uid, tokens }: { uid: string; tokens: Record<string, string>
       return "";
     }
   });
-  const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-  const full = TOKENS.every((t) => tokens[t.id] && tokens[t.id] !== uid);
+  const full = count >= MAX_PLAYERS;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     unlockAudio();
     const n = name.trim().replace(/\s+/g, " ");
     if (!n) return setMsg("Please type your name. / Sila taip nama anda.");
-    if (!token) return setMsg("Please choose a piece. / Sila pilih buah anda.");
     setBusy(true);
     setMsg("");
     try {
-      await claimToken(uid, token, undefined);
-    } catch {
-      setBusy(false);
-      setToken("");
-      return setMsg("Someone just took that piece. Choose another one. / Buah itu sudah diambil. Pilih yang lain.");
-    }
-    try {
-      await set(ref(db, `players/${uid}`), { name: n.slice(0, 20), token, joinedAt: serverTimestamp() });
+      const { uid } = await ensureSignedIn();
+      // No piece yet: the projector gives everyone a random piece when the game starts.
+      await set(ref(db, `players/${uid}`), { name: n.slice(0, 20), token: "", joinedAt: serverTimestamp() });
       try {
         localStorage.setItem("qsl-name", n);
       } catch {}
     } catch {
-      await remove(ref(db, `tokens/${token}`)).catch(() => {});
       setMsg("Could not join. The game may have started already. / Tidak dapat menyertai.");
     }
     setBusy(false);
@@ -172,10 +133,7 @@ function JoinForm({ uid, tokens }: { uid: string; tokens: Record<string, string>
         <span>Your name / Nama anda</span>
         <input id="name" value={name} maxLength={20} autoComplete="given-name" onChange={(e) => setName(e.target.value)} placeholder="e.g. Aina" />
       </label>
-      <div className="field">
-        <span>Choose your piece / Pilih buah anda</span>
-        <TokenPicker uid={uid} tokens={tokens} value={token} onPick={setToken} />
-      </div>
+      <p className="muted small-note">You get a random piece when the game starts. / Anda akan diberi buah secara rawak apabila permainan bermula.</p>
       {msg && <p className="error">{msg}</p>}
       <button className="big-btn" disabled={busy}>
         {busy ? "Joining…" : "Join / Sertai"}
@@ -184,28 +142,19 @@ function JoinForm({ uid, tokens }: { uid: string; tokens: Record<string, string>
   );
 }
 
-function Lobby({ uid, me, tokens, mode, variant }: { uid: string; me: Player; tokens: Record<string, string>; mode?: GameMode; variant?: string }) {
-  const [changing, setChanging] = useState(false);
+function Lobby({ uid, me, mode, variant }: { uid: string; me: Player; mode?: GameMode; variant?: string }) {
+  const got = hasPiece(me.token);
   const t = tokenById(me.token);
-  async function pick(id: string) {
-    try {
-      await claimToken(uid, id, me.token);
-      await set(ref(db, `players/${uid}/token`), id);
-      setChanging(false);
-    } catch {
-      /* taken meanwhile; the list updates by itself */
-    }
-  }
   async function leave() {
     await remove(ref(db, `players/${uid}`)).catch(() => {});
-    await remove(ref(db, `tokens/${me.token}`)).catch(() => {});
   }
   return (
     <div className="card center lobby-me">
-      <div className="me-piece" style={{ ["--c" as string]: t.color }}>
+      <div className={`me-piece ${got ? "" : "unknown"}`} style={{ ["--c" as string]: t.color }}>
         {t.emoji}
       </div>
       <h2>{me.name}</h2>
+      {!got && <Bi en="Your piece is given at random when the game starts." ms="Buah anda diberi secara rawak apabila permainan bermula." className="piece-note" />}
       {mode ? (
         <>
           <Bi en="You're in! Watch the big screen. The game starts soon." ms="Anda sudah masuk! Lihat skrin besar. Permainan akan bermula." />
@@ -214,18 +163,11 @@ function Lobby({ uid, me, tokens, mode, variant }: { uid: string; me: Player; to
       ) : (
         <Bi en="You're in! Waiting for the host to choose a game…" ms="Anda sudah masuk! Menunggu hos memilih permainan…" />
       )}
-      {changing ? (
-        <TokenPicker uid={uid} tokens={tokens} value={me.token} onPick={pick} />
-      ) : (
-        <div className="row-btns">
-          <button className="link-btn" onClick={() => setChanging(true)}>
-            Change piece
-          </button>
-          <button className="link-btn" onClick={leave}>
-            Leave
-          </button>
-        </div>
-      )}
+      <div className="row-btns">
+        <button className="link-btn" onClick={leave}>
+          Leave
+        </button>
+      </div>
     </div>
   );
 }
