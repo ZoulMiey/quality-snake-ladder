@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { resolve, pickQuestion, shuffleOptions } from "../src/lib/rules.ts";
 import { SNAKES, LADDERS, LAST_BOX } from "../src/lib/board.ts";
-import { placeSpecials, EVENTS } from "../src/lib/specials.ts";
+import { placeSpecials, EVENTS, EVENT_SETS, eventById } from "../src/lib/specials.ts";
 import { resultMs, moveTimeline, PENALTY_MS, VERDICT_MS, WRONG_MS, SLIDE_MS, SHAKE_MS, CLIMB_MS, ZOOM_OUT_MS } from "../src/lib/phoneTiming.ts";
 
 // A snake head and a ladder bottom that can be reached with two small dice from a plain box.
@@ -108,18 +108,33 @@ t("a special box leading to another special box does nothing more", () => {
   const x = resolve(30, 0, "turn", true, { correctIdx: 0, rollDie: () => 3, specials });
   assert.equal(x.pos, 35);
 });
-t("12 special boxes, placed away from snakes, ladders, start and finish", () => {
-  for (let k = 0; k < 200; k++) {
-    const list = placeSpecials();
-    assert.equal(list.length, 12);
-    const ends = new Set([...Object.entries(SNAKES), ...Object.entries(LADDERS)].flat().map(Number));
-    for (const s of list) {
-      assert.ok(s.box >= 6 && s.box <= 90, `box ${s.box}`);
-      assert.ok(!ends.has(s.box), `box ${s.box} is a snake/ladder end`);
-      assert.ok(EVENTS.some((e) => e.id === s.id));
+t("16 event boxes, placed away from snakes, ladders, start and finish, from the game's question set", () => {
+  const ends = new Set([...Object.entries(SNAKES), ...Object.entries(LADDERS)].flat().map(Number));
+  for (const qset of ["quality", "world", "logo", "malaysia", "general", "mix"] as const)
+    for (let k = 0; k < 300; k++) {
+      const list = placeSpecials(qset);
+      assert.equal(list.length, 16, `${qset}: ${list.length} boxes`);
+      for (const s of list) {
+        assert.ok(s.box >= 6 && s.box <= 90, `box ${s.box}`);
+        assert.ok(!ends.has(s.box), `box ${s.box} is a snake/ladder end`);
+        const ev = eventById(s.id)!;
+        assert.ok(ev, s.id);
+        if (qset === "mix") assert.ok(!EVENT_SETS.quality.includes(ev), "Mix uses no Quality events");
+        else assert.ok(EVENT_SETS[qset].includes(ev), `${s.id} is not a ${qset} event`);
+      }
+      assert.equal(new Set(list.map((s) => s.box)).size, 16);
+      assert.equal(new Set(list.map((s) => s.id)).size, 16, "each event once");
+      if (qset === "mix") assert.equal(list.filter((s) => eventById(s.id)!.move > 0).length, 8, "Mix: 8 good, 8 bad");
     }
-    const boxes = list.map((s) => s.box);
-    assert.equal(new Set(boxes).size, 12);
+});
+t("every set has 16 events, 8 good and 8 bad, roughly balanced, complete in both languages", () => {
+  assert.equal(new Set(EVENTS.map((e) => e.id)).size, EVENTS.length, "unique ids");
+  for (const [k, list] of Object.entries(EVENT_SETS)) {
+    assert.equal(list.length, 16, k);
+    assert.equal(list.filter((e) => e.move > 0).length, 8, k);
+    const net = list.reduce((a, e) => a + e.move, 0);
+    assert.ok(Math.abs(net) <= 2, `${k} net move ${net}`);
+    for (const e of list) assert.ok(e.en && e.ms && e.icon && e.move !== 0 && Math.abs(e.move) <= 4, e.id);
   }
 });
 t("questions never repeat for a player until all are used", () => {

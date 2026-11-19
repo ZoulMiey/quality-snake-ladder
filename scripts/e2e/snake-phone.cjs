@@ -1,6 +1,6 @@
 // Snake & Ladder phone board: plays a game with 3 phones and takes a screenshot of each phone screen
 // the first time it appears (countdown, question, dice, snake/ladder alerts, verdicts, penalty, win).
-// Start from a fresh emulator. Run: node scripts/e2e/snake-phone.cjs
+// Start from a fresh emulator. Run: node scripts/e2e/snake-phone.cjs (QSET=world|logo|malaysia|general|mix to pick a question set)
 const { chromium, devices } = require("playwright");
 const OUT = process.env.SHOTS || require("path").join(__dirname, "shots");
 require("fs").mkdirSync(OUT, { recursive: true });
@@ -20,7 +20,8 @@ const SCREENS = {
   correct: ".slp-alert.a-correct",
   wrong: ".slp-alert.a-wrong",
   penalty: ".slp-sheet .slp-pen",
-  special: ".slp-float .sp-card",
+  "special-good": ".slp-alert.a-good",
+  "special-bad": ".slp-alert.a-bad",
   won: ".slp-alert.a-won",
 };
 
@@ -53,6 +54,11 @@ const SCREENS = {
     phones.push({ name, p });
   }
   log("3 phones joined");
+  if (process.env.QSET) {
+    // Pick the question set the way the lobby does (it saves game/qset).
+    await fetch("http://127.0.0.1:9000/game/qset.json?ns=demo-qsl-default-rtdb", { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify(process.env.QSET) });
+    await proj.waitForTimeout(800);
+  }
   await proj.getByRole("button", { name: "▶ Start game" }).click();
   const seen = {};
   const start = Date.now();

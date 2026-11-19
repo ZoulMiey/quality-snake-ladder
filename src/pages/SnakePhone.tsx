@@ -176,10 +176,11 @@ function buildScene(uid: string, game: Game, st: PlayerState, t0: number): Scene
         banner: e < tl.walkEnd ? banner : undefined,
         dice: e < tl.walkEnd ? r.dice : null,
       };
-    if (e < tl.specialEnd) return { camera: "follow", motion: still(land), float: <SpecialCard r={r} /> };
+    // Quality event box: full-screen alert, zoom back in, move forward or back, then zoom out.
+    if (e < tl.specialEnd) return { camera: "follow", motion: still(land), overlay: <SpecialAlert key={st.seq} r={r} /> };
     return {
-      camera: e < tl.shiftEnd ? "follow" : "full",
-      motion: { kind: "walk", boxes: boxesBetween(land, r.to), t0: t0 + tl.specialEnd },
+      camera: e < tl.shiftEnd + 150 ? "follow" : "full",
+      motion: { kind: "walk", boxes: boxesBetween(land, r.to), t0: t0 + tl.shiftAt },
     };
   }
 
@@ -406,8 +407,8 @@ function QuestionCard({ uid, st, paused, pausedAt }: { uid: string; st: PlayerSt
   );
 }
 
-/** Card over the board when the dice land on a quality event box. */
-function SpecialCard({ r }: { r: Result }) {
+/** Full-screen alert when the dice land on a quality event box. */
+function SpecialAlert({ r }: { r: Result }) {
   const ev = eventById(r.special);
   useEffect(() => {
     if (!ev) return;
@@ -419,23 +420,33 @@ function SpecialCard({ r }: { r: Result }) {
   if (!ev) return null;
   const good = ev.move > 0;
   const n = Math.abs(ev.move);
+  const then =
+    r.next === "snake"
+      ? { en: `Then 🐍 a snake at box ${r.to}!`, ms: `Kemudian ular di petak ${r.to}!` }
+      : r.next === "ladder"
+        ? { en: `Then 🪜 a ladder at box ${r.to}!`, ms: `Kemudian tangga di petak ${r.to}!` }
+        : null;
   return (
-    <div className={`sp-card ${good ? "good" : "bad"}`} role="alert">
-      <div className="sp-card-icon" aria-hidden="true">
-        {ev.icon}
-      </div>
-      <div className="sp-card-title">
-        <span className="en">{ev.en}</span>
-        <span className="ms">{ev.ms}</span>
-      </div>
-      <div className="sp-card-move">
-        <span className="en">
+    <div className={`slp-alert ${good ? "a-good" : "a-bad"}`} role="alert">
+      <div className="a-tag">{good ? "LUCKY BOX! / KOTAK BERTUAH!" : "OH NO! / ALAMAK!"}</div>
+      <div className="a-icon">{ev.icon}</div>
+      <div className="a-t3">{ev.en}</div>
+      <div className="a-t4">{ev.ms}</div>
+      <div className="a-move">
+        <b>
           {good ? `Move forward ${n}` : `Move back ${n}`} → box {r.to}
-        </span>
-        <span className="ms">
+        </b>
+        <span>
           {good ? `Maju ${n} petak` : `Undur ${n} petak`} → petak {r.to}
         </span>
       </div>
+      {then && (
+        <p className="a-sub">
+          {then.en}
+          <br />
+          {then.ms}
+        </p>
+      )}
     </div>
   );
 }

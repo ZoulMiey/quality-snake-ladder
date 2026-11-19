@@ -11,8 +11,10 @@ export const SLIDE_AWAY_MS = 600;
 export const DICE_MS = 1_400;
 /** One box of movement. */
 export const HOP_MS = 300;
-/** Quality event box card. */
-export const SPECIAL_MS = 2_000;
+/** Full-screen quality event box alert. */
+export const SPECIAL_MS = 2_200;
+/** Zoom back in on the piece after the event alert, before it moves forward or back. */
+export const SPECIAL_ZOOM_MS = 600;
 /** Zoom back out after the piece stops. */
 export const ZOOM_OUT_MS = 800;
 /** Full-screen CORRECT / SAFE / WRONG alerts after a snake or ladder question. */
@@ -40,9 +42,10 @@ export function moveTimeline(r: Pick<Result, "from" | "to" | "land" | "outcome" 
   const walkAt = diceAt + DICE_MS;
   const walkEnd = walkAt + walkBoxes(r) * HOP_MS;
   const specialEnd = r.special ? walkEnd + SPECIAL_MS : walkEnd;
-  const shiftEnd = r.special ? specialEnd + Math.abs(r.to - (r.land ?? r.to)) * HOP_MS : walkEnd;
+  const shiftAt = r.special ? specialEnd + SPECIAL_ZOOM_MS : walkEnd;
+  const shiftEnd = r.special ? shiftAt + Math.abs(r.to - (r.land ?? r.to)) * HOP_MS : walkEnd;
   const end = shiftEnd + ZOOM_OUT_MS;
-  return { diceAt, walkAt, walkEnd, specialEnd, shiftEnd, end };
+  return { diceAt, walkAt, walkEnd, specialEnd, shiftAt, shiftEnd, end };
 }
 
 /** How long a result stays before the next question (the phone's animation fits inside it). */

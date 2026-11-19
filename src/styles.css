@@ -726,6 +726,15 @@ button:disabled { cursor: default; }
 .a-ladder, .a-correct { background: radial-gradient(circle at 50% 35%, #22c55e, #0b5a2a); }
 .a-safe { background: radial-gradient(circle at 50% 35%, #14b8a6, #0b4f47); }
 .a-wrong { background: radial-gradient(circle at 50% 35%, #b91c1c, #3f0a0a); }
+.a-good { background: radial-gradient(circle at 50% 35%, #22c55e, #0b5a2a); }
+.a-bad { background: radial-gradient(circle at 50% 35%, #f97316, #8f1d1d); }
+.a-tag { margin-bottom: 14px; font-family: var(--display); font-weight: 800; font-size: 15px; letter-spacing: .06em; background: rgba(0,0,0,.22); border-radius: 999px; padding: 3px 14px 1px; }
+.a-t3 { font-family: var(--display); font-weight: 800; font-size: 34px; line-height: 1.05; max-width: 14ch; text-wrap: balance; text-shadow: 0 3px 0 rgba(0,0,0,.25); }
+.a-t4 { font-size: 18px; opacity: .92; max-width: 22ch; }
+.a-move { background: #fff; color: var(--ink); border-radius: 14px; padding: 10px 16px; margin-top: 10px; display: grid; gap: 2px; }
+.a-move b { font-family: var(--display); font-weight: 800; font-size: 24px; line-height: 1.1; }
+.a-good .a-move b { color: var(--good); } .a-bad .a-move b { color: var(--bad); }
+.a-move span { color: var(--muted); font-size: 14px; }
 .a-won { background: radial-gradient(circle at 50% 35%, #f5c542, #b8901f); color: var(--gold-ink); }
 .a-won .bi .ms { color: var(--gold-ink); opacity: .85; }
 @media (prefers-reduced-motion: reduce) { .a-icon, .slp-sheet, .slp-alert { animation: none; } }

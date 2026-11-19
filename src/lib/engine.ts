@@ -56,7 +56,7 @@ export class Engine {
     this.priv = {};
     this.used = {};
     this.feed = [{ at: now, uid: "", text: "Game started! Good luck everyone.", tone: "info" }];
-    this.game = { status: "playing", qset: this.qset, mode: "snake", engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt: now + COUNTDOWN_MS, endedAt: null, winners: [], specials: placeSpecials() };
+    this.game = { status: "playing", qset: this.qset, mode: "snake", engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt: now + COUNTDOWN_MS, endedAt: null, winners: [], specials: placeSpecials(this.qset) };
 
     const updates: Record<string, unknown> = {
       answers: null,
