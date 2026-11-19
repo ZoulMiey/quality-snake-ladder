@@ -10,10 +10,6 @@ export class PondFlat implements PondApi {
   private leaps: Leap[] = [];
   private snapped = false;
   private frenzy = false;
-  private card = true;
-  private shift = 1;
-  private closer = false;
-  private zoom = 1.6;
   private raf = 0;
 
   constructor(private canvas: HTMLCanvasElement) {
@@ -34,12 +30,6 @@ export class PondFlat implements PondApi {
   setFrenzy(on: boolean) {
     this.frenzy = on;
   }
-  setCard(shown: boolean) {
-    this.card = shown;
-  }
-  setCloser(on: boolean) {
-    this.closer = on;
-  }
   dispose() {
     cancelAnimationFrame(this.raf);
   }
@@ -56,13 +46,12 @@ export class PondFlat implements PondApi {
       cv.height = H;
     }
     const c = cv.getContext("2d")!;
-    this.shift += ((this.card ? 1 : 0) - this.shift) * 0.1;
-    this.zoom += ((this.closer ? 2.3 : 1.6) - this.zoom) * 0.08;
-    const k = (W / 720) * this.zoom;
+    // Fixed view (no zoom on catches): close on my boat, which sits in the top half above the question card.
+    const k = (W / 720) * 2;
     const fx = this.me ? this.me.x + (CX - this.me.x) * 0.25 : CX;
     const fy = this.me ? this.me.y + (CY - this.me.y) * 0.25 : CY;
     c.setTransform(1, 0, 0, 1, 0, 0);
-    c.translate(W / 2, H * (0.5 - 0.22 * this.shift));
+    c.translate(W / 2, H * 0.3);
     c.scale(k, k);
     c.translate(-clamp(fx, 0, PW), -clamp(fy, 0, PH));
     drawPond(c, t, this.frenzy);

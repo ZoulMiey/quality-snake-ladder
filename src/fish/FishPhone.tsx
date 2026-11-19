@@ -133,9 +133,7 @@ export default function FishPhone({ uid, me, game, onExit }: { uid: string; me: 
       buzz(HAPTIC.fish);
     } else if (r.kind === "big" || r.kind === "gold") {
       setAlert({ kind: r.kind, until: now + ALERT_MS, r });
-      p?.setCloser(true);
       p?.catchAt(uid, r.kind, ALERT_MS, `+${r.kg} kg`, r.kind === "gold");
-      setTimeout(() => pond.current?.setCloser(false), ALERT_MS + 2_600);
     } else {
       setAlert({ kind: "snap", until: now + SNAP_ALERT_MS, r, answer: st.q?.opts[r.correctIdx] });
     }
@@ -180,9 +178,6 @@ export default function FishPhone({ uid, me, game, onExit }: { uid: string; me: 
   const qid = st?.phase === "question" ? `${st.q?.id}-${st.seq}` : "";
   useEffect(() => setPeek(false), [qid]);
   const cardShown = !!st && st.phase === "question" && !!st.q && !showAlert && playing && !game.paused;
-  useEffect(() => {
-    pond.current?.setCard(cardShown && !peek);
-  });
 
   if (!st || !players) return <p className="card muted">Getting ready… / Bersedia…</p>;
   if (ended) return <FishEnded me={me} st={st} rank={game.ranks?.[uid] ?? st.rank} total={Object.keys(players).length} onExit={onExit} />;

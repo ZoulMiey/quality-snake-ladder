@@ -11,9 +11,5 @@ export interface PondApi {
   /** My line snapped (no line, the bobber sinks). */
   setSnapped(on: boolean): void;
   setFrenzy(on: boolean): void;
-  /** The question card covers the bottom: move the view up so my boat stays visible. */
-  setCard(shown: boolean): void;
-  /** Camera comes closer for BIG and GOLDEN fish. */
-  setCloser(on: boolean): void;
   dispose(): void;
 }

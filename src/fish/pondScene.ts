@@ -5,6 +5,11 @@ import { boatSpot } from "./rules.ts";
 import type { BoatInfo, LeapKind, PondApi } from "./pondApi.ts";
 
 const RX = 40;
+/** Fixed camera behind my boat: how far back, how high, and where it aims (towards the camera and down). */
+const CAM_BACK = 9;
+const CAM_UP = 6.2;
+const CAM_AIM = 0;
+const CAM_LOW = -0.8;
 const RZ = 27;
 const PI = Math.PI;
 
@@ -89,9 +94,6 @@ export class PondScene implements PondApi {
   private actors: Actor[] = [];
   private snapped = false;
   private frenzy = false;
-  private card = true;
-  private cardShift = 1;
-  private closer = false;
   private raf = 0;
   private ro: ResizeObserver;
   private started = performance.now();
@@ -272,6 +274,17 @@ export class PondScene implements PondApi {
     const p = this.pose();
     this.cam.position.copy(p.pos);
     this.camLook.copy(p.look);
+    // Reeds on the shore right in front of the camera would hide my boat: leave those out.
+    if (this.me) {
+      const a = new T.Vector2(p.pos.x, p.pos.z);
+      const b = new T.Vector2(this.me.pos.x, this.me.pos.z);
+      const ab = b.clone().sub(a);
+      for (const r of this.reeds) {
+        const q = new T.Vector2(r.position.x, r.position.z);
+        const u = Math.max(0, Math.min(1, q.clone().sub(a).dot(ab) / ab.lengthSq()));
+        r.visible = q.distanceTo(a.clone().addScaledVector(ab, u)) > 3;
+      }
+    }
   }
 
   catchAt(uid: string, kind: LeapKind, delayMs = 0, label?: string, gold?: boolean) {
@@ -300,12 +313,6 @@ export class PondScene implements PondApi {
   }
   setFrenzy(on: boolean) {
     this.frenzy = on;
-  }
-  setCard(shown: boolean) {
-    this.card = shown;
-  }
-  setCloser(on: boolean) {
-    this.closer = on;
   }
 
   dispose() {
@@ -378,19 +385,18 @@ export class PondScene implements PondApi {
     m.geometry?.dispose?.();
   }
 
+  /**
+   * The camera never moves (owner, Nov 2026): fixed behind my boat, close, aimed a little low so the
+   * boat sits in the top half of the screen and the question card never covers it.
+   */
   private pose() {
     const me = this.me;
     if (!me) return { pos: new T.Vector3(0, 40, 45), look: new T.Vector3() };
     const out = me.pos.clone().setY(0).normalize();
     const side = new T.Vector3(-out.z, 0, out.x);
-    const k = this.closer ? 0.7 : 1;
-    // With the question card up, aim lower and nearer so the boat sits in the top half of the screen.
-    const c = this.cardShift;
-    const look = me.bob.clone().lerp(me.pos, 0.2).setY(0.5);
-    look.lerp(me.pos.clone().addScaledVector(out, 3).setY(-3.5), 0.85 * c);
     return {
-      pos: me.pos.clone().addScaledVector(out, (12 + 3 * c) * k).add(new T.Vector3(0, (7.5 + 3 * c) * k, 0)).addScaledVector(side, 2),
-      look,
+      pos: me.pos.clone().addScaledVector(out, CAM_BACK).add(new T.Vector3(0, CAM_UP, 0)).addScaledVector(side, 1.4),
+      look: me.pos.clone().addScaledVector(out, CAM_AIM).setY(CAM_LOW),
     };
   }
 
@@ -452,10 +458,9 @@ export class PondScene implements PondApi {
     } else this.arrow.visible = false;
     this.step(t);
     const p = this.pose();
-    this.cam.position.lerp(p.pos, 0.08);
-    this.camLook.lerp(p.look, 0.08);
+    this.cam.position.copy(p.pos);
+    this.camLook.copy(p.look);
     this.cam.lookAt(this.camLook);
-    this.cardShift += ((this.card ? 1 : 0) - this.cardShift) * 0.1;
     this.R.render(this.scene, this.cam);
   };
 
