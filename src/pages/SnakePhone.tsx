@@ -26,6 +26,16 @@ function Bi({ en, ms, className }: { en: string; ms: string; className?: string 
   );
 }
 
+/** Vibration patterns (Android; iPhones do not let web pages vibrate, so they get the shake and flash instead). */
+const HAPTIC = {
+  snake: [400, 120, 400, 120, 400], // three long, heavy buzzes
+  ladder: [60, 50, 60, 50, 60], // quick happy taps
+  lucky: [70, 60, 70], // two short taps
+  bad: [600], // one long buzz
+  wrong: [250],
+  tick: [120],
+};
+
 const buzz = (pattern: number | number[]) => {
   try {
     navigator.vibrate?.(pattern);
@@ -234,7 +244,7 @@ function DiceBox({ values, seed }: { values: number[]; seed: number }) {
 function SoundOnce({ play }: { play: "snake" | "ladder" }) {
   useEffect(() => {
     sfx[play]();
-    buzz(play === "snake" ? [300] : [80, 60, 80]);
+    buzz(play === "snake" ? HAPTIC.snake : HAPTIC.ladder);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return null;
@@ -263,7 +273,7 @@ function SnakeLadderAlert({ kind, at }: { kind: "snake" | "ladder"; at: number }
   useEffect(() => {
     if (snake) sfx.snake();
     else sfx.ladder();
-    buzz([200, 80, 200]);
+    buzz(snake ? HAPTIC.snake : HAPTIC.ladder);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const right = snake ? { en: `Stay on box ${at}`, ms: `Kekal di petak ${at}` } : { en: `Climb to box ${LADDERS[at]}`, ms: `Naik ke petak ${LADDERS[at]}` };
@@ -301,7 +311,7 @@ function Verdict({ type, answer, then }: { type: keyof typeof VERDICTS; answer?:
   useEffect(() => {
     if (v.sound === "wrong") {
       sfx.wrong();
-      buzz([250]);
+      buzz(HAPTIC.wrong);
     } else sfx.correct();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -358,7 +368,7 @@ function QuestionCard({ uid, st, paused, pausedAt }: { uid: string; st: PlayerSt
     if (!warn || paused || secs <= 0 || lastBeep.current === secs) return;
     lastBeep.current = secs;
     sfx.tick();
-    buzz(120);
+    buzz(HAPTIC.tick);
   }, [secs, warn, paused]);
 
   async function answer(i: number) {
@@ -416,7 +426,7 @@ function SpecialAlert({ r }: { r: Result }) {
     if (!ev) return;
     if (ev.move > 0) sfx.ladder();
     else sfx.snake();
-    buzz(ev.move > 0 ? [80, 60, 80] : [300]);
+    buzz(ev.move > 0 ? HAPTIC.lucky : HAPTIC.bad);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   if (!ev) return null;

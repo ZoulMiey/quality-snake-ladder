@@ -45,6 +45,11 @@ const SCREENS = {
   const phones = [];
   for (const [name, tok] of [["Aina", "Lion"], ["Bala", "Rocket"], ["Chong", "Panda"]].slice(0, +(process.env.PLAYERS || 3))) {
     const p = await (await browser.newContext({ ...devices["iPhone 13"] })).newPage();
+    // Record vibration patterns (desktop Chromium has no vibration motor).
+    await p.addInitScript(() => {
+      window.__vib = [];
+      navigator.vibrate = (pat) => (window.__vib.push(JSON.stringify(pat)), true);
+    });
     watch(p, name);
     await p.goto(BASE + "/join");
     await p.locator("#name").fill(name);
@@ -106,6 +111,9 @@ const SCREENS = {
       log("seen won on", ph.name, "exit button:", await ph.p.locator(".a-exit").count());
     }
   }
+  const vib = new Set();
+  for (const ph of phones) for (const v of await ph.p.evaluate(() => window.__vib)) vib.add(v);
+  log("vibration patterns used:", [...vib].join("  "));
   const end = await (await fetch("http://127.0.0.1:9000/game.json?ns=demo-qsl-default-rtdb", { headers: { Authorization: "Bearer owner" } })).json();
   log("game status:", end?.status, "winners:", (end?.winners || []).length);
   log("answers:", answered, "time:", Math.round((Date.now() - start) / 1000) + "s");
