@@ -752,3 +752,75 @@ button:disabled { cursor: default; }
 @keyframes slp-pulse { 0% { box-shadow: inset 0 0 0 0 rgba(245,197,66,.95); } 100% { box-shadow: inset 0 0 0 60px rgba(245,197,66,0); } }
 @keyframes slp-pop { 0% { transform: scale(.3); } 70% { transform: scale(1.25); } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .slp-alert.a-snake, .slp-alert.a-bad, .slp-alert .a-icon { animation: none; } }
+
+/* Quality Cart race, phone held sideways: the race fills the whole screen; everything else floats over it.
+   Sizes use the screen height (cqh) so they look the same on every phone. */
+.kr { position: fixed; inset: 0; z-index: 50; background: #000; container-type: size; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+.kr .chase { position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; image-rendering: auto; }
+.kr-hud { position: absolute; inset: 0; pointer-events: none; font-family: "Press Start 2P", monospace; color: #fff; text-shadow: 0 .5cqh 0 #000, .5cqh 0 0 #000, -.5cqh 0 0 #000, 0 -.5cqh 0 #000; }
+.kr-hud button { pointer-events: auto; }
+.kr-rank { position: absolute; left: calc(3cqh + env(safe-area-inset-left)); top: 3cqh; line-height: 1.2; }
+.kr-big { font-size: 9cqh; color: var(--gold); }
+.kr-small { font-size: 4cqh; }
+.kr-lap { font-size: 3.6cqh; margin-top: 1.5cqh; }
+.kr-time { position: absolute; left: 50%; top: 3cqh; transform: translateX(-50%); font-size: 4.4cqh; text-align: center; line-height: 1.5; white-space: nowrap; }
+.kr-time small { display: block; font-size: 2.6cqh; color: #cfe6d9; }
+.kr-item { position: absolute; right: calc(3cqh + env(safe-area-inset-right)); top: 3cqh; width: 17cqh; height: 17cqh; border: .8cqh solid #fff; border-radius: 2cqh; background: rgba(13,59,44,.7); display: grid; place-items: center; font-size: 9cqh; box-shadow: 0 .6cqh 0 #000; padding: 0; color: #fff; }
+.kr-item small { position: absolute; bottom: -5cqh; right: 0; font-family: "Press Start 2P", monospace; font-size: 2.2cqh; white-space: nowrap; text-shadow: 0 .4cqh 0 #000; }
+.kr-item:disabled { opacity: .5; }
+.kr-item.has { background: linear-gradient(135deg, #7c3aed, #4c1d95); animation: pulse 1.2s infinite; }
+.kr-steer { position: absolute; bottom: calc(3cqh + env(safe-area-inset-bottom)); width: 16cqh; height: 16cqh; border-radius: 50%; border: .6cqh solid rgba(255,255,255,.65); background: rgba(0,0,0,.28); color: #fff; font-size: 6cqh; display: grid; place-items: center; touch-action: none; padding: 0; }
+.kr-steer:active { background: rgba(245,197,66,.55); }
+.kr-steer.l { left: calc(3cqh + env(safe-area-inset-left)); }
+.kr-steer.r { right: calc(33cqh + env(safe-area-inset-right)); }
+.kr-hint { position: absolute; left: 50%; bottom: 3cqh; transform: translateX(-50%); font-family: var(--body); font-weight: 700; font-size: 3.4cqh; white-space: nowrap; text-shadow: 0 2px 3px #000; }
+.kr-fx { position: absolute; left: 50%; top: 36%; transform: translate(-50%, -50%); font-family: "Press Start 2P", monospace; font-size: 7cqh; white-space: nowrap; text-align: center; color: var(--gold); text-shadow: 0 .8cqh 0 #000, .6cqh 0 0 #000, -.6cqh 0 0 #000; pointer-events: none; animation: kr-pop .35s ease-out; }
+.kr-fx.bad { color: #ff6b6b; }
+.kr-fx.info { color: #7cd3ff; }
+.kr-fx small { display: block; font-family: var(--body); font-weight: 700; font-size: 3.8cqh; color: #fff; text-shadow: 0 2px 3px #000; margin-top: 2cqh; }
+@keyframes kr-pop { from { transform: translate(-50%, -50%) scale(.4); opacity: 0; } }
+/* Question: card at the top, answers at the thumbs */
+.kr-q { position: absolute; inset: 0; pointer-events: none; }
+.kr-qcard { position: absolute; left: 50%; top: 2.5cqh; transform: translateX(-50%); width: min(56%, 125cqh); background: rgba(251,246,233,.97); color: var(--ink); border-radius: 3cqh; padding: 1.6cqh 3cqh 2.2cqh; box-shadow: 0 1.2cqh 0 rgba(0,0,0,.35); animation: kr-drop .35s ease-out; }
+@keyframes kr-drop { from { transform: translate(-50%, -130%); } }
+.kr-qhead { display: flex; justify-content: space-between; gap: 2cqh; font-weight: 700; font-size: 3cqh; color: #7c3aed; }
+.kr-qhead span { font-family: "Press Start 2P", monospace; color: var(--ink); }
+.kr-qen { font-weight: 700; font-size: 5cqh; line-height: 1.2; margin-top: .6cqh; }
+.kr-qms { font-size: 3.6cqh; color: var(--muted); font-style: italic; line-height: 1.2; margin-top: .4cqh; }
+.kr-qtimer { height: 2.2cqh; border-radius: 2cqh; background: var(--line); overflow: hidden; margin-top: 1.4cqh; }
+.kr-qtimer i { display: block; height: 100%; background: var(--good); transition: width .2s linear; }
+.kr-side { position: absolute; top: 25cqh; width: 27%; display: grid; gap: 2.4cqh; pointer-events: auto; }
+.kr-side.l { left: calc(2cqh + env(safe-area-inset-left)); animation: kr-in-l .35s ease-out; }
+.kr-side.r { right: calc(2cqh + env(safe-area-inset-right)); animation: kr-in-r .35s ease-out; }
+@keyframes kr-in-l { from { transform: translateX(-120%); } }
+@keyframes kr-in-r { from { transform: translateX(120%); } }
+.kr-ans { display: flex; align-items: center; gap: 2cqh; border: 0; border-radius: 2.6cqh; padding: 2cqh 2.4cqh; color: #fff; text-align: left; min-height: 20cqh; box-shadow: 0 1cqh 0 rgba(0,0,0,.35); font: inherit; }
+.kr-ans b { flex: none; width: 8cqh; height: 8cqh; border-radius: 1.6cqh; background: rgba(0,0,0,.25); display: grid; place-items: center; font-family: "Press Start 2P", monospace; font-size: 3.6cqh; }
+.kr-ans span { font-family: var(--body); font-weight: 700; font-size: 4cqh; line-height: 1.15; }
+.kr-ans small { display: block; font-weight: 400; font-size: 3cqh; opacity: .92; }
+.kr-ans.ans-0 { background: var(--a0); } .kr-ans.ans-1 { background: var(--a1); } .kr-ans.ans-2 { background: var(--a2); } .kr-ans.ans-3 { background: var(--a3); }
+.kr-ans.dim { opacity: .35; }
+.kr-ans.picked { outline: 1cqh solid #fff; }
+.kr-qres { position: absolute; inset: 0; pointer-events: none; }
+.kr-ra { position: absolute; left: 50%; top: 3cqh; transform: translateX(-50%); background: #fff; color: var(--ink); border-radius: 2.4cqh; padding: 1.6cqh 3cqh; display: grid; text-align: center; max-width: 60%; box-shadow: 0 1cqh 0 rgba(0,0,0,.35); }
+.kr-ra .ra-label { font-size: 2.6cqh; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+.kr-ra b { font-size: 4.4cqh; }
+.kr-ra span { font-size: 3.2cqh; color: var(--muted); }
+/* Countdown, tilt help, pause */
+.kr-center { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(13,59,44,.45); }
+.kr-cd { color: #fff; }
+.kr-cd .cd-num { font-size: 40cqh; }
+.kr-tilthelp { position: absolute; left: 50%; bottom: 22cqh; transform: translateX(-50%); width: min(70%, 110cqh); }
+.kr-tilthelp p { color: #fff; text-shadow: 0 2px 3px #000; }
+.kr-paused { position: absolute; top: 24cqh; left: 50%; transform: translateX(-50%); }
+/* Phone held upright */
+.kr-rotate { position: absolute; inset: 0; z-index: 3; background: radial-gradient(circle at 50% 40%, var(--felt-3), var(--felt)); display: grid; place-content: center; justify-items: center; gap: 12px; text-align: center; padding: 24px; color: #fff; }
+.kr-rot-phone { width: 60px; height: 106px; border: 6px solid #fff; border-radius: 14px; position: relative; animation: kr-turn 2.4s ease-in-out infinite; margin-bottom: 10px; }
+.kr-rot-phone::after { content: ""; position: absolute; left: 50%; bottom: 6px; width: 16px; height: 4px; border-radius: 2px; background: #fff; transform: translateX(-50%); }
+@keyframes kr-turn { 0%, 20% { transform: rotate(0); } 50%, 80% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+.kr-rot-t1 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height: 1.1; }
+.kr-rot-t2 { font-size: 17px; color: #cfe6d9; }
+.kr-rot-note { margin: 0; font-size: 14px; background: rgba(0,0,0,.25); border-radius: 12px; padding: 10px 12px; max-width: 30ch; }
+.kr-rot-btn { width: auto; padding: 12px 20px; font-size: 18px; }
+.kr-rot-stay { color: #cfe6d9; }
+@media (prefers-reduced-motion: reduce) { .kr-rot-phone, .kr-item.has, .kr-side, .kr-qcard, .kr-fx { animation: none; } }

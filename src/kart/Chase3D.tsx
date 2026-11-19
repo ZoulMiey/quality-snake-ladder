@@ -1,6 +1,7 @@
-// The driver's view on each phone: a retro "pseudo-3D" road seen from behind your own cart.
-// The projector sends every cart's position about 6 times a second; this view fills in the movement
-// in between, and applies your own steering straight away so it feels responsive.
+// The driver's view on each phone (held sideways): a "pseudo-3D" road seen from behind your own cart,
+// drawn at 540 pixels high and smoothed (the "32-bit smooth" look the owner picked), with mixed scenery:
+// countryside, then a factory zone. The projector sends every cart's position about 6 times a second;
+// this view fills in the movement in between, and applies your own steering straight away.
 import { useEffect, useRef, type MutableRefObject } from "react";
 import { onValue, ref } from "firebase/database";
 import { db } from "../lib/firebase.ts";
@@ -9,9 +10,9 @@ import type { Player } from "../lib/types.ts";
 import { BOX_LANES, BOX_ROWS, HAZARDS, HALF, TRACK_LEN, TRACK_W, PATH_POINTS } from "./track.ts";
 import type { CartPos } from "./engine.ts";
 import * as px from "./pixel.ts";
+import { BASE_SPEED } from "./sim.ts";
 
-const W = 320; // low resolution on purpose: scaled up, it looks like a 16-bit console
-const H = 200;
+const H = 540; // the width follows the screen's shape (see resize below)
 const SEG_TRACK = 20; // track units per road segment
 const N = Math.ceil(TRACK_LEN / SEG_TRACK);
 const SEG_LEN = 200; // world depth of one segment
@@ -41,22 +42,58 @@ const HILL = new Float32Array(N + 1);
 
 type Sprite = { img: HTMLCanvasElement; offset: number; size: number; flat?: boolean };
 
-const BILLBOARDS: [string, string][] = [
-  ["QUALITY MONTH", "2026"],
+/** The factory zone: this stretch of the lap has grey ground, yellow-and-black kerbs and factory buildings. */
+const FACTORY_FROM = Math.floor(N * 0.42);
+const FACTORY_TO = Math.floor(N * 0.68);
+export const inFactory = (k: number) => k >= FACTORY_FROM && k < FACTORY_TO;
+
+const BOARDS: [string, string][] = [
   ["RIGHT FIRST", "TIME"],
-  ["ZERO DEFECTS", "ZERO WASTE"],
+  ["ZERO DEFECTS", "QUALITY MONTH 2026"],
   ["SAFETY FIRST", "PPE ON"],
 ];
 
 function buildScenery() {
-  const palm = px.palm();
-  const fac = px.factory();
-  const boards = BILLBOARDS.map(([a, b]) => px.billboard(a, b));
+  const art = {
+    pineD: px.pine("#1f6b4a", "#2f8a5e"),
+    pineL: px.pine("#3f8f3a", "#5fb04a"),
+    autumn: px.roundTree("#c76a12", "#e8941e", "#f7c04a"),
+    oak: px.roundTree("#2f7a3a", "#3f9a45", "#6cc35a"),
+    rock: px.rock(),
+    bush: px.bush(),
+    signL: px.arrowSign(-1),
+    signR: px.arrowSign(1),
+    boards: BOARDS.map(([a, b]) => px.qualityBoard(a, b)),
+    lab: px.qcLab(),
+    shed: px.warehouse(),
+    fence: px.fence(),
+  };
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const list: Sprite[][] = Array.from({ length: N }, () => []);
   for (let k = 0; k < N; k++) {
-    if (k % 4 === 0) list[k].push({ img: palm, offset: k % 8 === 0 ? -1.45 : 1.45, size: 0.75 });
-    if (k % 19 === 7) list[k].push({ img: fac, offset: k % 38 === 7 ? 2.6 : -2.6, size: 1.7 });
-    if (k % 29 === 13) list[k].push({ img: boards[Math.floor(k / 29) % boards.length], offset: k % 58 === 13 ? -1.9 : 1.9, size: 1.1 });
+    const add = (img: HTMLCanvasElement, offset: number, size: number) => list[k].push({ img, offset, size });
+    if (!inFactory(k)) {
+      if (k % 3 === 0) add(rnd() < 0.5 ? art.pineD : art.pineL, -(1.45 + rnd() * 1.8), 0.55);
+      if (k % 3 === 1) add(rnd() < 0.35 ? art.autumn : rnd() < 0.5 ? art.pineD : art.oak, 1.45 + rnd() * 1.8, 0.6);
+      if (k % 7 === 2) add(art.rock, (rnd() < 0.5 ? -1 : 1) * (1.3 + rnd() * 0.4), 0.35);
+      if (k % 5 === 3) add(art.bush, (rnd() < 0.5 ? -1 : 1) * (1.35 + rnd() * 0.6), 0.4);
+    } else {
+      if (k % 4 === 0) add(art.fence, -1.35, 0.6);
+      if (k % 4 === 2) add(art.fence, 1.35, 0.6);
+      if (k % 24 === 5) add(art.lab, -2.4, 2.2);
+      if (k % 24 === 17) add(art.shed, 2.6, 2.6);
+      if (k % 30 === 11) add(art.boards[Math.floor(k / 30) % 3], 2.2, 1.3);
+      if (k % 30 === 26) add(art.boards[(Math.floor(k / 30) + 1) % 3], -2.2, 1.3);
+    }
+  }
+  // Arrow signs before every bend, on the outside of the turn.
+  for (let k = 0; k < N; k++) {
+    const prev = CURVE[(k - 1 + N) % N];
+    if (Math.abs(CURVE[k]) > 2.5 && Math.abs(prev) <= 2.5) {
+      const dir = Math.sign(CURVE[k]);
+      for (const back of [9, 3]) list[(k - back + N) % N].push({ img: dir > 0 ? art.signR : art.signL, offset: dir > 0 ? -1.35 : 1.35, size: 0.32 });
+    }
   }
   const cone = px.cone();
   const hole = px.pothole();
@@ -74,6 +111,117 @@ function buildScenery() {
 
 type Proj = { sx: number; sy: number; sw: number; scale: number; ok: boolean };
 
+const ZONE = {
+  country: { grass: ["#77c24f", "#6ab446"], kerb: ["#d33a3a", "#ffffff"], road: ["#62666e", "#5c6068"], lane: "#ffffff" },
+  factory: { grass: ["#a8adb3", "#9da2a8"], kerb: ["#f5c542", "#2b2f36"], road: ["#55595f", "#4f5359"], lane: "#f5c542" },
+};
+
+/** Sky, distant mountains and green hills with a tree line; drawn once per screen size, then slid sideways in bends. */
+function buildBackground(W: number) {
+  const mk = (w: number, draw: (g: CanvasRenderingContext2D) => void) => {
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = H;
+    draw(c.getContext("2d")!);
+    return c;
+  };
+  let seed = 3;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const sky = mk(W, (g) => {
+    const gr = g.createLinearGradient(0, 0, 0, H * 0.6);
+    gr.addColorStop(0, "#5aa7e6");
+    gr.addColorStop(1, "#bfe3f7");
+    g.fillStyle = gr;
+    g.fillRect(0, 0, W, H);
+    g.fillStyle = "#ffffff";
+    for (let k = 0; k < 7; k++) {
+      const x = rnd() * W;
+      const y = H * 0.07 + rnd() * H * 0.18;
+      const s = H * 0.03 + rnd() * H * 0.03;
+      for (let j = 0; j < 4; j++) g.fillRect(Math.round(x + j * s * 0.9), Math.round(y - (j % 2) * s * 0.5), Math.round(s * 1.6), Math.round(s * 0.8));
+    }
+  });
+  const mountains = mk(W * 2, (g) => {
+    const base = H * 0.5;
+    const pts: [number, number][] = [];
+    for (let x = 0; x <= W * 2; x += W * (0.05 + rnd() * 0.07)) pts.push([x, base - H * (0.08 + rnd() * 0.14)]);
+    pts.push([W * 2, pts[0][1]]);
+    g.fillStyle = "#6a7fc0";
+    g.beginPath();
+    g.moveTo(0, H);
+    for (const [a, b] of pts) g.lineTo(a, b);
+    g.lineTo(W * 2, H);
+    g.fill();
+    g.fillStyle = "#eef3ff";
+    for (const [a, b] of pts) {
+      g.beginPath();
+      g.moveTo(a, b);
+      g.lineTo(a - H * 0.025, b + H * 0.03);
+      g.lineTo(a + H * 0.025, b + H * 0.03);
+      g.fill();
+    }
+  });
+  const hills = mk(W * 2, (g) => {
+    const base = H * 0.5;
+    g.fillStyle = "#5fae4a";
+    g.beginPath();
+    g.moveTo(0, H);
+    for (let x = 0; x <= W * 2; x += 2) g.lineTo(x, base - H * 0.04 - H * 0.035 * Math.sin((x / W) * Math.PI * 4) - H * 0.02 * Math.sin((x / W) * Math.PI * 10));
+    g.lineTo(W * 2, H);
+    g.fill();
+    const t = Math.round(H * 0.022);
+    for (let x = 0; x < W * 2; x += t * 1.6) {
+      const y = base - H * 0.02 - rnd() * H * 0.03;
+      g.fillStyle = rnd() < 0.5 ? "#2f7a4a" : "#3a8f50";
+      for (let k = 0; k < t * 2; k++) {
+        const hw = Math.max(1, Math.round(k * 0.45));
+        g.fillRect(Math.round(x + t - hw), Math.round(y + k * 0.7), hw * 2, 1);
+      }
+    }
+  });
+  return { sky, mountains, hills };
+}
+
+/** Speedometer dial for the bottom-right corner. */
+function drawSpeedo(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, kmh: number, turbo: boolean) {
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#1d2733";
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.9, 0, Math.PI * 2);
+  ctx.fill();
+  const a0 = Math.PI * 0.75;
+  const span = Math.PI * 1.5;
+  const arc = (from: number, to: number, color: string) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = r * 0.13;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.72, a0 + span * from, a0 + span * to);
+    ctx.stroke();
+  };
+  arc(0, 0.4, "#4fb3ff");
+  arc(0.4, 0.75, "#5fcf80");
+  arc(0.75, 1, "#ff6b6b");
+  const a = a0 + span * Math.min(1, kmh / 220);
+  ctx.strokeStyle = turbo ? "#ff7a1a" : "#f5c542";
+  ctx.lineWidth = r * 0.09;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + Math.cos(a) * r * 0.62, cy + Math.sin(a) * r * 0.62);
+  ctx.stroke();
+  ctx.lineCap = "butt";
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `${Math.round(r * 0.3)}px 'Press Start 2P', monospace`;
+  ctx.fillText(String(Math.round(kmh)), cx, cy + r * 0.62);
+  ctx.font = `${Math.round(r * 0.15)}px 'Press Start 2P', monospace`;
+  ctx.fillText("KM/H", cx, cy + r * 0.84);
+}
+
 export default function Chase3D({ uid, players, steer }: { uid: string; players: Record<string, Player>; steer: MutableRefObject<number> }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const posRef = useRef<{ pos: CartPos; at: number } | null>(null);
@@ -86,7 +234,23 @@ export default function Chase3D({ uid, players, steer }: { uid: string; players:
     const cv = canvasRef.current;
     if (!cv) return;
     const ctx = cv.getContext("2d")!;
-    ctx.imageSmoothingEnabled = false;
+    // The canvas is always 540 pixels high; its width follows the screen's shape so the view fills it.
+    let W = 960;
+    let bg = buildBackground(W);
+    const resize = () => {
+      const r = cv.getBoundingClientRect();
+      const aspect = r.width > 0 && r.height > 0 ? r.width / r.height : 16 / 9;
+      const w = Math.max(360, Math.min(1280, Math.round(H * aspect)));
+      if (w !== W || cv.width !== w) {
+        W = w;
+        cv.width = W;
+        cv.height = H;
+        bg = buildBackground(W);
+      }
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(cv);
     const scenery = buildScenery();
     const qbox = px.qbox();
     const oil = px.oilSpill();
@@ -94,12 +258,19 @@ export default function Chase3D({ uid, players, steer }: { uid: string; players:
     const cartImg = (u: string) => {
       const color = tokenById(playersRef.current[u]?.token).color;
       const key = u + color;
-      if (!carts.has(key)) carts.set(key, px.cartRear(color));
+      if (!carts.has(key)) carts.set(key, px.racerRear(color));
       return carts.get(key)!;
     };
     let pMe = 0;
     let dMe = 0;
     let skyX = 0;
+    const myCarts = new Map<number, HTMLCanvasElement>();
+    const myCart = (lean: number) => {
+      const color = tokenById(playersRef.current[uid]?.token).color;
+      const key = lean * 1000 + parseInt(color.slice(1), 16) % 997;
+      if (!myCarts.has(key)) myCarts.set(key, px.racerRear(color, lean));
+      return myCarts.get(key)!;
+    };
     let last = performance.now();
     let raf = 0;
 
@@ -122,6 +293,8 @@ export default function Chase3D({ uid, players, steer }: { uid: string; players:
 
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       const live = posRef.current;
@@ -149,24 +322,17 @@ export default function Chase3D({ uid, players, steer }: { uid: string; players:
       const playerY = HILL[playerIdx] + (HILL[playerIdx + 1] - HILL[playerIdx]) * playerPct;
       const camY = playerY + CAM_H;
       const camX = dMe * LAT * ROAD_W;
-      skyX += CURVE[playerIdx] * speed * dt * 0.02;
+      skyX += CURVE[playerIdx] * speed * dt * 0.02 * (W / 320);
 
-      // Sky, sun and a distant skyline that slides as the road bends
-      const sky = ctx.createLinearGradient(0, 0, 0, H / 2);
-      sky.addColorStop(0, "#3b82f6");
-      sky.addColorStop(1, "#bfe3ff");
-      ctx.fillStyle = sky;
-      ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = "#fff4b0";
-      ctx.fillRect(W - 60, 18, 14, 14);
-      for (let layer = 0; layer < 2; layer++) {
-        ctx.fillStyle = layer ? "#5b8a72" : "#7ea892";
-        const off = ((skyX * (layer ? 1 : 0.5)) % 64 + 64) % 64;
-        for (let x = -64; x < W + 64; x += 8) {
-          const hgt = 10 + ((Math.sin((x + 1000) * 0.07 + layer * 3) + 1) * (layer ? 9 : 14)) | 0;
-          ctx.fillRect(Math.round(x - off), H / 2 - hgt + (layer ? 6 : 0), 8, hgt + 40);
-        }
-      }
+      // Sky, then mountains and hills that slide sideways as the road bends
+      ctx.drawImage(bg.sky, 0, 0);
+      const layer = (img: HTMLCanvasElement, f: number) => {
+        const off = ((((skyX * f) % (W * 2)) + W * 2) % (W * 2));
+        ctx.drawImage(img, -Math.round(off), 0);
+        ctx.drawImage(img, Math.round(W * 2 - off), 0);
+      };
+      layer(bg.mountains, 0.6);
+      layer(bg.hills, 1.2);
 
       // Road, from near to far
       let x = 0;
@@ -184,14 +350,15 @@ export default function Chase3D({ uid, players, steer }: { uid: string; players:
         segs.push({ p1, p2, clip: maxY, idx, z: z1 });
         if (!p1.ok || !p2.ok || p2.sy >= p1.sy || p2.sy >= maxY) continue;
         const band = Math.floor(idx / 3) % 2;
-        ctx.fillStyle = band ? "#e8c27a" : "#dcb468";
-        ctx.fillRect(0, p2.sy, W, p1.sy - p2.sy);
-        quad(p1.sx, p1.sy, p1.sw * 1.15, p2.sx, p2.sy, p2.sw * 1.15, band ? "#b91c1c" : "#f3f4f6");
-        quad(p1.sx, p1.sy, p1.sw, p2.sx, p2.sy, p2.sw, band ? "#4b5059" : "#474c55");
+        const z = inFactory(idx) ? ZONE.factory : ZONE.country;
+        ctx.fillStyle = z.grass[band];
+        ctx.fillRect(0, p2.sy, W, p1.sy - p2.sy + 1);
+        quad(p1.sx, p1.sy, p1.sw * 1.16, p2.sx, p2.sy, p2.sw * 1.16, z.kerb[band]);
+        quad(p1.sx, p1.sy, p1.sw, p2.sx, p2.sy, p2.sw, z.road[band]);
         if (band) {
           const lw1 = Math.max(1, p1.sw / 40);
           const lw2 = Math.max(1, p2.sw / 40);
-          for (const lane of [-1 / 3, 1 / 3]) quad(p1.sx + p1.sw * lane, p1.sy, lw1, p2.sx + p2.sw * lane, p2.sy, lw2, "#f8fafc");
+          for (const lane of [-1 / 3, 1 / 3]) quad(p1.sx + p1.sw * lane, p1.sy, lw1, p2.sx + p2.sw * lane, p2.sy, lw2, z.lane);
         }
         if (idx === 0) quad(p1.sx, p1.sy, p1.sw, p2.sx, p2.sy, p2.sw, "#f8fafc");
         maxY = p2.sy;
@@ -200,8 +367,9 @@ export default function Chase3D({ uid, players, steer }: { uid: string; players:
       // Things on and beside the road, from far to near
       const others = live ? Object.entries(live.pos.c).filter(([u]) => u !== uid) : [];
       const hidden = new Set(live?.pos.b ?? []);
-      const drawSprite = (img: HTMLCanvasElement, sx: number, sy: number, scale: number, size: number, clip: number, flat = false) => {
-        const dw = size * scale * ROAD_W * (W / 2);
+      const myW = H * 0.36; // my own cart's width on screen: nothing on the road is drawn bigger than it
+      const drawSprite = (img: HTMLCanvasElement, sx: number, sy: number, scale: number, size: number, clip: number, flat = false, cap = Infinity) => {
+        const dw = Math.min(cap, size * scale * ROAD_W * (W / 2));
         const dh = flat ? dw * (img.height / img.width) * 0.5 : dw * (img.height / img.width);
         const top = sy - dh;
         if (dw < 1 || top >= clip) return;
@@ -226,16 +394,18 @@ export default function Chase3D({ uid, players, steer }: { uid: string; players:
           const s = ((p % TRACK_LEN) + TRACK_LEN) % TRACK_LEN;
           if (Math.floor(s / SEG_TRACK) % N !== sg.idx) continue;
           const sx = at(c[1] * LAT);
-          drawSprite(cartImg(u), sx, sg.p1.sy, sg.p1.scale, 0.42, sg.clip);
-          if (sg.p1.scale * ROAD_W * (W / 2) > 40) {
+          drawSprite(cartImg(u), sx, sg.p1.sy, sg.p1.scale, 0.42, sg.clip, false, myW * 0.9);
+          if (sg.p1.scale * ROAD_W * (W / 2) > 110) {
             const name = playersRef.current[u]?.name ?? "";
-            ctx.font = "bold 7px monospace";
+            const fs = Math.round(H * 0.032);
+            ctx.font = `bold ${fs}px Figtree, sans-serif`;
             ctx.textAlign = "center";
-            const tw = ctx.measureText(name).width + 4;
-            const ny = sg.p1.sy - 0.42 * sg.p1.scale * ROAD_W * (W / 2) * 0.6 - 4;
+            ctx.textBaseline = "alphabetic";
+            const tw = ctx.measureText(name).width + fs * 0.8;
+            const ny = sg.p1.sy - 0.42 * sg.p1.scale * ROAD_W * (W / 2) * 0.6 - fs * 0.6;
             if (ny < sg.clip) {
               ctx.fillStyle = tokenById(playersRef.current[u]?.token).color;
-              ctx.fillRect(Math.round(sx - tw / 2), Math.round(ny - 7), Math.round(tw), 8);
+              ctx.fillRect(Math.round(sx - tw / 2), Math.round(ny - fs), Math.round(tw), Math.round(fs * 1.25));
               ctx.fillStyle = "#fff";
               ctx.fillText(name, Math.round(sx), Math.round(ny));
             }
@@ -243,48 +413,53 @@ export default function Chase3D({ uid, players, steer }: { uid: string; players:
         }
       }
 
-      // My cart
-      const my = cartImg(uid);
-      const bounce = speed > 5 ? Math.round(now / 90) % 2 : 0;
-      const lean = Math.round(steer.current * 6);
-      const cw = 96;
-      const chh = 56;
-      const cx = W / 2 - cw / 2 + lean;
-      const cy = H - chh - 4 + bounce;
+      // My cart (leans into turns), turbo flames, shield bubble, smoke when slowed or steering hard
+      const st = steer.current;
+      const lean = Math.max(-2, Math.min(2, Math.round(st * 2)));
+      const my = myCart(lean);
+      const cw = Math.round(H * 0.36);
+      const chh = Math.round((cw * my.height) / my.width);
+      const bounce = speed > 5 ? Math.round(Math.sin(now / 60) * H * 0.004) : 0;
+      const cx = Math.round(W / 2 - cw / 2 + st * H * 0.02);
+      const cy = Math.round(H - chh - H * 0.035 + bounce);
+      const unit = cw / 48;
+      if ((Math.abs(st) > 0.6 && speed > 5) || flags & 8) {
+        ctx.fillStyle = "rgba(255,255,255,.75)";
+        for (let k = 0; k < 3; k++) {
+          const s2 = Math.round(unit * (3 + k));
+          const ox = ((now / 40 + k * 7) % 14) * unit;
+          const side = st >= 0 ? 1 : -1;
+          ctx.fillRect(Math.round(side > 0 ? cx + unit * 2 - ox : cx + cw - unit * 8 + ox), cy + chh - s2, s2, s2);
+        }
+      }
       ctx.save();
-      if (spinning && Math.round(now / 90) % 2) {
-        ctx.translate(W, 0);
-        ctx.scale(-1, 1);
-        ctx.drawImage(my, W - cx - cw, cy, cw, chh);
+      if (spinning) {
+        ctx.translate(cx + cw / 2, cy + chh / 2);
+        ctx.rotate(Math.sin(now / 70) * 0.35);
+        ctx.drawImage(my, -cw / 2, -chh / 2, cw, chh);
       } else ctx.drawImage(my, cx, cy, cw, chh);
       ctx.restore();
       if (flags & 2) {
         const f = px.flame(Math.round(now / 60));
-        ctx.drawImage(f, cx + 38, cy + chh - 2, 8, 12);
-        ctx.drawImage(f, cx + 50, cy + chh - 2, 8, 12);
+        ctx.drawImage(f, cx + unit * 15, cy + chh - unit * 2, unit * 6, unit * 9);
+        ctx.drawImage(f, cx + unit * 27, cy + chh - unit * 2, unit * 6, unit * 9);
       }
       if (flags & 4) {
-        ctx.strokeStyle = "rgba(96,165,250,.9)";
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = `rgba(90,200,255,${0.6 + 0.25 * Math.sin(now / 90)})`;
+        ctx.lineWidth = H * 0.012;
         ctx.beginPath();
-        ctx.ellipse(W / 2 + lean, cy + chh / 2, cw / 2 + 8, chh / 2 + 8, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx + cw / 2, cy + chh * 0.55, cw * 0.65, chh * 0.95, 0, 0, Math.PI * 2);
         ctx.stroke();
       }
-      if (flags & 8 && Math.round(now / 120) % 2) {
-        ctx.fillStyle = "rgba(229,231,235,.8)";
-        ctx.fillRect(cx + 30, cy + chh - 6, 6, 6);
-        ctx.fillRect(cx + 58, cy + chh - 8, 8, 8);
-      }
-      // speedometer bar
-      const pct = Math.min(1, speed / ((TRACK_LEN / 48) * 1.6));
-      ctx.fillStyle = "rgba(0,0,0,.45)";
-      ctx.fillRect(6, H - 60, 10, 54);
-      ctx.fillStyle = flags & 2 ? "#f97316" : "#22c55e";
-      ctx.fillRect(8, H - 8 - Math.round(50 * pct), 6, Math.round(50 * pct));
+      // Speedometer (bottom right). Base speed shows as about 120 km/h; turbo goes past 180.
+      drawSpeedo(ctx, W - H * 0.15, H - H * 0.15, H * 0.13, (speed / BASE_SPEED) * 120, (flags & 2) !== 0);
     };
     raf = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
   }, [uid, steer]);
 
-  return <canvas ref={canvasRef} className="chase" width={W} height={H} aria-label="Your view of the race" />;
+  return <canvas ref={canvasRef} className="chase" width={960} height={H} aria-label="Your view of the race" />;
 }

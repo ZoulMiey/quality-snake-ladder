@@ -52,7 +52,8 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 - Tilt the phone to steer (or hold ◀ ▶); carts drive forward by themselves. iPhones need a one-time "Turn on tilt steering" tap.
 - Questions every 6–12 s (12 s to answer): right = turbo, wrong = slow down. Q boxes give items (PPE Shield, Kaizen Turbo, Oil spill, Audit). Cones/potholes spin out; out-of-spec zones slow down.
 - 3 laps (~2½–3 min). Ends when all finish or 60 s after the winner.
-- Files: `src/kart/` (track, sim, engine, KartView, KartPhone, Chase3D 16-bit view, pixel art).
+- **Phone held sideways, full screen** (owner's pick, draft `https://claude.ai/artifact/Pr87rRCqaR24r59AZvcaxs`): "32-bit smooth" look = canvas 540 px high (width follows the screen shape), pixel art scaled with smoothing. Mixed scenery: countryside (pines, autumn trees, rocks, mountains, clouds) and a factory zone (42–68% of the lap: grey ground, yellow/black kerbs, QC lab, warehouses, fences, quality billboards); arrow signs before bends. Dashboard: position + lap (top left), race time + best lap (top centre, measured on the phone), item box (top right, tap to use), speedometer (bottom right, base speed ≈ 120 km/h), ◀ ▶ buttons. Questions: card at the top, answers at the thumbs (A B left, C D right; True left, False right). Held upright: "Turn your phone sideways" screen with a Full screen button (Android) and "Keep it upright".
+- Files: `src/kart/` (track, sim, engine, KartView, KartPhone = full-screen race screen, Chase3D = race view, pixel art).
 
 ### Quality Clash (shared by all three modes)
 - **15 equal monsters** (`src/clash/creatures.ts`, pixel art `src/clash/sprites.ts`), shown as "monster / raksasa" on screen (the code calls them creatures). 5 types (fire, water, wind, earth, electric) only set colours and attack animation; **no type advantage**.

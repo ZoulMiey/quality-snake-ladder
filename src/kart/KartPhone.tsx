@@ -160,92 +160,159 @@ export default function KartPhone({ uid, me, game, onExit }: { uid: string; me: 
   });
 
   const now = serverNow();
-  const counting = game.goAt && now < game.goAt + 1000;
+  const clock = game.paused && game.pausedAt ? game.pausedAt : now;
+  const counting = !!game.goAt && now < game.goAt + 1000;
   const ended = game.status === "ended";
   const myResult = results?.find((r) => r.uid === uid);
   const fx = cart?.fx ? FX[cart.fx] : null;
 
-  return (
-    <div className="cart-phone">
-      <div className="status-strip" style={{ ["--c" as string]: t.color }}>
-        <span className="me-mini">{t.emoji}</span>
-        <span className="me-name">{me.name}</span>
-        <span className="box-pill">{cart ? `${ordinal(cart.rank)}/${cart.of}` : "—"}</span>
-        <span className="lap-pill">Lap {cart ? Math.min(cart.lap, LAPS) : 1}/{LAPS}</span>
-      </div>
-      {game.paused && game.status === "playing" && <div className="paused-bar">Paused by host / Dihentikan seketika</div>}
+  // Best lap, measured on this phone from the moments the lap number goes up.
+  const lapRef = useRef<{ lap: number; at: number; best: number | null }>({ lap: 1, at: 0, best: null });
+  if (cart && game.goAt) {
+    const L = lapRef.current;
+    if (!L.at) L.at = game.goAt;
+    if (cart.lap > L.lap) {
+      const t2 = clock - L.at;
+      L.best = L.best === null ? t2 : Math.min(L.best, t2);
+      L.lap = cart.lap;
+      L.at = clock;
+    }
+  }
 
-      {ended ? (
-        <div className="card center won">
-          <div className="trophy">{myResult && myResult.rank <= 3 ? "🏆" : "🏁"}</div>
-          <div className="bi title">
-            <div className="en">{myResult ? `You finished ${ordinal(myResult.rank)}!` : "Race over!"}</div>
-            <div className="ms">{myResult ? `Anda tamat di tempat ke-${myResult.rank}!` : "Perlumbaan tamat!"}</div>
-          </div>
-          <p className="muted">Thank you for playing! / Terima kasih kerana bermain!</p>
+  if (ended || cart?.finished)
+    return (
+      <div className="cart-phone">
+        <div className="status-strip" style={{ ["--c" as string]: t.color }}>
+          <span className="me-mini">{t.emoji}</span>
+          <span className="me-name">{me.name}</span>
+          <span className="box-pill">{cart ? `${ordinal(cart.rank)}/${cart.of}` : "—"}</span>
+          <span className="lap-pill">Lap {cart ? Math.min(cart.lap, LAPS) : 1}/{LAPS}</span>
         </div>
-      ) : cart?.finished ? (
-        <div className="card center won">
-          <div className="trophy">🏁</div>
-          <div className="bi title">
-            <div className="en">You finished {ordinal(cart.rank)}!</div>
-            <div className="ms">Anda tamat di tempat ke-{cart.rank}!</div>
-          </div>
-          <p className="muted">Watch the big screen. / Lihat skrin besar.</p>
-        </div>
-      ) : counting && game.goAt ? (
-        <>
-          <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="phone-cd" />
-          <TiltHelp state={tilt.state} onEnable={tilt.enable} />
-        </>
-      ) : (
-        <>
-          <div className="chase-wrap">
-            <Chase3D uid={uid} players={players ?? {}} steer={steerNow} />
-            {fx && (
-              <div className={`fx-banner over ${fx.cls}`} key={cart?.fx ?? ""}>
-                <span className="fx-icon">{fx.icon}</span>
-                <span className="en">{fx.en}</span>
-                <span className="ms">{fx.ms}</span>
-              </div>
-            )}
-          </div>
-          {q && q.q && (q.result ? q.until > now : q.deadline > now - 600) ? (
-            <CartQuestion uid={uid} q={q} paused={game.paused} pausedAt={game.pausedAt} />
-          ) : (
-            <div className="steer-hint">
-              <span className="tilt-meter" aria-hidden="true">
-                <span style={{ left: `${50 + shownSteer * 45}%` }} />
-              </span>
-              <span className="bi">
-                <span className="en">{tilt.state === "on" ? "Tilt your phone to steer" : "Hold ◀ ▶ to steer"}</span>
-                <span className="ms">{tilt.state === "on" ? "Condongkan telefon untuk memandu" : "Tekan ◀ ▶ untuk memandu"}</span>
-              </span>
-              <TiltHelp state={tilt.state} onEnable={tilt.enable} />
+        {ended ? (
+          <div className="card center won">
+            <div className="trophy">{myResult && myResult.rank <= 3 ? "🏆" : "🏁"}</div>
+            <div className="bi title">
+              <div className="en">{myResult ? `You finished ${ordinal(myResult.rank)}!` : "Race over!"}</div>
+              <div className="ms">{myResult ? `Anda tamat di tempat ke-${myResult.rank}!` : "Perlumbaan tamat!"}</div>
             </div>
-          )}
-          <button className={`item-btn ${cart?.item ? "has" : ""}`} onClick={useItem} disabled={!cart?.item}>
-            <span className="item-icon">{cart?.item ? ITEMS[cart.item as ItemId].icon : "🎁"}</span>
-            <span className="item-text">
-              <span className="en">{cart?.item ? `Use ${ITEMS[cart.item as ItemId].en}` : "Drive through a Q box to get an item"}</span>
-              <span className="ms">{cart?.item ? `Guna ${ITEMS[cart.item as ItemId].ms}` : "Lalu kotak Q untuk dapat item"}</span>
-            </span>
-          </button>
-          <div className="steer-btns">
-            <button aria-label="Steer left" {...holdBtn(-1)}>
-              ◀
-            </button>
-            <button aria-label="Steer right" {...holdBtn(1)}>
-              ▶
-            </button>
+            <p className="muted">Thank you for playing! / Terima kasih kerana bermain!</p>
           </div>
-        </>
+        ) : (
+          <div className="card center won">
+            <div className="trophy">🏁</div>
+            <div className="bi title">
+              <div className="en">You finished {ordinal(cart!.rank)}!</div>
+              <div className="ms">Anda tamat di tempat ke-{cart!.rank}!</div>
+            </div>
+            <p className="muted">Watch the big screen. / Lihat skrin besar.</p>
+          </div>
+        )}
+        {ended && (
+          <button className="big-btn exit-btn" onClick={onExit}>
+            Exit / Keluar
+          </button>
+        )}
+      </div>
+    );
+
+  const showQ = !counting && q && q.q && (q.result ? q.until > now : q.deadline > now - 600);
+  const raceMs = game.goAt ? Math.max(0, clock - game.goAt) : 0;
+
+  return (
+    <div className="kr" role="application" aria-label="Quality Cart race">
+      <Chase3D uid={uid} players={players ?? {}} steer={steerNow} />
+      <div className="kr-hud">
+        <div className="kr-rank">
+          <span className="kr-big">{cart ? ordinal(cart.rank) : "—"}</span>
+          <span className="kr-small">/{cart?.of ?? "—"}</span>
+          <div className="kr-lap">
+            LAP {cart ? Math.min(cart.lap, LAPS) : 1}/{LAPS}
+          </div>
+        </div>
+        {!showQ && (
+          <div className="kr-time">
+            {lapTime(raceMs)}
+            <small>BEST LAP {lapRef.current.best ? lapTime(lapRef.current.best) : "--"}</small>
+          </div>
+        )}
+        <button className={`kr-item ${cart?.item ? "has" : ""}`} onClick={useItem} disabled={!cart?.item} aria-label={cart?.item ? `Use ${ITEMS[cart.item as ItemId].en}` : "No item"}>
+          {cart?.item ? ITEMS[cart.item as ItemId].icon : "🎁"}
+          <small>{cart?.item ? "TAP TO USE" : "Q BOX = ITEM"}</small>
+        </button>
+        <button className="kr-steer l" aria-label="Steer left" {...holdBtn(-1)}>
+          ◀
+        </button>
+        <button className="kr-steer r" aria-label="Steer right" {...holdBtn(1)}>
+          ▶
+        </button>
+        <div className="kr-hint">{tilt.state === "on" ? "Tilt to steer / Condongkan untuk memandu" : "Hold ◀ ▶ to steer / Tekan ◀ ▶"}</div>
+      </div>
+      {fx && !showQ && (
+        <div className={`kr-fx ${fx.cls}`} key={cart?.fx ?? ""}>
+          <span className="fx-icon">{fx.icon}</span> {fx.en}
+          <small>{fx.ms}</small>
+        </div>
       )}
-      {ended && (
-        <button className="big-btn exit-btn" onClick={onExit}>
-          Exit / Keluar
+      {showQ && <CartQuestion uid={uid} q={q!} paused={game.paused} pausedAt={game.pausedAt} />}
+      {counting && game.goAt && (
+        <div className="kr-center">
+          <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="kr-cd" />
+        </div>
+      )}
+      {tilt.state !== "on" && tilt.state !== "checking" && (
+        <div className="kr-tilthelp">
+          <TiltHelp state={tilt.state} onEnable={tilt.enable} />
+        </div>
+      )}
+      {game.paused && game.status === "playing" && <div className="paused-bar kr-paused">Paused by host / Dihentikan seketika</div>}
+      <TurnSideways />
+    </div>
+  );
+}
+
+const lapTime = (ms: number) => {
+  const s = ms / 1000;
+  return `${Math.floor(s / 60)}'${String(Math.floor(s % 60)).padStart(2, "0")}"${String(Math.floor((s % 1) * 100)).padStart(2, "0")}`;
+};
+
+/** While the phone is held upright: ask the player to turn it sideways (they can choose to stay upright). */
+function TurnSideways() {
+  const [upright, setUpright] = useState(() => window.innerHeight > window.innerWidth);
+  const [stay, setStay] = useState(false);
+  useEffect(() => {
+    const check = () => setUpright(window.innerHeight > window.innerWidth);
+    window.addEventListener("resize", check);
+    window.addEventListener("orientationchange", check);
+    return () => {
+      window.removeEventListener("resize", check);
+      window.removeEventListener("orientationchange", check);
+    };
+  }, []);
+  const canFull = typeof document !== "undefined" && !!document.documentElement.requestFullscreen && !document.fullscreenElement;
+  if (!upright || stay) return null;
+  return (
+    <div className="kr-rotate" role="dialog" aria-label="Turn your phone sideways">
+      <div className="kr-rot-phone" aria-hidden="true" />
+      <div className="kr-rot-t1">Turn your phone sideways</div>
+      <div className="kr-rot-t2">Pusingkan telefon anda ke sisi</div>
+      <p className="kr-rot-note">The race shows full screen. Tilt the phone like a steering wheel. / Perlumbaan dipaparkan skrin penuh. Condongkan telefon seperti stereng.</p>
+      {canFull && (
+        <button
+          className="big-btn kr-rot-btn"
+          onClick={() => {
+            unlockAudio();
+            void document.documentElement.requestFullscreen?.().catch(() => {});
+            try {
+              void (screen.orientation as unknown as { lock?: (o: string) => Promise<void> }).lock?.("landscape")?.catch(() => {});
+            } catch {}
+          }}
+        >
+          ⛶ Full screen / Skrin penuh
         </button>
       )}
+      <button className="link-btn kr-rot-stay" onClick={() => setStay(true)}>
+        Keep it upright / Kekal menegak
+      </button>
     </div>
   );
 }
@@ -290,46 +357,46 @@ function CartQuestion({ uid, q, paused, pausedAt }: { uid: string; q: CartQ; pau
   if (q.result) {
     const r = q.result;
     return (
-      <div className={`cart-result ${r.correct ? "good" : "bad"}`}>
-        <div className="cr-mark">{r.timeout ? "⏰" : r.correct ? "✔" : "✘"}</div>
-        <div className="bi">
-          <div className="en">{r.correct ? "Correct! TURBO ⚡" : r.timeout ? "Time's up! Sputter 🐢" : "Wrong! Sputter 🐢"}</div>
-          <div className="ms">{r.correct ? "Betul! Turbo" : r.timeout ? "Masa tamat! Perlahan" : "Salah! Perlahan"}</div>
+      <div className="kr-qres">
+        <div className={`kr-fx ${r.correct ? "good" : "bad"}`}>
+          {r.correct ? "⚡ TURBO!" : r.timeout ? "⏰ TIME'S UP" : "✘ SLOW DOWN"}
+          <small>{r.correct ? "Correct! / Betul!" : r.timeout ? "Masa tamat! Perlahan" : "Wrong! / Salah! Perlahan"}</small>
         </div>
         {!r.correct && qq.opts[r.correctIdx] && (
-          <div className="right-answer">
+          <div className="kr-ra">
             <span className="ra-label">Right answer / Jawapan betul</span>
-            <span className="en">{qq.opts[r.correctIdx].en}</span>
-            <span className="ms">{qq.opts[r.correctIdx].ms}</span>
+            <b>{qq.opts[r.correctIdx].en}</b>
+            <span>{qq.opts[r.correctIdx].ms}</span>
           </div>
         )}
       </div>
     );
   }
+  // Answers sit where the thumbs hold the phone: A B on the left, C D on the right (True left, False right).
+  const half = Math.ceil(qq.opts.length / 2);
+  const btn = (i: number) => (
+    <button key={i} className={`kr-ans ans-${qq.type === "tf" ? (i === 0 ? 3 : 0) : i} ${answered === i ? "picked" : ""} ${answered !== null && answered !== i ? "dim" : ""}`} disabled={answered !== null || left <= 0 || paused} onClick={() => answer(i)}>
+      <b>{qq.type === "tf" ? (i === 0 ? "✔" : "✘") : LETTERS[i]}</b>
+      <span>
+        {qq.opts[i].en}
+        <small>{qq.opts[i].ms}</small>
+      </span>
+    </button>
+  );
   return (
-    <div className="cart-q">
-      <div className="cq-head">
-        <span>❓ Answer for a TURBO! / Jawab untuk turbo!</span>
-        <span className="cq-secs">{secs}s</span>
+    <div className="kr-q">
+      <div className="kr-qcard">
+        <div className="kr-qhead">
+          ❓ Answer for a TURBO! / Jawab untuk turbo! <span>{secs}s</span>
+        </div>
+        <div className="kr-qen">{qq.q.en}</div>
+        <div className="kr-qms">{qq.q.ms}</div>
+        <div className="kr-qtimer">
+          <i style={{ width: `${(left / CART_QUESTION_MS) * 100}%` }} />
+        </div>
       </div>
-      <div className="timer slim">
-        <div className="timer-fill" style={{ width: `${(left / CART_QUESTION_MS) * 100}%` }} />
-      </div>
-      <div className="question compact">
-        <div className="en">{qq.q.en}</div>
-        <div className="ms">{qq.q.ms}</div>
-      </div>
-      <div className={`answers compact ${qq.type === "tf" ? "tf" : ""}`}>
-        {qq.opts.map((o, i) => (
-          <button key={i} className={`ans ans-${i} ${answered === i ? "picked" : ""} ${answered !== null && answered !== i ? "dim" : ""}`} disabled={answered !== null || left <= 0 || paused} onClick={() => answer(i)}>
-            <span className="letter">{qq.type === "tf" ? (i === 0 ? "✔" : "✘") : LETTERS[i]}</span>
-            <span className="atext">
-              <span className="en">{o.en}</span>
-              <span className="ms">{o.ms}</span>
-            </span>
-          </button>
-        ))}
-      </div>
+      <div className="kr-side l">{qq.opts.slice(0, half).map((_, i) => btn(i))}</div>
+      <div className="kr-side r">{qq.opts.slice(half).map((_, i) => btn(i + half))}</div>
     </div>
   );
 }

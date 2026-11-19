@@ -25,14 +25,16 @@ const NAMES = ["Aina", "Bala", "Chong", "Dewi", "Eric", "Farah"];
 
   const phones = [];
   for (const name of NAMES) {
-    const p = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })).newPage();
+    // Phones are held sideways for the race; the last phone stays upright to check the "turn sideways" message.
+    const upright = phones.length === NAMES.length - 1;
+    const p = await (await browser.newContext({ viewport: upright ? { width: 390, height: 844 } : { width: 844, height: 390 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })).newPage();
     watch(p, name);
     await p.goto(BASE + "/join");
     await p.locator("#name").fill(name);
     await p.locator("button.token-btn:not([disabled])").first().click();
     await p.getByRole("button", { name: /Join/ }).click();
     await p.getByText("You're in!").waitFor({ timeout: 15000 });
-    phones.push({ name, p, tilt: phones.length % 2 === 0 });
+    phones.push({ name, p, tilt: phones.length % 2 === 0, upright });
   }
   log("joined; phone header:", (await phones[0].p.locator(".qm-title").innerText()).replace(/\n/g, " / "));
   await phones[0].p.screenshot({ path: OUT + "/cart-phone-lobby.png" });
@@ -40,6 +42,15 @@ const NAMES = ["Aina", "Bala", "Chong", "Dewi", "Eric", "Farah"];
   await proj.getByRole("button", { name: "▶ Start game" }).click();
   await proj.waitForTimeout(2000);
   await proj.screenshot({ path: OUT + "/cart-countdown.png" });
+  await phones[0].p.screenshot({ path: OUT + "/cart-phone-countdown.png" });
+  const up = phones.find((ph) => ph.upright);
+  if (up) {
+    await up.p.locator(".kr-rotate").waitFor({ timeout: 5000 });
+    await up.p.screenshot({ path: OUT + "/cart-phone-upright.png" });
+    log("upright phone sees:", (await up.p.locator(".kr-rotate").innerText()).replace(/\n/g, " | ").slice(0, 90));
+    await up.p.getByRole("button", { name: /Keep it upright/ }).click();
+  }
+  let shotQ = false;
 
   const start = Date.now();
   let answered = 0, items = 0, shots = 0;
@@ -54,20 +65,24 @@ const NAMES = ["Aina", "Bala", "Chong", "Dewi", "Eric", "Farah"];
         // steer towards a random lane every so often
         const steer = Math.sin(Date.now() / 1500 + i) * 0.9;
         if (ph.tilt) {
-          await ph.p.evaluate((g) => window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", { gamma: g, beta: 0, alpha: 0 })), steer * 25).catch(() => {});
+          await ph.p.evaluate((g) => window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", { gamma: g, beta: g, alpha: 0 })), steer * 25).catch(() => {});
         } else {
           const btn = ph.p.locator(steer < 0 ? "button[aria-label='Steer left']" : "button[aria-label='Steer right']");
           if (await btn.count()) await btn.dispatchEvent("pointerdown").catch(() => {});
           setTimeout(() => btn.dispatchEvent("pointerup").catch(() => {}), 250);
         }
-        const btns = ph.p.locator(".cart-q button.ans:not([disabled])");
+        const btns = ph.p.locator(".kr-q button.kr-ans:not([disabled])");
         const n = await btns.count();
+        if (n && !shotQ && i === 0) {
+          shotQ = true;
+          await ph.p.screenshot({ path: OUT + "/cart-phone-question.png" });
+        }
         if (n) {
           const right = all.private?.kartsim?.qs?.[uid]?.correctIdx ?? 0;
           await btns.nth(Math.random() < 0.8 ? right : (right + 1) % n).click({ timeout: 1500 }).catch(() => {});
           answered++;
         }
-        const item = ph.p.locator("button.item-btn.has");
+        const item = ph.p.locator("button.kr-item.has");
         if ((await item.count()) && Math.random() < 0.3) {
           await item.click({ timeout: 1500, force: true }).catch(() => {});
           items++;
@@ -78,9 +93,10 @@ const NAMES = ["Aina", "Bala", "Chong", "Dewi", "Eric", "Farah"];
     if (shots === 0 && t > 25) {
       await proj.screenshot({ path: OUT + "/cart-race.png" });
       for (const ph of phones.slice(0, 2)) await ph.p.screenshot({ path: OUT + `/cart-phone-${ph.name}.png` });
-      const inp = all.kart?.input || {};
+      await proj.waitForTimeout(150);
+      const inp = (await (await fetch(DB, { headers: { Authorization: "Bearer owner" } })).json()).kart?.input || {};
       log("steering mid-race:", phones.map((ph) => `${ph.name}(${ph.tilt ? "tilt" : "buttons"})=${inp[byName[ph.name]]?.s}`).join(" "));
-      log("tilt state on Aina:", (await phones[0].p.locator(".wheel-card .bi .en").innerText().catch(() => "?")));
+      log("hint on Aina:", await phones[0].p.locator(".kr-hint").innerText().catch(() => "?"));
       shots++;
     }
     if (shots === 1 && t > 80) {
