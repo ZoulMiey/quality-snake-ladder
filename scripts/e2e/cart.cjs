@@ -51,6 +51,7 @@ const NAMES = ["Aina", "Bala", "Chong", "Dewi", "Eric", "Farah"];
     await up.p.getByRole("button", { name: /Keep it upright/ }).click();
   }
   let shotQ = false;
+  const seenFx = {};
 
   const start = Date.now();
   let answered = 0, items = 0, shots = 0;
@@ -71,6 +72,13 @@ const NAMES = ["Aina", "Bala", "Chong", "Dewi", "Eric", "Farah"];
           if (await btn.count()) await btn.dispatchEvent("pointerdown").catch(() => {});
           setTimeout(() => btn.dispatchEvent("pointerup").catch(() => {}), 250);
         }
+        for (const [k, sel] of [["warn", ".kr-warn"], ["super", ".kr-fx.super"]]) {
+          if (!seenFx[k] && (await ph.p.locator(sel).count())) {
+            seenFx[k] = ph.name;
+            await ph.p.screenshot({ path: OUT + `/cart-phone-${k}.png` });
+            log(`seen ${k} on`, ph.name, (await ph.p.locator(sel).first().innerText()).replace(/\n/g, " | "));
+          }
+        }
         const btns = ph.p.locator(".kr-q button.kr-ans:not([disabled])");
         const n = await btns.count();
         if (n && !shotQ && i === 0) {
@@ -79,7 +87,7 @@ const NAMES = ["Aina", "Bala", "Chong", "Dewi", "Eric", "Farah"];
         }
         if (n) {
           const right = all.private?.kartsim?.qs?.[uid]?.correctIdx ?? 0;
-          await btns.nth(Math.random() < 0.8 ? right : (right + 1) % n).click({ timeout: 1500 }).catch(() => {});
+          await btns.nth(Math.random() < 0.9 ? right : (right + 1) % n).click({ timeout: 1500 }).catch(() => {});
           answered++;
         }
         const item = ph.p.locator("button.kr-item.has");
@@ -107,6 +115,7 @@ const NAMES = ["Aina", "Bala", "Chong", "Dewi", "Eric", "Farah"];
     await proj.waitForTimeout(350);
   }
   const all = await (await fetch(DB, { headers: { Authorization: "Bearer owner" } })).json();
+  log("screens seen:", JSON.stringify(seenFx));
   log("time:", Math.round((Date.now() - start) / 1000) + "s", "answers:", answered, "items used:", items);
   log("tilt seen on phone 1:", JSON.stringify(all.kart?.input?.[Object.keys(all.players)[0]]));
   log("results:", JSON.stringify((all.kart?.results || []).map((r) => [all.players[r.uid]?.name, r.rank, r.time])));

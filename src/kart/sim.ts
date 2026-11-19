@@ -16,6 +16,8 @@ export type Cart = {
   d: number; // -1 (left edge) .. 1 (right edge)
   v: number; // current speed
   boostUntil: number;
+  /** SUPER TURBO after 3 right answers in a row: faster than a normal turbo. */
+  superUntil?: number;
   slowUntil: number;
   slowFactor: number;
   spinUntil: number;
@@ -44,6 +46,9 @@ export const BASE_SPEED = TRACK_LEN / 48;
 const STEER_RATE = 1.7; // how fast tilting moves the cart across the road (road widths per second)
 const SPIN_S = 1.1;
 export const TURBO_S = 2.5;
+/** Right answers in a row for a SUPER TURBO, and how long it lasts. */
+export const SUPER_STREAK = 3;
+export const SUPER_S = 4;
 
 export function newWorld(uids: string[]): World {
   const lanes = [-0.66, -0.22, 0.22, 0.66];
@@ -53,6 +58,7 @@ export function newWorld(uids: string[]): World {
     d: lanes[i % lanes.length],
     v: 0,
     boostUntil: 0,
+    superUntil: 0,
     slowUntil: 0,
     slowFactor: 1,
     spinUntil: 0,
@@ -123,7 +129,8 @@ export function step(w: World, dt: number, steer: Record<string, number>, rand =
     let target = BASE_SPEED;
     if (spinning) target *= 0.2;
     else {
-      if (c.boostUntil > w.t) target *= 1.6;
+      if ((c.superUntil ?? 0) > w.t) target *= 1.9;
+      else if (c.boostUntil > w.t) target *= 1.6;
       if (c.slowUntil > w.t) target *= c.slowFactor;
       if (Math.abs(c.d) > 0.9) target *= 0.75; // driving on the edge
     }
@@ -221,11 +228,14 @@ export function useItem(w: World, uid: string): ItemUse | null {
   return { item, uid, target: leader.uid };
 }
 
-/** A right answer gives a short turbo, a wrong one makes the cart sputter. */
-export function answerEffect(w: World, uid: string, correct: boolean) {
+/** A right answer gives a short turbo (a SUPER TURBO on the 3rd in a row), a wrong one makes the cart sputter. */
+export function answerEffect(w: World, uid: string, correct: boolean, superBoost = false) {
   const c = w.carts.find((x) => x.uid === uid);
   if (!c || c.finished) return;
-  if (correct) c.boostUntil = Math.max(c.boostUntil, w.t) + 2;
+  if (correct && superBoost) {
+    c.superUntil = w.t + SUPER_S;
+    c.boostUntil = Math.max(c.boostUntil, w.t + SUPER_S);
+  } else if (correct) c.boostUntil = Math.max(c.boostUntil, w.t) + 2;
   else {
     c.slowUntil = w.t + 2;
     c.slowFactor = 0.55;
@@ -233,8 +243,9 @@ export function answerEffect(w: World, uid: string, correct: boolean) {
 }
 
 /** What a phone needs to know about its own cart. */
-export function effectOf(w: World, c: Cart): "turbo" | "spin" | "slow" | "shield" | null {
+export function effectOf(w: World, c: Cart): "super" | "turbo" | "spin" | "slow" | "shield" | null {
   if (c.spinUntil > w.t) return "spin";
+  if ((c.superUntil ?? 0) > w.t) return "super";
   if (c.boostUntil > w.t) return "turbo";
   if (c.slowUntil > w.t) return "slow";
   if (c.shieldUntil > w.t) return "shield";

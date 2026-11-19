@@ -439,7 +439,23 @@ export default function Chase3D({ uid, players, steer }: { uid: string; players:
         ctx.drawImage(my, -cw / 2, -chh / 2, cw, chh);
       } else ctx.drawImage(my, cx, cy, cw, chh);
       ctx.restore();
-      if (flags & 2) {
+      if (flags & 32) {
+        // SUPER TURBO: big flames and speed lines down both sides of the screen
+        const f = px.flame(Math.round(now / 50));
+        ctx.drawImage(f, cx + unit * 12, cy + chh - unit * 3, unit * 10, unit * 16);
+        ctx.drawImage(f, cx + unit * 26, cy + chh - unit * 3, unit * 10, unit * 16);
+        ctx.strokeStyle = "rgba(255,255,255,.55)";
+        ctx.lineWidth = Math.max(2, H * 0.006);
+        for (let k = 0; k < 10; k++) {
+          const y = ((k * 97 + now * 1.4) % (H * 0.9)) + H * 0.05;
+          const side = k % 2 ? 1 : -1;
+          const x0 = side > 0 ? W - (k % 3) * H * 0.04 : (k % 3) * H * 0.04;
+          ctx.beginPath();
+          ctx.moveTo(x0, y);
+          ctx.lineTo(x0 - side * H * 0.12, y + H * 0.04);
+          ctx.stroke();
+        }
+      } else if (flags & 2) {
         const f = px.flame(Math.round(now / 60));
         ctx.drawImage(f, cx + unit * 15, cy + chh - unit * 2, unit * 6, unit * 9);
         ctx.drawImage(f, cx + unit * 27, cy + chh - unit * 2, unit * 6, unit * 9);
@@ -452,7 +468,7 @@ export default function Chase3D({ uid, players, steer }: { uid: string; players:
         ctx.stroke();
       }
       // Speedometer (bottom right). Base speed shows as about 120 km/h; turbo goes past 180.
-      drawSpeedo(ctx, W - H * 0.15, H - H * 0.15, H * 0.13, (speed / BASE_SPEED) * 120, (flags & 2) !== 0);
+      drawSpeedo(ctx, W - H * 0.15, H - H * 0.15, H * 0.13, (speed / BASE_SPEED) * 120, (flags & 34) !== 0);
     };
     raf = requestAnimationFrame(frame);
     return () => {

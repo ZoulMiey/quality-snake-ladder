@@ -1,7 +1,7 @@
 // Checks the Quality Cart race rules. Run: npm test
 import assert from "node:assert/strict";
-import { newWorld, step, useItem, standings, answerEffect, pickItem, BASE_SPEED } from "../src/kart/sim.ts";
-import { TRACK_LEN, LAPS, HAZARDS, place, WORLD_W, WORLD_H, PATH_POINTS } from "../src/kart/track.ts";
+import { newWorld, step, useItem, standings, answerEffect, pickItem, BASE_SPEED, SUPER_S } from "../src/kart/sim.ts";
+import { TRACK_LEN, LAPS, HAZARDS, BOX_ROWS, gap, place, WORLD_W, WORLD_H, PATH_POINTS } from "../src/kart/track.ts";
 
 let n = 0;
 const t = (name: string, fn: () => void) => {
@@ -100,6 +100,22 @@ t("right answer = turbo, wrong answer = sputter", () => {
   assert.ok(w.carts[0].slowUntil > w.t);
 });
 
+t("3 right in a row = SUPER TURBO: faster and longer than a normal turbo", () => {
+  const run = (sup: boolean) => {
+    const w = newWorld(["a"]);
+    w.carts[0].p = 10;
+    for (let k = 0; k < 60; k++) step(w, 1 / 30, {});
+    const p0 = w.carts[0].p;
+    answerEffect(w, "a", true, sup);
+    for (let k = 0; k < SUPER_S * 30; k++) step(w, 1 / 30, {});
+    return w.carts[0].p - p0;
+  };
+  assert.ok(run(true) > run(false) * 1.15, `super ${run(true).toFixed(0)} vs turbo ${run(false).toFixed(0)}`);
+});
+t("8 rows of item boxes a lap, none on top of a hazard", () => {
+  assert.equal(BOX_ROWS.length, 8);
+  for (const row of BOX_ROWS) for (const hz of HAZARDS) assert.ok(Math.abs(gap(row, hz.s)) > hz.len / 2 + 40, `boxes at ${(row / TRACK_LEN).toFixed(2)} too close to a ${hz.kind}`);
+});
 t("items favour the back of the race", () => {
   let backTurbo = 0;
   let frontTurbo = 0;

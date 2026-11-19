@@ -7,7 +7,7 @@ import { pickQuestion, shuffleOptions } from "../lib/rules.ts";
 import { tokenById } from "../lib/tokens.ts";
 import type { FeedItem, Game, Player, Question } from "../lib/types.ts";
 import { COUNTDOWN_MS } from "../lib/engine.ts";
-import { ITEMS, answerEffect, effectOf, lapOf, newWorld, standings, step, useItem, type RaceEvent, type World } from "./sim.ts";
+import { ITEMS, SUPER_STREAK, answerEffect, effectOf, lapOf, newWorld, standings, step, useItem, type RaceEvent, type World } from "./sim.ts";
 
 export const CART_QUESTION_MS = 12_000;
 const RESULT_SHOW_MS = 2_200;
@@ -23,16 +23,21 @@ const TF_OPTS = [
 /** The race the projector is drawing right now (shared with the screen in the same window). */
 export const live: { world: World | null } = { world: null };
 
-type QState = { open: boolean; qid: string; correctIdx: number; deadline: number; nextAt: number; seq: number };
+/** streak = right answers in a row (SUPER TURBO at 3); warned = the "question in 3…" countdown has been sent. */
+type QState = { open: boolean; qid: string; correctIdx: number; deadline: number; nextAt: number; seq: number; streak?: number; warned?: boolean };
+/** Seconds of "Question in 3, 2, 1" warning before each question. */
+const WARN_S = 3;
 type Input = { s?: number; use?: number };
 
-export type CartMe = { rank: number; of: number; lap: number; item: string | null; fx: string | null; finished: boolean; time: number | null };
+export type CartMe = { rank: number; of: number; lap: number; item: string | null; fx: string | null; finished: boolean; time: number | null; streak?: number };
 export type CartQ = {
   seq: number;
   q: { id: string; type: "mc" | "tf"; q: { en: string; ms: string }; opts: { en: string; ms: string }[] } | null;
   deadline: number;
-  result: { correct: boolean; timeout: boolean; correctIdx: number } | null;
+  result: { correct: boolean; timeout: boolean; correctIdx: number; super?: boolean; streak?: number } | null;
   until: number;
+  /** Server time the next question appears (the phone counts down to it). */
+  next?: number;
 };
 /** Live positions for the phones: c = { uid: [distance, side, speed, flags] }, b = hidden box numbers, o = oil spills [s, d].
  * flags: 1 spinning, 2 turbo, 4 shield, 8 slowed, 16 finished. */
@@ -198,6 +203,10 @@ export class KartEngine {
       }
       if (q.open && now > q.deadline + 600) this.judge(c.uid, null, updates);
       else if (!q.open && w.t >= q.nextAt && c.p > 0) this.ask(c.uid, now, updates);
+      else if (!q.open && !q.warned && w.t >= q.nextAt - WARN_S && c.p > 0) {
+        q.warned = true;
+        updates[`kart/q/${c.uid}/next`] = now + Math.max(0, q.nextAt - w.t) * 1000;
+      }
     }
 
     // Every cart's position, about 6 times a second, for the drivers' view on the phones.
@@ -205,7 +214,7 @@ export class KartEngine {
       this.lastPos = nowMs;
       const c: Record<string, number[]> = {};
       for (const k of w.carts) {
-        const flags = (k.spinUntil > w.t ? 1 : 0) | (k.boostUntil > w.t ? 2 : 0) | (k.shieldUntil > w.t ? 4 : 0) | (k.slowUntil > w.t ? 8 : 0) | (k.finished ? 16 : 0);
+        const flags = (k.spinUntil > w.t ? 1 : 0) | (k.boostUntil > w.t ? 2 : 0) | (k.shieldUntil > w.t ? 4 : 0) | (k.slowUntil > w.t ? 8 : 0) | (k.finished ? 16 : 0) | ((k.superUntil ?? 0) > w.t ? 32 : 0);
         c[k.uid] = [Math.round(k.p * 10) / 10, Math.round(k.d * 100) / 100, Math.round(k.v * 10) / 10, flags];
       }
       const pos: CartPos = {
@@ -229,6 +238,7 @@ export class KartEngine {
           fx: effectOf(w, c),
           finished: c.finished,
           time: c.finished ? Math.round(c.finishT * 10) / 10 : null,
+          streak: this.qs[c.uid]?.streak ?? 0,
         };
         const key = JSON.stringify(me);
         if (this.lastMe[c.uid] !== key) {
@@ -298,6 +308,7 @@ export class KartEngine {
     const base = pick.q.type === "tf" ? TF_OPTS : pick.q.opts ?? [];
     const sh = pick.q.type === "tf" ? { opts: base, correctIdx: pick.q.ans } : shuffleOptions(base, pick.q.ans);
     q.open = true;
+    q.warned = false;
     q.qid = pick.q.id;
     q.correctIdx = sh.correctIdx;
     q.deadline = now + CART_QUESTION_MS;
@@ -322,9 +333,16 @@ export class KartEngine {
     if (!q?.open || !w) return;
     q.open = false;
     const correct = choice !== null && choice === q.correctIdx;
-    answerEffect(w, uid, correct);
+    let streak = correct ? (q.streak ?? 0) + 1 : 0;
+    const superBoost = streak >= SUPER_STREAK;
+    if (superBoost) {
+      streak = 0;
+      this.pushFeed(`🔥 ${this.name(uid)}: 3 right in a row, SUPER TURBO!`, "good");
+    }
+    q.streak = streak;
+    answerEffect(w, uid, correct, superBoost);
     q.nextAt = w.t + 6 + Math.random() * 6;
-    updates[`kart/q/${uid}/result`] = { correct, timeout: choice === null, correctIdx: q.correctIdx };
+    updates[`kart/q/${uid}/result`] = { correct, timeout: choice === null, correctIdx: q.correctIdx, super: superBoost, streak };
     updates[`kart/q/${uid}/until`] = serverNow() + RESULT_SHOW_MS;
     updates[`answers/${uid}`] = null;
   }

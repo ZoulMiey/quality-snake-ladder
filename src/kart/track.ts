@@ -124,6 +124,6 @@ export const HAZARDS: Hazard[] = (
   ] as Hazard[]
 ).map((h) => ({ ...h, s: h.s * TRACK_LEN }));
 
-/** Rows of item boxes (each row has boxes across the road). */
-export const BOX_ROWS = [0.26, 0.53, 0.77].map((f) => f * TRACK_LEN);
+/** Rows of item boxes (each row has boxes across the road): 8 rows a lap, kept clear of the hazards. */
+export const BOX_ROWS = [0.06, 0.16, 0.26, 0.39, 0.53, 0.66, 0.77, 0.87].map((f) => f * TRACK_LEN);
 export const BOX_LANES = [-0.66, 0, 0.66];

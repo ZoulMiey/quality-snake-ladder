@@ -71,6 +71,7 @@ function useTilt() {
 }
 
 const FX: Record<string, { icon: string; en: string; ms: string; cls: string }> = {
+  super: { icon: "🔥", en: "SUPER TURBO!", ms: "Turbo super!", cls: "good" },
   turbo: { icon: "⚡", en: "TURBO!", ms: "Turbo!", cls: "good" },
   spin: { icon: "💫", en: "Spin out!", ms: "Berpusing!", cls: "bad" },
   slow: { icon: "🐢", en: "Slowed down", ms: "Perlahan", cls: "bad" },
@@ -128,7 +129,7 @@ export default function KartPhone({ uid, me, game, onExit }: { uid: string; me: 
     const fx = cart?.fx ?? null;
     if (fx && fx !== lastFx.current) {
       if (fx === "spin") sfx.wrong();
-      if (fx === "turbo") sfx.ladder();
+      if (fx === "turbo" || fx === "super") sfx.ladder();
       try {
         navigator.vibrate?.(fx === "spin" ? 300 : 80);
       } catch {}
@@ -216,6 +217,9 @@ export default function KartPhone({ uid, me, game, onExit }: { uid: string; me: 
     );
 
   const showQ = !counting && q && q.q && (q.result ? q.until > now : q.deadline > now - 600);
+  // "Question in 3, 2, 1" before each question, so it never appears out of nowhere.
+  const warnSecs = !counting && !showQ && q?.next && q.next > now && !(q.q && !q.result) ? Math.ceil((q.next - now) / 1000) : 0;
+  const streak = cart?.streak ?? 0;
   const raceMs = game.goAt ? Math.max(0, clock - game.goAt) : 0;
 
   return (
@@ -228,8 +232,14 @@ export default function KartPhone({ uid, me, game, onExit }: { uid: string; me: 
           <div className="kr-lap">
             LAP {cart ? Math.min(cart.lap, LAPS) : 1}/{LAPS}
           </div>
+          <div className="kr-streak" aria-label={`${streak} right answers in a row`}>
+            {[0, 1, 2].map((i) => (
+              <i key={i} className={i < streak ? "on" : ""} />
+            ))}
+            <span>SUPER</span>
+          </div>
         </div>
-        {!showQ && (
+        {!showQ && !warnSecs && (
           <div className="kr-time">
             {lapTime(raceMs)}
             <small>BEST LAP {lapRef.current.best ? lapTime(lapRef.current.best) : "--"}</small>
@@ -254,6 +264,7 @@ export default function KartPhone({ uid, me, game, onExit }: { uid: string; me: 
         </div>
       )}
       {showQ && <CartQuestion uid={uid} q={q!} paused={game.paused} pausedAt={game.pausedAt} />}
+      {warnSecs > 0 && <QuestionSoon secs={warnSecs} />}
       {counting && game.goAt && (
         <div className="kr-center">
           <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="kr-cd" />
@@ -266,6 +277,23 @@ export default function KartPhone({ uid, me, game, onExit }: { uid: string; me: 
       )}
       {game.paused && game.status === "playing" && <div className="paused-bar kr-paused">Paused by host / Dihentikan seketika</div>}
       <TurnSideways />
+    </div>
+  );
+}
+
+/** Banner counting down to the next question, with a tick (and a short buzz on Android) each second. */
+function QuestionSoon({ secs }: { secs: number }) {
+  useEffect(() => {
+    sfx.tick();
+    try {
+      navigator.vibrate?.(40);
+    } catch {}
+  }, [secs]);
+  return (
+    <div className="kr-warn" role="status" aria-live="assertive">
+      <span>❓ QUESTION IN</span>
+      <b key={secs}>{secs}</b>
+      <small>Soalan dalam {secs} saat · Get ready to answer!</small>
     </div>
   );
 }
@@ -358,9 +386,19 @@ function CartQuestion({ uid, q, paused, pausedAt }: { uid: string; q: CartQ; pau
     const r = q.result;
     return (
       <div className="kr-qres">
-        <div className={`kr-fx ${r.correct ? "good" : "bad"}`}>
-          {r.correct ? "⚡ TURBO!" : r.timeout ? "⏰ TIME'S UP" : "✘ SLOW DOWN"}
-          <small>{r.correct ? "Correct! / Betul!" : r.timeout ? "Masa tamat! Perlahan" : "Wrong! / Salah! Perlahan"}</small>
+        <div className={`kr-fx ${r.super ? "super" : r.correct ? "good" : "bad"}`}>
+          {r.super ? "🔥 SUPER TURBO!" : r.correct ? "⚡ TURBO!" : r.timeout ? "⏰ TIME'S UP" : "✘ SLOW DOWN"}
+          <small>
+            {r.super
+              ? "3 right in a row! / 3 betul berturut-turut!"
+              : r.correct
+                ? (r.streak ?? 0) === 2
+                  ? "Correct! One more for SUPER TURBO / Satu lagi untuk turbo super"
+                  : "Correct! / Betul!"
+                : r.timeout
+                  ? "Masa tamat! Perlahan"
+                  : "Wrong! / Salah! Perlahan"}
+          </small>
         </div>
         {!r.correct && qq.opts[r.correctIdx] && (
           <div className="kr-ra">

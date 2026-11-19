@@ -824,3 +824,15 @@ button:disabled { cursor: default; }
 .kr-rot-btn { width: auto; padding: 12px 20px; font-size: 18px; }
 .kr-rot-stay { color: #cfe6d9; }
 @media (prefers-reduced-motion: reduce) { .kr-rot-phone, .kr-item.has, .kr-side, .kr-qcard, .kr-fx { animation: none; } }
+
+/* Quality Cart: question warning, streak dots, SUPER TURBO */
+.kr-warn { position: absolute; left: 50%; top: 4cqh; transform: translateX(-50%); display: grid; justify-items: center; background: rgba(124,58,237,.92); color: #fff; border-radius: 3cqh; padding: 1.6cqh 5cqh 2cqh; box-shadow: 0 1cqh 0 rgba(0,0,0,.35); animation: kr-drop .3s ease-out; pointer-events: none; text-align: center; }
+.kr-warn span { font-family: "Press Start 2P", monospace; font-size: 3.6cqh; }
+.kr-warn b { font-family: "Press Start 2P", monospace; font-size: 12cqh; line-height: 1.1; color: var(--gold); animation: cdpop .9s ease-out both; }
+.kr-warn small { font-family: var(--body); font-weight: 700; font-size: 3cqh; opacity: .92; }
+.kr-streak { display: flex; align-items: center; gap: 1cqh; margin-top: 1.6cqh; }
+.kr-streak i { width: 3.4cqh; height: 3.4cqh; border-radius: 50%; border: .5cqh solid #fff; background: rgba(0,0,0,.35); }
+.kr-streak i.on { background: #ff7a1a; box-shadow: 0 0 1.6cqh #ffb347; }
+.kr-streak span { font-size: 2.2cqh; color: #ffd7a8; }
+.kr-fx.super { color: #ff9a1a; font-size: 8cqh; animation: kr-pop .35s ease-out, kr-glow .5s .35s ease-in-out 4 alternate; }
+@keyframes kr-glow { to { text-shadow: 0 .8cqh 0 #000, .6cqh 0 0 #000, -.6cqh 0 0 #000, 0 0 4cqh #ffd23f; } }
