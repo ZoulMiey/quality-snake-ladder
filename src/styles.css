@@ -662,3 +662,70 @@ button:disabled { cursor: default; }
 .qset-btn .ms { font-size: 12px; opacity: .75; }
 .qset-btn.on { border-color: var(--gold); background: rgba(245,197,66,.16); }
 .qset-btn.empty { opacity: .5; }
+
+/* Snake & Ladder phone: the full board is the main view; the question card pops up over the bottom. */
+.slp-stage { position: relative; height: calc(100dvh - 92px); min-height: 500px; border-radius: 16px; overflow: hidden; background: var(--felt-2); display: flex; flex-direction: column; }
+.slp-stage > .status-strip { flex: none; margin: 6px 6px 0; z-index: 3; }
+.slp-view { position: relative; flex: 1; min-height: 0; margin-top: 6px; }
+.slp-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; }
+.slp-paused { position: absolute; top: 8px; left: 8px; right: 8px; z-index: 6; }
+.slp-banner { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); z-index: 4; max-width: calc(100% - 90px); text-align: center; pointer-events: none; }
+.slp-banner .bi, .slp-ok { display: inline-block; background: var(--good); color: #fff; font-family: var(--display); font-weight: 800; font-size: 17px; line-height: 1.15; padding: 5px 14px 3px; border-radius: 999px; box-shadow: 0 4px 10px rgba(0,0,0,.3); animation: pop .3s ease-out; }
+.slp-banner .bi { background: var(--felt); }
+.slp-banner .bi .ms { font-family: var(--body); font-weight: 600; font-size: 12px; opacity: .85; }
+.slp-dice { position: absolute; right: 10px; top: 10px; z-index: 4; background: rgba(13,59,44,.55); border-radius: 14px; padding: 8px; }
+.slp-dice .dice-sum { color: #fff; font-family: var(--display); font-weight: 800; font-size: 22px; }
+.slp-float { position: absolute; left: 12px; right: 12px; top: 50%; transform: translateY(-50%); z-index: 4; }
+.slp-sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 72%; z-index: 5; background: var(--phone-bg); border-radius: 22px 22px 0 0; padding: 10px 10px calc(12px + env(safe-area-inset-bottom)); box-shadow: 0 -8px 24px rgba(0,0,0,.35); transition: transform .4s cubic-bezier(.3,.7,.2,1); animation: slp-up .45s cubic-bezier(.3,.7,.2,1); }
+.slp-sheet > :not(.slp-mapbtn) { max-height: calc(72dvh - 120px); overflow-y: auto; }
+.slp-sheet.peek { transform: translateY(100%); }
+@keyframes slp-up { from { transform: translateY(100%); } }
+.slp-mapbtn { position: absolute; right: 10px; top: -44px; border: 0; border-radius: 999px; background: #fff; color: var(--ink); font: 700 14px var(--body); padding: 8px 14px; box-shadow: 0 3px 10px rgba(0,0,0,.35); }
+.slp-sheet.peek .slp-mapbtn { background: var(--gold); color: var(--gold-ink); }
+/* A tighter question card so the board stays visible above it. */
+.slp-q { gap: 6px; animation: none; }
+.slp-q .timer { height: 18px; }
+.slp-q .timer-num { font-size: 12px; }
+.slp-q .question { padding: 8px 10px; border-radius: 12px; }
+.slp-q .question .en { font-size: 16px; line-height: 1.25; }
+.slp-q .question .ms { font-size: 13px; margin-top: 2px; line-height: 1.25; }
+.slp-q .answers { gap: 6px; }
+.slp-q .ans { min-height: 42px; padding: 6px 10px; border-radius: 12px; gap: 10px; }
+.slp-q .ans .atext .en { font-size: 15px; line-height: 1.2; }
+.slp-q .ans .atext .ms { font-size: 12px; line-height: 1.2; }
+.slp-q .answers.tf .ans { min-height: 62px; }
+.slp-q .hurry { font-size: 14px; }
+.slp-q.framed { padding: 6px; }
+.slp-qhead { display: flex; align-items: center; gap: 10px; border-radius: 12px; padding: 6px 12px; color: #fff; font-family: var(--display); font-weight: 800; font-size: 19px; line-height: 1.1; }
+.slp-qhead > span:first-child { font-size: 30px; }
+.slp-qhead small { display: block; font-family: var(--body); font-weight: 600; font-size: 12px; opacity: .92; }
+.slp-qhead.snake { background: linear-gradient(135deg, #e11d48, #9f1239); }
+.slp-qhead.ladder { background: linear-gradient(135deg, #16a34a, #0f6b33); }
+.slp-pen { padding: 6px 0 4px; }
+.slp-pen .pen-num { font-size: 48px; }
+/* Full-screen alerts (cover the whole game area). */
+.slp-overlay { position: absolute; inset: 0; z-index: 8; display: grid; }
+.slp-overlay > .slp-cd { background: radial-gradient(circle at 50% 40%, var(--felt-3), var(--felt)); color: #fff; }
+.slp-cd .cd-num { font-size: 190px; }
+.slp-alert { display: grid; place-content: center; justify-items: center; text-align: center; gap: 6px; padding: 20px; color: #fff; animation: slp-in .25s ease-out; }
+@keyframes slp-in { from { opacity: 0; transform: scale(1.08); } }
+.a-icon { font-size: 92px; line-height: 1; animation: slp-bob .9s ease-in-out infinite alternate; }
+@keyframes slp-bob { to { transform: translateY(-8px) scale(1.05); } }
+.a-t1 { font-family: var(--display); font-weight: 800; font-size: 50px; line-height: .95; text-shadow: 0 4px 0 rgba(0,0,0,.25); }
+.a-t2 { font-family: var(--display); font-weight: 700; font-size: 26px; line-height: 1.05; opacity: .92; }
+.a-t2.bi .en { font-size: 26px; } .a-t2.bi .ms { font-size: 17px; font-family: var(--body); }
+.a-sub { margin: 4px 0 0; font-size: 16px; max-width: 28ch; line-height: 1.35; }
+.a-chips { display: grid; gap: 8px; margin-top: 10px; width: min(320px, 100%); }
+.a-chip { background: rgba(255,255,255,.18); border: 2px solid rgba(255,255,255,.55); border-radius: 12px; padding: 8px 12px; font-weight: 800; font-size: 16px; }
+.a-chip small { display: block; font-weight: 600; font-size: 13px; opacity: .85; }
+.a-ra { background: #fff; color: var(--ink); border-radius: 14px; padding: 10px 14px; margin-top: 8px; display: grid; gap: 2px; width: min(320px, 100%); }
+.a-ra small { color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+.a-ra b { font-size: 18px; line-height: 1.2; }
+.a-ra span { color: var(--muted); font-size: 14px; }
+.a-snake { background: radial-gradient(circle at 50% 35%, #ef4444, #7f1010); }
+.a-ladder, .a-correct { background: radial-gradient(circle at 50% 35%, #22c55e, #0b5a2a); }
+.a-safe { background: radial-gradient(circle at 50% 35%, #14b8a6, #0b4f47); }
+.a-wrong { background: radial-gradient(circle at 50% 35%, #b91c1c, #3f0a0a); }
+.a-won { background: radial-gradient(circle at 50% 35%, #f5c542, #b8901f); color: var(--gold-ink); }
+.a-won .bi .ms { color: var(--gold-ink); opacity: .85; }
+@media (prefers-reduced-motion: reduce) { .a-icon, .slp-sheet, .slp-alert { animation: none; } }

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { resolve, pickQuestion, shuffleOptions } from "../src/lib/rules.ts";
 import { SNAKES, LADDERS, LAST_BOX } from "../src/lib/board.ts";
 import { placeSpecials, EVENTS } from "../src/lib/specials.ts";
+import { resultMs, moveTimeline, PENALTY_MS, VERDICT_MS, WRONG_MS, SLIDE_MS, SHAKE_MS, CLIMB_MS, ZOOM_OUT_MS } from "../src/lib/phoneTiming.ts";
 
 // A snake head and a ladder bottom that can be reached with two small dice from a plain box.
 const [HEAD, TAIL] = Object.entries(SNAKES).map(([a, b]) => [+a, b])[0];
@@ -137,5 +138,20 @@ t("shuffling keeps track of the correct answer", () => {
     const s = shuffleOptions(["A", "B", "C", "D"], 2);
     assert.equal(s.opts[s.correctIdx], "C");
   }
+});
+t("the phone's animations always finish before the next question", () => {
+  for (let pos = 0; pos < LAST_BOX; pos++)
+    for (const streak of [0, 4])
+      for (let d = 1; d <= 6; d++) {
+        for (const specials of [null, placeSpecials()]) {
+          const x = resolve(pos, streak, "turn", true, { correctIdx: 0, rollDie: dice(d, 7 - d), specials });
+          if (x.result.outcome === "move") assert.ok(resultMs(x.result) >= moveTimeline(x.result).end, `move from ${pos}`);
+        }
+      }
+  assert.ok(resultMs(r(FOOT, 0, "ladder", true).result) >= VERDICT_MS + CLIMB_MS + ZOOM_OUT_MS);
+  assert.ok(VERDICT_MS + SLIDE_MS + 300 < PENALTY_MS, "snake slide fits in the penalty");
+  assert.ok(VERDICT_MS + SHAKE_MS + 300 < PENALTY_MS && WRONG_MS < PENALTY_MS, "wrong-answer screens fit in the penalty");
+  assert.equal(resultMs(r(HEAD, 0, "snake", false).result), PENALTY_MS);
+  assert.equal(resultMs(r(5, 0, "turn", false).result), PENALTY_MS);
 });
 console.log(`\n${n} checks passed`);

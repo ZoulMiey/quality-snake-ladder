@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { get, ref, set, update } from "firebase/database";
 import { db, ensureSignedIn, serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
-import { Engine, MAX_WINNERS, playAgain, removePlayer, resetGame } from "../lib/engine.ts";
+import { Engine, MAX_WINNERS, QUESTION_MS, playAgain, removePlayer, resetGame } from "../lib/engine.ts";
 import { tokenById, MAX_PLAYERS } from "../lib/tokens.ts";
 import { isMuted, setMuted, sfx, unlockAudio } from "../lib/sound.ts";
 import Board, { type BoardPiece } from "../components/Board.tsx";
@@ -581,7 +581,7 @@ function RankRow({ p, paused, pausedAt }: { p: BoardPiece; paused: boolean; paus
   let chip: React.ReactNode = null;
   if (st?.phase === "won") chip = <span className="chip win">🏆 #{st.rank}</span>;
   else if (st?.phase === "question") {
-    const left = Math.max(0, Math.ceil((st.deadline - (paused && pausedAt ? pausedAt : serverNow())) / 1000));
+    const left = Math.min(QUESTION_MS / 1000, Math.max(0, Math.ceil((st.deadline - (paused && pausedAt ? pausedAt : serverNow())) / 1000)));
     const label = st.kind === "snake" ? "🐍" : st.kind === "ladder" ? "🪜" : "⏱";
     chip = <span className={`chip ${left <= 5 ? "hot" : ""} ${st.kind}`}>{label} {left}s</span>;
   } else if (st?.phase === "result" && st.result) {

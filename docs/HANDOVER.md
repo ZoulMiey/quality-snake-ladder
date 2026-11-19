@@ -8,7 +8,7 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 
 | Game | Phone | Projector |
 |---|---|---|
-| **Snake & Ladder** (Ular & Tangga) | Answer questions, see dice and moves | 100-box board, all pieces, latest roll, live feed |
+| **Snake & Ladder** (Ular & Tangga) | Full board with all pieces; question card pops up over the bottom; piece moves on the board | 100-box board, all pieces, latest roll, live feed |
 | **Quality Cart** (Kart Kualiti) | Tilt to steer, use items, answer pop-up questions, 16-bit driver's view | Top-down race track with all carts, positions, live feed |
 | **Quality Clash** (Pertempuran Kualiti) | Pick a side and monster(s), answer to attack; full 16-bit arena from the player's own side | 16-bit battle arena: **Single 1 v 1**, **Team 3 v 3**, or **Boss Raid** against the Defect Titan |
 
@@ -42,7 +42,9 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 - Snake head: right = stay, wrong = slide. Ladder foot: right = climb, wrong = stay.
 - 12 random **quality event boxes** per game (e.g. "Viscosity within range +2", "New CSO −3").
 - Box 100 finishes; game ends at 5 finishers (`MAX_WINNERS`) or everyone if fewer play.
-- Files: board `src/lib/board.ts`, event boxes `src/lib/specials.ts`, rules `src/lib/rules.ts`, referee `src/lib/engine.ts`, phone `src/pages/Join.tsx`, projector `src/pages/Screen.tsx` + `src/components/Board.tsx`.
+- **Phone = full board** (owner's request, Nov 2026; draft `https://claude.ai/artifact/N45T6TBJXmJvBo6uCkg6Ho`): canvas board with every piece (others small, no names; own piece big with a yellow YOU arrow). Question card pops up over the bottom with a "🗺 Board" button to drop it and see the whole board (timer keeps running). Get ready = big full-screen 5-second countdown. Right answer: card slides away, board full screen, zoom in, dice, piece moves box by box, zoom out, then board + next question. Wrong answer: full-screen WRONG ANSWER (or TIME'S UP) with the right answer, then board + "Next question in X s". Snake/ladder: full-screen SNAKE!/LADDER! alert, then a close-up of that snake/ladder + question; right = full-screen SAFE! / CORRECT! (piece climbs), wrong = full-screen WRONG ANSWER then the piece slides down / stays (shake).
+- Timings live in `src/lib/phoneTiming.ts`, shared by the referee and the phone: a right-answer turn now lasts ~4–6 s (depends on the dice) so the animation fits; the 30 s timer of a snake/ladder question starts after the 2 s alert (deadline + `SL_ALERT_MS`); wrong answers stay 5 s.
+- Files: board `src/lib/board.ts`, event boxes `src/lib/specials.ts`, rules `src/lib/rules.ts`, referee `src/lib/engine.ts`, phone `src/pages/SnakePhone.tsx` + canvas board `src/components/PhoneBoard.tsx` (join/lobby still in `src/pages/Join.tsx`), projector `src/pages/Screen.tsx` + `src/components/Board.tsx`.
 
 ### Quality Cart
 - Tilt the phone to steer (or hold ◀ ▶); carts drive forward by themselves. iPhones need a one-time "Turn on tilt steering" tap.
@@ -105,7 +107,7 @@ npm install
 npm test
 ```
 
-Runs 5 suites: Snake & Ladder rules (17), Quality Cart race (9), Quality Clash battles (11), Boss Raid (10, including simulated win rate and length) and the question bank (4: complete in both languages, unique ids, ~80 per set, Mix excludes Quality).
+Runs 5 suites: Snake & Ladder rules (18, including "phone animations finish before the next question"), Quality Cart race (9), Quality Clash battles (11), Boss Raid (10, including simulated win rate and length) and the question bank (4: complete in both languages, unique ids, ~80 per set, Mix excludes Quality).
 
 End-to-end tests use the Firebase emulator (needs Java) and Playwright. In this cloud sandbox: download the emulator once with the proxy, then run it with the proxy variables unset:
 
@@ -122,7 +124,7 @@ npm run dev:emu -- --port 5173 --strictPort
 ```
 
 Scripts (host PIN `2468`; screenshots to `scripts/e2e/shots/` or `$SHOTS`):
-- `node scripts/e2e/snake.cjs` and `snake-20-players.cjs` (these do **not** clear the database first: start from a fresh emulator)
+- `node scripts/e2e/snake.cjs`, `snake-20-players.cjs` and `snake-phone.cjs` (screenshots every phone screen: countdown, question, dice, snake/ladder alerts, verdicts, penalty, win). These do **not** clear the database first: start from a fresh emulator
 - `node scripts/e2e/cart.cjs`
 - `node scripts/e2e/clash.cjs` (Team, 6 fighters + 1 watcher) and `MODE=solo node scripts/e2e/clash.cjs`
 - `MODE=ta N=12 node scripts/e2e/boss.cjs`; `MODE=hs N=1 ACC=0.3 node scripts/e2e/boss.cjs` (weak player: fainting + revive); options `ACC` (right-answer chance) and `SKIP` (how often bots skip a turn)

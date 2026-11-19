@@ -7,18 +7,15 @@ import { resolve, pickQuestion, shuffleOptions } from "./rules.ts";
 import { LAST_BOX } from "./board.ts";
 import { tokenById } from "./tokens.ts";
 import { eventById, placeSpecials } from "./specials.ts";
+import { PENALTY_MS, SL_ALERT_MS, resultMs } from "./phoneTiming.ts";
 import { fixStates, type FeedItem, type Game, type Player, type PlayerState, type Question, type QuestionKind, type Result } from "./types.ts";
 
 export const QUESTION_MS = 30_000;
 /** "Get ready" countdown before the first question. */
 export const COUNTDOWN_MS = 5_000;
 export const MAX_WINNERS = 5;
-const RESULT_MS_DICE = 3_000;
-const RESULT_MS_SHORT = 2_200;
-/** Waiting time after a wrong answer (always 5 seconds, however many wrong answers). */
-export const PENALTY_MS = 5_000;
-/** Extra time to read the message after landing on a quality event box. */
-const SPECIAL_EXTRA_MS = 2_000;
+/** Waiting time after a wrong answer (always 5 seconds, however many wrong answers). Result times are in phoneTiming.ts. */
+export { PENALTY_MS };
 const GRACE_MS = 800;
 const FEED_KEEP = 14;
 
@@ -195,7 +192,7 @@ export class Engine {
     st.phase = "question";
     st.kind = kind;
     st.q = { id: q.id, type: q.type, q: q.q, opts: shuffled.opts };
-    st.deadline = now + QUESTION_MS;
+    st.deadline = now + QUESTION_MS + (kind === "turn" ? 0 : SL_ALERT_MS); // snake/ladder: the answer time starts after the alert
     updates[`state/${uid}`] = st;
     updates[`private/${uid}`] = this.priv[uid];
     updates[`used/${uid}`] = this.used[uid];
@@ -274,7 +271,7 @@ export class Engine {
         this.pushFeed(now, uid, `🏆 ${icon} ${name} finished #${st.rank}!`, "win");
       } else {
         st.phase = "result";
-        st.until = now + (result.penalty ? PENALTY_MS : result.dice.length ? RESULT_MS_DICE : RESULT_MS_SHORT) + (result.special ? SPECIAL_EXTRA_MS : 0);
+        st.until = now + resultMs(result);
       }
       updates[`state/${uid}`] = st;
       updates.feed = this.feed;
