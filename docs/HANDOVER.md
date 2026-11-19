@@ -1,6 +1,21 @@
 # Handover: Quality Month Games
 
-Last updated 18 Nov 2026, at the end of the second build session. It covers this repository only. Read it fully before changing anything.
+Last updated 19 Nov 2026, at the end of the third session. It covers this repository only. Read it fully before changing anything.
+
+## Starting a new session
+
+- **Best: start the session with only `ZoulMiey/quality-snake-ladder` as its repository.** Do not add the FG repository (`ZoulMiey/FG`, the FG Tracker): it is a separate project and is not needed here.
+- If a session was started with the wrong repository (the third session was started with only FG): the owner can ask Claude to attach this one. Attaching it with **push** access worked in the third session (after the owner asked for it explicitly); clone it to `/home/user/quality-snake-ladder` and push to the live branch from there.
+
+## Sessions so far
+
+1. **First session:** Snake & Ladder, lobby, host PIN, question bank (63 Quality questions).
+2. **Second session:** Quality Cart, Quality Clash (1 v 1, Team, Boss Raid), question sets (+343 questions), lobby redesign.
+3. **Third session (19 Nov 2026):** game-by-game polish, starting with Snake & Ladder, then Quality Cart. In order:
+   - Question review: checked both review pages; **nothing was saved to apply** (see Open items 1).
+   - Snake & Ladder: phone shows the **full board** (draft first), full-screen alerts for get ready / snake / ladder / safe / correct / wrong, zoom in-out moves; **16 event boxes** with **themed events per question set** (80 events); full-screen event-box alert with zoom; **winners = players − 1 (max 5)**; winner keeps their trophy screen when their win ends the game; distinct **vibrations** + shake/flash (iPhones cannot vibrate).
+   - Quality Cart: phone **held sideways, full screen, "32-bit smooth" look** (draft compared 8-bit … 32-bit; owner picked 32-bit smooth), mixed countryside + factory scenery, dashboard, **answers at the thumbs**, "turn sideways" screen; **"QUESTION IN 3, 2, 1"** warning; **SUPER TURBO** after 3 right in a row; **8 rows of Q boxes**; new circuit **"Factory Block"** (picked from 10 drafts).
+   - Owner tested Snake & Ladder on real phones: "all good". Quality Cart: owner said "so far all good" after the sideways view, before the last round of changes (countdown, super turbo, boxes, circuit).
 
 ## What this is
 
@@ -8,8 +23,8 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 
 | Game | Phone | Projector |
 |---|---|---|
-| **Snake & Ladder** (Ular & Tangga) | Full board with all pieces; question card pops up over the bottom; piece moves on the board | 100-box board, all pieces, latest roll, live feed |
-| **Quality Cart** (Kart Kualiti) | Tilt to steer, use items, answer pop-up questions, 16-bit driver's view | Top-down race track with all carts, positions, live feed |
+| **Snake & Ladder** (Ular & Tangga) | Full board with all pieces; question card pops up over the bottom; piece moves on the board; full-screen alerts | 100-box board, all pieces, latest roll, live feed |
+| **Quality Cart** (Kart Kualiti) | Held sideways, full screen: smooth driver's view, tilt to steer, items, questions at the thumbs | Top-down "Factory Block" circuit with all carts, positions, live feed |
 | **Quality Clash** (Pertempuran Kualiti) | Pick a side and monster(s), answer to attack; full 16-bit arena from the player's own side | 16-bit battle arena: **Single 1 v 1**, **Team 3 v 3**, or **Boss Raid** against the Defect Titan |
 
 ## Where things are
@@ -18,12 +33,12 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 |---|---|
 | Code | GitHub `ZoulMiey/quality-snake-ladder` |
 | Live branch | `claude/eloquent-allen-cekztv` (default branch; **every push deploys to Vercel**) |
-| Work branch | `claude/new-session-r5myv3` (second session worked here, then fast-forwarded the live branch after tests; both point at the same commit at handover) |
+| Work branch | The third session pushed straight to the live branch after each tested change (owner's standing instruction: live after testing). `claude/new-session-r5myv3` is the second session's branch and is now behind. |
 | Live site | `https://quality-snake-ladder.vercel.app` (`/` = projector, `/join` = phones) |
 | Database and login | Firebase project `quality-snake-ladder` (Realtime Database, Singapore, Anonymous sign-in). Separate from the FG Tracker on purpose. Web settings in `src/lib/firebase.ts` (not secret; the security rules protect the data). |
-| Review page, new question sets | `https://claude.ai/artifact/8tjZ3iFsHVqQ7GYNjWUcWb`: owner's keep/drop/edit choices for the 343 new questions, saved in its `reviews` collection (read with the ArtifactData tool). **Not applied yet** (see Open items). |
-| Review page, original 63 Quality questions | `https://claude.ai/artifact/NeXwos6p8Q56VtvzrQRVsN` (first session). Choices **never applied**. |
-| Design drafts shown to the owner | Quality Clash: `https://claude.ai/artifact/MsKWky43BaatKzXceNy7Uh`; Boss Raid: `https://claude.ai/artifact/RBEvDFjp5RZJQURPZzyMFC` |
+| Review page, new question sets | `https://claude.ai/artifact/8tjZ3iFsHVqQ7GYNjWUcWb`: keep/drop/edit choices for the 343 new questions in its `reviews` collection (read with the ArtifactData tool). Checked 19 Nov: **only one choice saved** (w01 = keep), so nothing to apply. |
+| Review page, original 63 Quality questions | `https://claude.ai/artifact/NeXwos6p8Q56VtvzrQRVsN` (first session). Checked 19 Nov: **no choices saved**. |
+| Design drafts shown to the owner | Quality Clash: `https://claude.ai/artifact/MsKWky43BaatKzXceNy7Uh`; Boss Raid: `https://claude.ai/artifact/RBEvDFjp5RZJQURPZzyMFC`; Snake & Ladder phone board: `https://claude.ai/artifact/N45T6TBJXmJvBo6uCkg6Ho`; Quality Cart sideways view (8-bit … 32-bit levels): `https://claude.ai/artifact/Pr87rRCqaR24r59AZvcaxs`; Quality Cart circuits (10 drafts + today's): `https://claude.ai/artifact/LJCAkaK66ToqxFBQ3pxeFx` |
 
 ## How it works
 
@@ -95,7 +110,7 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 
 ## Important when changing things
 
-- **Security rules** (`database.rules.json`) are **not deployed automatically**. After any change, the owner must paste the whole file into Firebase console → Realtime Database → Rules → Publish. The current file (with the `clash` section) is already published; the owner played Clash and Boss Raid on the live site. Boss Raid and question sets needed no rule changes.
+- **Security rules** (`database.rules.json`) are **not deployed automatically**. After any change, the owner must paste the whole file into Firebase console → Realtime Database → Rules → Publish. The current file (with the `clash` section) is already published; the owner played Clash and Boss Raid on the live site. Boss Raid and question sets needed no rule changes. The third session changed **no rules** (Snake & Ladder phones read `state` and `players`, Quality Cart reads `kart/q/{uid}/next`, all already allowed).
 - Firebase drops empty lists/objects; `fixState`/`fixBoard`/`fixRaid` etc. fill them back in. Keep this in mind for new fields.
 - A Firebase multi-path update cannot contain a path and its own child; the engines avoid this.
 - Engines write the whole `game` object on start: include new `game.*` fields there (as done for `qset`, `clashFormat`, `bossMode`), or they get wiped.
@@ -111,7 +126,7 @@ npm install
 npm test
 ```
 
-Runs 5 suites: Snake & Ladder rules (18, including "phone animations finish before the next question"), Quality Cart race (9), Quality Clash battles (11), Boss Raid (10, including simulated win rate and length) and the question bank (4: complete in both languages, unique ids, ~80 per set, Mix excludes Quality).
+Runs 5 suites: Snake & Ladder rules (20: phone animations finish before the next question, 16 event boxes per set, winners = players − 1), Quality Cart race (11: SUPER TURBO, box rows clear of hazards), Quality Clash battles (11), Boss Raid (10, including simulated win rate and length) and the question bank (4: complete in both languages, unique ids, ~80 per set, Mix excludes Quality).
 
 End-to-end tests use the Firebase emulator (needs Java) and Playwright. In this cloud sandbox: download the emulator once with the proxy, then run it with the proxy variables unset:
 
@@ -128,8 +143,9 @@ npm run dev:emu -- --port 5173 --strictPort
 ```
 
 Scripts (host PIN `2468`; screenshots to `scripts/e2e/shots/` or `$SHOTS`):
-- `node scripts/e2e/snake.cjs`, `snake-20-players.cjs` and `snake-phone.cjs` (screenshots every phone screen: countdown, question, dice, snake/ladder alerts, verdicts, penalty, win). These do **not** clear the database first: start from a fresh emulator
-- `node scripts/e2e/cart.cjs`
+- `node scripts/e2e/snake.cjs`, `snake-20-players.cjs` and `snake-phone.cjs` (screenshots every phone screen: countdown, question, dice, snake/ladder alerts, event boxes, verdicts, penalty, win; records vibration patterns; options `QSET=world|logo|malaysia|general|mix`, `PLAYERS=1-3`, `ACC`). These do **not** clear the database first: start from a fresh emulator
+- `node scripts/e2e/cart.cjs` (5 phones sideways + 1 upright; screenshots the "turn sideways" screen, a question, the "QUESTION IN" warning and SUPER TURBO)
+- Background servers in this sandbox stop after their time limit (up to 1 hour); restart them when needed. To reset the emulator's data, stop and restart it (`pkill -f "firebase-tools@14.27.0 emulators"`, `pkill -f firebase-database-emulator`); don't use a broad `pkill -f emulator`, which also stops `vite --mode emulator`.
 - `node scripts/e2e/clash.cjs` (Team, 6 fighters + 1 watcher) and `MODE=solo node scripts/e2e/clash.cjs`
 - `MODE=ta N=12 node scripts/e2e/boss.cjs`; `MODE=hs N=1 ACC=0.3 node scripts/e2e/boss.cjs` (weak player: fainting + revive); options `ACC` (right-answer chance) and `SKIP` (how often bots skip a turn)
 
@@ -140,12 +156,16 @@ The sandbox cannot reach `vercel.app`, so a deploy can't be checked from here; a
 - Wants to **discuss and align before building**; answers in short numbered lists. For bigger features, show a **draft artifact first** (they liked this), unless they say "just build it".
 - When they say "build": build, test on the emulator, then **merge to the live branch** (they asked for auto-merge/live after testing).
 - Likes **simulations with numbers** to justify game balance, and tests on real phones afterwards, then reports results.
-- Prefers simple, bold, readable projector screens; 16-bit pixel style for Clash; bilingual English/Malay everywhere.
+- Prefers simple, bold, readable projector screens; 16-bit pixel style for Clash; **"32-bit smooth" for Quality Cart**; bilingual English/Malay everywhere.
+- Is tweaking the games **one by one**: Snake & Ladder is done ("all good"), Quality Cart is in progress, Quality Clash comes next. The idea list waits until all games are tweaked.
+- Likes being shown several options to choose from (e.g. 10 circuits, 5 visual levels side by side).
 - Asked to call them **monsters** ("raksasa"), not creatures.
 
 ## Open items
 
-1. **Apply the question review** when the owner says so: read `reviews` from `https://claude.ai/artifact/8tjZ3iFsHVqQ7GYNjWUcWb` (docs keyed by question id: `{d: "keep"|"drop"|"edit", q?: [en, ms], o?: [[en, ms] ×4, right first], set}`; unmarked = keep). The live database already holds these questions, so changes must be written **to the database** (e.g. a second one-time migration flag), not only to `moreQuestions.ts`. The original-63 review (`NeXwos6p8Q56VtvzrQRVsN`) was never applied either. Owner should also check the Malay wording.
-2. **Mini Tournament** for Quality Clash: shown as "coming soon" in the lobby. Owner wants a bracket style.
-3. **Real-phone checks:** Quality Cart tilt sensitivity (`/ 25` in `useTilt`, `STEER_RATE`) and iPhone permission; Boss Raid balance with real groups (re-tune `src/clash/boss.ts` if needed; large groups may be a bit hard).
-4. **Ideas discussed, not built:** cheer meter for watchers (they answer to heal or shield a team), revive in Team mode, MVP screen (most damage, fastest answer, longest streak), Hall of Fame across the day, chiptune music and per-type attack sounds, host settings (e.g. HP 200/300/500), random snake/ladder layout, other games (Spot the Defect, Quality Bingo, Horse Race).
+1. **Question review:** both review pages were checked on 19 Nov and hold no choices to apply (the owner may have reviewed in a browser where the page could not save). If the owner reviews again: read `reviews` from `https://claude.ai/artifact/8tjZ3iFsHVqQ7GYNjWUcWb` (docs keyed by question id: `{d: "keep"|"drop"|"edit", q?: [en, ms], o?: [[en, ms] ×4, right first], set}`; unmarked = keep) and `https://claude.ai/artifact/NeXwos6p8Q56VtvzrQRVsN`. The live database already holds the questions, so changes must be written **to the database** (e.g. a second one-time migration flag), not only to `moreQuestions.ts`. Owner should also check the Malay wording, including the 80 event-box texts (`EVENT_SETS` in `src/lib/specials.ts`, written by Claude).
+2. **Quality Cart, real-phone checks of the latest changes:** "QUESTION IN 3, 2, 1" warning, SUPER TURBO, 8 rows of Q boxes, Factory Block circuit; tilt sensitivity held sideways (`/ 25` in `useTilt`, `STEER_RATE`); smoothness of the 540 px view on older phones; iPhone "Turn on tilt steering"; ◀ ▶ buttons (the test could not catch a button press, the code is unchanged). Then ask the owner what else to tweak in Quality Cart.
+3. **Next game to tweak: Quality Clash** (1 v 1, Team, Boss Raid), one by one like the others. Boss Raid balance with real groups is still unchecked (re-tune `src/clash/boss.ts` if needed; large groups may be a bit hard).
+4. **On hold (owner: KIV):** Mini Tournament for Quality Clash (bracket style; "coming soon" in the lobby).
+5. **Possible later:** circuit picker in the lobby (the other 9 circuits are in the circuits draft); projector effects for snake/ladder moments.
+6. **Ideas discussed, not built (after all games are tweaked):** cheer meter for watchers (they answer to heal or shield a team), revive in Team mode, MVP screen (most damage, fastest answer, longest streak), Hall of Fame across the day, chiptune music and per-type attack sounds, host settings (e.g. HP 200/300/500), random snake/ladder layout, other games (Spot the Defect, Quality Bingo, Horse Race).
