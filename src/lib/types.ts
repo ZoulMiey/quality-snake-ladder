@@ -66,7 +66,7 @@ export type PlayerState = {
 
 export type Player = { name: string; token: string; joinedAt: number };
 
-export type GameMode = "snake" | "kart" | "clash";
+export type GameMode = "snake" | "kart" | "clash" | "fish";
 
 export type Game = {
   status: "lobby" | "playing" | "ended";
@@ -88,9 +88,24 @@ export type Game = {
   winners: string[] | null;
   /** This game's quality event boxes (placed at random when the game starts). */
   specials?: { box: number; id: string }[] | null;
+  /** Fishing Derby: open play (Teams later). */
+  fishMode?: "open" | "teams";
+  /** Fishing Derby: when the 5 minutes are up (moved on when the game is paused). */
+  endsAt?: number | null;
+  /** Fishing Derby: everyone's place, refreshed every few seconds (uid → 1, 2, 3…). */
+  ranks?: Record<string, number> | null;
 };
 
-export type FeedItem = { at: number; uid: string; text: string; tone: "good" | "bad" | "info" | "win" };
+export type FeedItem = {
+  at: number;
+  uid: string;
+  text: string;
+  tone: "good" | "bad" | "info" | "win";
+  /** Fishing Derby: what was caught (phones show other players' catches from the feed). */
+  k?: "fish" | "big" | "gold" | "snap" | "frenzy";
+  kg?: number;
+  name?: string;
+};
 
 /** The database drops empty lists, so fill them back in after reading. */
 export function fixState(st: PlayerState | null | undefined): PlayerState | null {

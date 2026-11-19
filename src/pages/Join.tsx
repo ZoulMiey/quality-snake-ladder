@@ -8,6 +8,7 @@ import ClashPhone, { ClashPick } from "../clash/ClashPhone.tsx";
 import RaidPhone, { RaidPick } from "../clash/RaidPhone.tsx";
 import { useDbValue } from "../lib/useDb.ts";
 import SnakePhone from "./SnakePhone.tsx";
+import FishPhone from "../fish/FishPhone.tsx";
 import { MAX_PLAYERS, hasPiece, tokenById } from "../lib/tokens.ts";
 import { unlockAudio } from "../lib/sound.ts";
 import { fixState, type Game, type GameMode, type Player, type PlayerState } from "../lib/types.ts";
@@ -77,6 +78,7 @@ export default function Join() {
   else if (game.mode === "clash" && game.clashFormat === "boss") body = <RaidPhone uid={uid} me={me} game={game} onExit={exit} />;
   else if (game.mode === "clash") body = <ClashPhone uid={uid} me={me} game={game} onExit={exit} />;
   else if (game.mode === "kart") body = <KartPhone uid={uid} me={me} game={game} onExit={exit} />;
+  else if (game.mode === "fish") body = <FishPhone uid={uid} me={me} game={game} onExit={exit} />;
   else body = <SnakePhone uid={uid} me={me} game={game} state={state ?? null} onExit={exit} />;
 
   return (

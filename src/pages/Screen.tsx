@@ -13,6 +13,8 @@ import KartView from "../kart/KartView.tsx";
 import { ClashEngine } from "../clash/engine.ts";
 import { BossEngine } from "../clash/bossEngine.ts";
 import RaidView from "../clash/RaidView.tsx";
+import { FishEngine } from "../fish/engine.ts";
+import FishView from "../fish/FishView.tsx";
 import ClashView from "../clash/ClashView.tsx";
 import { ClashFormatPick, ClashRoster, useLineUp } from "../clash/ClashLobby.tsx";
 import Qr from "../components/Qr.tsx";
@@ -39,9 +41,10 @@ import QuestionManager, { seedQuestionsIfEmpty } from "../components/QuestionMan
 import { fixStates, type FeedItem, type Game, type GameMode, type Player, type PlayerState, type Question } from "../lib/types.ts";
 
 /** The referee for the chosen game, with sounds on the projector for the race. */
-type AnyEngine = Engine | KartEngine | ClashEngine | BossEngine;
+type AnyEngine = Engine | KartEngine | ClashEngine | BossEngine | FishEngine;
 function makeEngine(mode: GameMode | undefined, tab: string, format?: string): AnyEngine {
   if (mode === "clash") return format === "boss" ? new BossEngine(tab) : new ClashEngine(tab);
+  if (mode === "fish") return new FishEngine(tab);
   if (mode !== "kart") return new Engine(tab);
   const e = new KartEngine(tab);
   e.onEvent = (ev) => {
@@ -210,7 +213,8 @@ function HostScreen() {
     lastCount.current = count;
   }, [count]);
 
-  const feed: FeedItem[] = Array.isArray(feedRaw) ? feedRaw : Object.values(feedRaw ?? {});
+  // Fishing Derby writes the feed one item at a time (feed/{n}); the database then returns a list with gaps.
+  const feed: FeedItem[] = (Array.isArray(feedRaw) ? feedRaw : Object.values(feedRaw ?? {})).filter(Boolean);
   const enabledQs = Object.values(questions ?? {}).filter((q) => q.enabled).length;
   const qsetCounts = useMemo(() => Object.fromEntries(QSETS.map((s) => [s.id, poolFor(questions, s.id).length])) as Record<QChoice, number>, [questions]);
 
@@ -337,7 +341,8 @@ function HostScreen() {
       {status !== "lobby" && game?.mode === "kart" && <KartView game={game} players={players ?? {}} feed={feed} onAgain={() => playAgain()} />}
       {status !== "lobby" && game?.mode === "clash" && game.clashFormat === "boss" && <RaidView game={game} players={players ?? {}} onAgain={() => playAgain()} />}
       {status !== "lobby" && game?.mode === "clash" && game.clashFormat !== "boss" && <ClashView game={game} players={players ?? {}} onAgain={() => playAgain()} />}
-      {status !== "lobby" && game?.mode !== "kart" && game?.mode !== "clash" && (
+      {status !== "lobby" && game?.mode === "fish" && <FishView game={game} players={players ?? {}} feed={feed} onAgain={() => playAgain()} />}
+      {status !== "lobby" && game?.mode !== "kart" && game?.mode !== "clash" && game?.mode !== "fish" && (
         <GameView game={game!} players={players ?? {}} states={states ?? {}} feed={feed} highlight={highlight} lastRoll={lastRoll} hop={hop} onAgain={() => playAgain()} />
       )}
       {showQs && <QuestionManager onClose={() => setShowQs(false)} />}
@@ -349,6 +354,7 @@ const GAMES: { m: GameMode; desc: string; ms: string }[] = [
   { m: "snake", desc: "Answer to roll the dice. Climb ladders, dodge snakes, reach box 100.", ms: "Jawab untuk baling dadu. Panjat tangga, elak ular, sampai petak 100." },
   { m: "kart", desc: "Tilt your phone to steer. Right answers give turbo. 3 laps.", ms: "Condongkan telefon untuk memandu. Jawapan betul beri turbo. 3 pusingan." },
   { m: "clash", desc: "Monster battles: Single 1 v 1, Team 3 v 3 or Boss Raid.", ms: "Pertarungan raksasa: 1 lawan 1, 3 lawan 3 atau Serangan Bos." },
+  { m: "fish", desc: "Answer to catch fish. 3 in a row = BIG FISH, 5 = GOLDEN. Heaviest catch in 5 minutes wins.", ms: "Jawab untuk tangkap ikan. Tangkapan paling berat dalam 5 minit menang." },
 ];
 
 function LobbyView({
@@ -457,6 +463,24 @@ function LobbyView({
             </div>
             {(qsetCounts[qset] ?? 0) === 0 && <p className="waiting">No questions are switched on in this set. Open Questions to switch some on. / Tiada soalan dihidupkan dalam set ini.</p>}
             {mode === "clash" && <ClashFormatPick format={clashFormat} onFormat={onClashFormat} bossMode={bossMode} onBossMode={onBossMode} />}
+            {mode === "fish" && (
+              <div className="qset-pick">
+                <div className="lbl">
+                  <span className="en">Mode</span>
+                  <span className="ms">Mod</span>
+                </div>
+                <div className="qset-btns" role="radiogroup" aria-label="Fishing mode">
+                  <button role="radio" aria-checked="true" className="qset-btn on">
+                    <span className="en">🎣 Open play</span>
+                    <span className="ms">Everyone vs everyone / Semua lawan semua</span>
+                  </button>
+                  <button role="radio" aria-checked="false" className="qset-btn empty" disabled>
+                    <span className="en">👥 Teams</span>
+                    <span className="ms">Coming soon / Akan datang</span>
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="lobby-head">
               <h2>
                 Players <span className="count">{all.length}/{cap}</span>

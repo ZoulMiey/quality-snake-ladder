@@ -9,18 +9,20 @@
     "emulators": "firebase emulators:start --only auth,database --project demo-qsl",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "node --experimental-strip-types scripts/engine.test.ts && node --experimental-strip-types scripts/kart.test.ts && node --experimental-strip-types scripts/clash.test.ts && node --experimental-strip-types scripts/boss.test.ts && node --experimental-strip-types scripts/questions.test.ts"
+    "test": "node --experimental-strip-types scripts/engine.test.ts && node --experimental-strip-types scripts/kart.test.ts && node --experimental-strip-types scripts/clash.test.ts && node --experimental-strip-types scripts/boss.test.ts && node --experimental-strip-types scripts/questions.test.ts && node --experimental-strip-types scripts/fish.test.ts"
   },
   "dependencies": {
     "firebase": "12.19.0",
     "qrcode": "1.5.4",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "three": "0.169.0"
   },
   "devDependencies": {
     "@types/qrcode": "1.5.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "@types/three": "0.169.0",
     "@vitejs/plugin-react": "5.2.0",
     "typescript": "5.9.3",
     "vite": "7.3.7"

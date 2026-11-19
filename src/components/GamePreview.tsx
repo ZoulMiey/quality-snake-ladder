@@ -5,6 +5,21 @@ import { LADDERS, SNAKES, cellOf } from "../lib/board.ts";
 import { PATH_POINTS, WORLD_H, WORLD_W } from "../kart/track.ts";
 import { sprite } from "../clash/sprites.ts";
 import { titan } from "../clash/titan.ts";
+import { PW, PH, drawPond, drawBoat, layoutBoats, leapingFish } from "../fish/pond2d.ts";
+
+function fish(c: CanvasRenderingContext2D) {
+  const k = Math.max(W / PW, H / PH) * 1.05;
+  c.save();
+  c.translate(W / 2, H / 2);
+  c.scale(k, k);
+  c.translate(-PW / 2, -PH / 2);
+  drawPond(c, 0, false);
+  const people = ["🦁", "🐼", "🦊", "🐳", "🐸", "🚀", "⭐", "🦆"].map((emoji, i) => ({ uid: String(i), emoji, color: ["#f59e0b", "#64748b", "#c2410c", "#2563eb", "#65a30d", "#6366f1", "#eab308", "#0d9488"][i], name: "" }));
+  const boats = layoutBoats(people);
+  for (const b of boats) drawBoat(c, b, 0, { tags: false, scale: 1.3 });
+  leapingFish(c, boats[2], 0.5, 0, "gold", 1.4);
+  c.restore();
+}
 
 const W = 320;
 const H = 180;
@@ -132,6 +147,7 @@ export default function GamePreview({ mode, className }: { mode: GameMode; class
     c.clearRect(0, 0, W, H);
     if (mode === "snake") snake(c);
     else if (mode === "kart") kart(c);
+    else if (mode === "fish") fish(c);
     else clash(c);
   }, [mode]);
   return <canvas ref={cv} width={W * 2} height={H * 2} className={`game-preview ${className ?? ""}`} aria-hidden="true" />;

@@ -70,4 +70,28 @@ export const sfx = {
   join() {
     tone(784, 0, 0.1, "triangle", 0.12);
   },
+  // Fishing Derby
+  splash() {
+    tone(500, 0, 0.18, "sine", 0.12, 160);
+    tone(1200, 0.02, 0.08, "triangle", 0.05, 600);
+  },
+  reel() {
+    for (let i = 0; i < 5; i++) tone(1400 - i * 90, i * 0.05, 0.035, "square", 0.04);
+    tone(880, 0.3, 0.16, "triangle", 0.14);
+  },
+  bigFish() {
+    tone(330, 0, 0.18, "sawtooth", 0.08, 220);
+    [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.15 + i * 0.08, 0.16, "triangle", 0.16));
+  },
+  golden() {
+    [784, 988, 1175, 1568, 1976, 2349].forEach((f, i) => tone(f, i * 0.07, 0.35, "sine", 0.12));
+    [1047, 1319, 1568].forEach((f) => tone(f, 0.5, 0.6, "triangle", 0.1));
+  },
+  snap() {
+    tone(1600, 0, 0.06, "square", 0.08, 400);
+    tone(180, 0.05, 0.3, "sawtooth", 0.08, 90);
+  },
+  frenzy() {
+    [392, 523, 659, 784, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.09, 0.12, "square", 0.08));
+  },
 };

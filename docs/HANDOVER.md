@@ -18,7 +18,8 @@ Last updated 19 Nov 2026, at the start of the fourth session. It covers this rep
    - Owner tested Snake & Ladder on real phones: "all good". Quality Cart: owner said "so far all good" after the sideways view, before the last round of changes (countdown, super turbo, boxes, circuit).
 4. **Fourth session (19 Nov 2026):** status check: owner tested the latest Quality Cart changes on real phones: "all good for now". Quality Clash: "KIV, so far all good". Question review: KIV for another time. Malay wording of the event boxes: "all good". Then built **projector effects for snake & ladder moments** (picked from 5 drafts at `https://claude.ai/artifact/6xNL7kT8ZfdQN5Dxq5cHqc`): spotlight for 1–8 players, glow + side-panel cards for 9–20. Not yet checked by the owner on the real projector.
    - **Up to 50 players + random pieces (Step 1 of 3, done):** players only type their name; at Start every player gets a **different random piece** (50 pieces), shown on the phone countdown ("You are 🦊 Fox"); "Play again" keeps the pieces. Room limit 50; per game: Quality Cart 30, Clash Team 30, Boss Raid 30, Clash 1 v 1 50 (2 fight, rest watch), Snake & Ladder 50. Start is blocked with a message when a game's limit is exceeded. Projector lists only 15 names (lobby: the latest 15 to join + "+ N more"; games: the top 15). Owner's Firebase is on Blaze but wants to spend nothing, hence 50.
-   - **Next (agreed):** Step 2 = build **Fishing Derby** open play (spec below), Step 3 = check each game with 30–50 players + new **Clash 5 v 5** mode + Boss Raid **30 raiders** (re-tune with a simulation; still 20 in `MAX_RAIDERS`).
+   - **Fishing Derby open play (Step 2, built):** see "Fishing Derby" below. Not yet tested by the owner on real phones.
+   - **Next (agreed):** Step 3 = check each game with 30–50 players + new **Clash 5 v 5** mode + Boss Raid **30 raiders** (re-tune with a simulation; still 20 in `MAX_RAIDERS`).
 
 ## What this is
 
@@ -28,6 +29,7 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 |---|---|---|
 | **Snake & Ladder** (Ular & Tangga) | Full board with all pieces; question card pops up over the bottom; piece moves on the board; full-screen alerts | 100-box board, all pieces, latest roll, live feed |
 | **Quality Cart** (Kart Kualiti) | Held sideways, full screen: smooth driver's view, tilt to steer, items, questions at the thumbs | Top-down "Factory Block" circuit with all carts, positions, live feed |
+| **Fishing Derby** (Pertandingan Memancing) | 3D pond behind your own boat (three.js), question card at the bottom, full-screen BIG / GOLDEN / SNAP / FRENZY alerts | Cartoon pond with every boat, catches, zoom or notice cards, top 15, clock and frenzy |
 | **Quality Clash** (Pertempuran Kualiti) | Pick a side and monster(s), answer to attack; full 16-bit arena from the player's own side | 16-bit battle arena: **Single 1 v 1**, **Team 3 v 3**, or **Boss Raid** against the Defect Titan |
 
 ## Where things are
@@ -101,7 +103,7 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 - **Owner's real test:** solo Time Attack, all correct and fast: won in **1:01 with ~50–60% HP**. Owner decided to **keep the current setting**. Option discussed but not chosen: timed stomp ×0.7 + counter-stomp ×1.6 (expert would end ~25–35% HP).
 - Files: rules + constants `src/clash/boss.ts`, referee `src/clash/bossEngine.ts`, drawing `src/clash/raidDraw.ts`, projector + results `src/clash/RaidView.tsx`, phone + monster pick `src/clash/RaidPhone.tsx`, Titan pixel art `src/clash/titan.ts`.
 
-## Fishing Derby (agreed spec, not built yet)
+### Fishing Derby (Pertandingan Memancing), open play — built 19 Nov 2026
 
 Drafts: `https://claude.ai/artifact/ULUpjtsYfFVsYN2chpj1Ah` (rules, projector, 2D phone) and `https://claude.ai/artifact/BemgFLNobDesu7PfzxprQq` (3D phone, owner picked **camera A, behind the boat**).
 - Two modes: **Open play** first; **Teams** later ("coming soon" in the lobby).
@@ -113,6 +115,10 @@ Drafts: `https://claude.ai/artifact/ULUpjtsYfFVsYN2chpj1Ah` (rules, projector, 2
 - Projector: bright cartoon pond (like Snake & Ladder), boats around the edge. 1–8 players: zoom in on BIG/GOLDEN catches with a banner; 9–50: pop-up over the boat + notice cards in the side panel (max 3). Small catches: splash + "+3.4 kg". Side panel: top 10 by kg (now: top 15 rule) + "Next frenzy in". New sounds: splash, reel, big fish, golden chime, snap, frenzy jingle.
 - Phone: 3D pond with three.js (bright cartoon, low-poly), camera A behind your boat; question card at the bottom with the view shifted up; "🗺 Pond" button; full-screen alerts BIG FISH / GOLDEN / SNAP / FRENZY; vibration: fish = short tap, big = quick taps, golden = long celebration, snap = long buzz + shake, frenzy = two taps. Fallback to a flat 2D pond if the phone can't run 3D.
 - Simulation (in a row rule, 30 s frenzy): weak 50% ≈ 95 kg, average 70% ≈ 210 kg, strong 90% ≈ 520 kg, expert ≈ 925 kg.
+- **How it is built:** rules + constants `src/fish/rules.ts`; referee `src/fish/engine.ts` (`FishEngine`, same pattern as Snake & Ladder). It reuses `state/{uid}` (a `FishState`), `private`, `used`, `answers` and `feed`, and `game.endsAt` / `game.ranks` / `game.fishMode`, so **no rules change**. The feed is written one item at a time (`feed/{n}`, last 12 kept) so phones only download new items; the projector's feed reader skips the gaps. `game.ranks` (everyone's place) is refreshed every 3 s for the phones' "#rank". Pause moves `endsAt`.
+- Projector: `src/fish/FishView.tsx` (canvas pond from `src/fish/pond2d.ts`; boats in joining order, two rings above 24 players, names hidden above 24; zoom 1–8 players, notice cards 9+; frenzy banner; ⏱ clock + "Next frenzy in"; top 15 by kg; podium + shout-outs; "Fish again with the same players").
+- Phone: `src/fish/FishPhone.tsx`. The 3D pond is `src/fish/pondScene.ts` (three.js 0.169, **lazy-loaded**: its own 136 KB-gzip chunk, only Fishing phones download it); flat fallback `src/fish/pondFlat.ts` (also with `/join?pond=flat`). Common interface `src/fish/pondApi.ts`. Other players' catches come from the feed (`k`, `kg`, `name` fields on feed items).
+- Tests: `scripts/fish.test.ts` (rules, frenzy windows, ranking, shout-outs, simulation); `N=4 node scripts/e2e/fish.cjs` (zoom mode) and `N=12 ACC=0.75 node scripts/e2e/fish.cjs` (notice cards): a full 5-minute game, phone 1 in 3D (swiftshader), the others flat; screenshots of every moment. Both passed (4 players: 143 answers; 12 players: 422 answers; no errors).
 
 ## Questions
 
@@ -143,7 +149,7 @@ npm install
 npm test
 ```
 
-Runs 5 suites: Snake & Ladder rules (21: phone animations finish before the next question, 16 event boxes per set, winners = players − 1, projector snake/ladder moments), Quality Cart race (11: SUPER TURBO, box rows clear of hazards), Quality Clash battles (11), Boss Raid (10, including simulated win rate and length) and the question bank (4: complete in both languages, unique ids, ~80 per set, Mix excludes Quality).
+Runs 6 suites (+ Fishing Derby, 9 checks): Snake & Ladder rules (21: phone animations finish before the next question, 16 event boxes per set, winners = players − 1, projector snake/ladder moments), Quality Cart race (11: SUPER TURBO, box rows clear of hazards), Quality Clash battles (11), Boss Raid (10, including simulated win rate and length) and the question bank (4: complete in both languages, unique ids, ~80 per set, Mix excludes Quality).
 
 End-to-end tests use the Firebase emulator (needs Java) and Playwright. In this cloud sandbox: download the emulator once with the proxy, then run it with the proxy variables unset:
 

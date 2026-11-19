@@ -20,6 +20,15 @@ const CLASH_TILES = [
 ];
 import { MAX_WINNERS } from "../lib/engine.ts";
 
+const FISH_TILES = [
+  { icon: "🐟", en: "Right answer =\na fish (1–6 kg)", ms: "Betul = seekor ikan" },
+  { icon: "🐠", en: "3 right in a row\n= BIG FISH", ms: "3 betul berturut = IKAN BESAR" },
+  { icon: "✨", en: "5 right in a row =\nSUPER BIG GOLDEN FISH", ms: "5 betul berturut = IKAN EMAS" },
+  { icon: "✂️", en: "Wrong = line snaps\nwait 5 sec", ms: "Salah = tali putus, tunggu 5 saat" },
+  { icon: "🌀", en: "Every minute: FRENZY\n30 s, weight ×2", ms: "Setiap minit: pesta, berat ×2" },
+  { icon: "🏆", en: "5 minutes. Heaviest\ntotal catch wins!", ms: "5 minit. Tangkapan paling berat menang!" },
+];
+
 /** The rules in four short tiles, used on the projector lobby and on phones. */
 const BOSS_TILES = [
   { icon: "👹", en: "Everyone vs the\nDefect Titan", ms: "Semua lawan Gergasi Kecacatan" },
@@ -32,7 +41,7 @@ const BOSS_TILES = [
 ];
 
 export default function Rules({ compact, mode, variant }: { compact?: boolean; mode?: GameMode; variant?: string }) {
-  const tiles = mode === "kart" ? CART_TILES : mode === "clash" ? (variant === "boss" ? BOSS_TILES : CLASH_TILES) : [
+  const tiles = mode === "fish" ? FISH_TILES : mode === "kart" ? CART_TILES : mode === "clash" ? (variant === "boss" ? BOSS_TILES : CLASH_TILES) : [
     { icon: "🎲", en: "Right = roll 1 dice\nWrong = wait 5 sec", ms: "Betul = baling 1 dadu · Salah = tunggu 5 saat" },
     { icon: "🔥", en: `${BONUS_STREAK} right in a row\n= 2 dice`, ms: `${BONUS_STREAK} betul berturut = 2 dadu` },
     { icon: "🐍🪜", en: "Answer right to\nstay safe or climb", ms: "Jawab betul untuk selamat atau naik" },
