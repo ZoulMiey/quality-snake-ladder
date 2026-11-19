@@ -1,6 +1,6 @@
 # Handover: Quality Month Games
 
-Last updated 19 Nov 2026, at the end of the third session. It covers this repository only. Read it fully before changing anything.
+Last updated 19 Nov 2026, at the start of the fourth session. It covers this repository only. Read it fully before changing anything.
 
 ## Starting a new session
 
@@ -16,6 +16,7 @@ Last updated 19 Nov 2026, at the end of the third session. It covers this reposi
    - Snake & Ladder: phone shows the **full board** (draft first), full-screen alerts for get ready / snake / ladder / safe / correct / wrong, zoom in-out moves; **16 event boxes** with **themed events per question set** (80 events); full-screen event-box alert with zoom; **winners = players − 1 (max 5)**; winner keeps their trophy screen when their win ends the game; distinct **vibrations** + shake/flash (iPhones cannot vibrate).
    - Quality Cart: phone **held sideways, full screen, "32-bit smooth" look** (draft compared 8-bit … 32-bit; owner picked 32-bit smooth), mixed countryside + factory scenery, dashboard, **answers at the thumbs**, "turn sideways" screen; **"QUESTION IN 3, 2, 1"** warning; **SUPER TURBO** after 3 right in a row; **8 rows of Q boxes**; new circuit **"Factory Block"** (picked from 10 drafts).
    - Owner tested Snake & Ladder on real phones: "all good". Quality Cart: owner said "so far all good" after the sideways view, before the last round of changes (countdown, super turbo, boxes, circuit).
+4. **Fourth session (19 Nov 2026), status check:** owner tested the latest Quality Cart changes on real phones: "all good for now". Quality Clash: "KIV, so far all good". Question review: KIV for another time. Malay wording of the event boxes: "all good".
 
 ## What this is
 
@@ -157,15 +158,15 @@ The sandbox cannot reach `vercel.app`, so a deploy can't be checked from here; a
 - When they say "build": build, test on the emulator, then **merge to the live branch** (they asked for auto-merge/live after testing).
 - Likes **simulations with numbers** to justify game balance, and tests on real phones afterwards, then reports results.
 - Prefers simple, bold, readable projector screens; 16-bit pixel style for Clash; **"32-bit smooth" for Quality Cart**; bilingual English/Malay everywhere.
-- Is tweaking the games **one by one**: Snake & Ladder is done ("all good"), Quality Cart is in progress, Quality Clash comes next. The idea list waits until all games are tweaked.
+- Tweaked the games **one by one**: Snake & Ladder and Quality Cart are done ("all good"); Quality Clash is KIV ("so far all good"). The idea list (Open items 6) can be picked up when the owner wants.
 - Likes being shown several options to choose from (e.g. 10 circuits, 5 visual levels side by side).
 - Asked to call them **monsters** ("raksasa"), not creatures.
 
 ## Open items
 
-1. **Question review:** both review pages were checked on 19 Nov and hold no choices to apply (the owner may have reviewed in a browser where the page could not save). If the owner reviews again: read `reviews` from `https://claude.ai/artifact/8tjZ3iFsHVqQ7GYNjWUcWb` (docs keyed by question id: `{d: "keep"|"drop"|"edit", q?: [en, ms], o?: [[en, ms] ×4, right first], set}`; unmarked = keep) and `https://claude.ai/artifact/NeXwos6p8Q56VtvzrQRVsN`. The live database already holds the questions, so changes must be written **to the database** (e.g. a second one-time migration flag), not only to `moreQuestions.ts`. Owner should also check the Malay wording, including the 80 event-box texts (`EVENT_SETS` in `src/lib/specials.ts`, written by Claude).
-2. **Quality Cart, real-phone checks of the latest changes:** "QUESTION IN 3, 2, 1" warning, SUPER TURBO, 8 rows of Q boxes, Factory Block circuit; tilt sensitivity held sideways (`/ 25` in `useTilt`, `STEER_RATE`); smoothness of the 540 px view on older phones; iPhone "Turn on tilt steering"; ◀ ▶ buttons (the test could not catch a button press, the code is unchanged). Then ask the owner what else to tweak in Quality Cart.
-3. **Next game to tweak: Quality Clash** (1 v 1, Team, Boss Raid), one by one like the others. Boss Raid balance with real groups is still unchecked (re-tune `src/clash/boss.ts` if needed; large groups may be a bit hard).
+1. **Question review (owner: KIV, another time):** both review pages were checked on 19 Nov and hold no choices to apply. If the owner reviews again: read `reviews` from `https://claude.ai/artifact/8tjZ3iFsHVqQ7GYNjWUcWb` (docs keyed by question id: `{d: "keep"|"drop"|"edit", q?: [en, ms], o?: [[en, ms] ×4, right first], set}`; unmarked = keep) and `https://claude.ai/artifact/NeXwos6p8Q56VtvzrQRVsN`. The live database already holds the questions, so changes must be written **to the database** (e.g. a second one-time migration flag), not only to `moreQuestions.ts`. Malay wording of the 80 event-box texts: owner checked, all good.
+2. **Quality Cart:** owner tested the latest changes on real phones: all good for now. Nothing open.
+3. **Quality Clash (owner: KIV, so far all good):** 1 v 1, Team, Boss Raid. Boss Raid balance with real groups is still unchecked (re-tune `src/clash/boss.ts` if needed; large groups may be a bit hard).
 4. **On hold (owner: KIV):** Mini Tournament for Quality Clash (bracket style; "coming soon" in the lobby).
 5. **Possible later:** circuit picker in the lobby (the other 9 circuits are in the circuits draft); projector effects for snake/ladder moments.
 6. **Ideas discussed, not built (after all games are tweaked):** cheer meter for watchers (they answer to heal or shield a team), revive in Team mode, MVP screen (most damage, fastest answer, longest streak), Hall of Fame across the day, chiptune music and per-type attack sounds, host settings (e.g. HP 200/300/500), random snake/ladder layout, other games (Spot the Defect, Quality Bingo, Horse Race).
