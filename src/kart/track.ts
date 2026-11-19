@@ -1,4 +1,4 @@
-// The Quality Cart race track: one winding circuit seen from above.
+// The Quality Cart race track ("Factory Block"), seen from above.
 // World units: the track fits in a 1600 x 900 area (the shape of a projector screen).
 
 export const WORLD_W = 1600;
@@ -7,28 +7,28 @@ export const TRACK_W = 116; // road width
 export const HALF = TRACK_W / 2 - 12; // how far from the centre line a cart can drive
 export const LAPS = 3;
 
-/** Points the centre of the road passes through (a smooth curve is drawn through them). */
+/**
+ * Points the centre of the road passes through (a smooth curve is drawn through them).
+ * "Factory Block" (owner's pick from 10 drafts, Nov 2026): long top and bottom straights, squarer
+ * corners like a street race round a factory, and an S-chicane on the left. Start line top left, driving right.
+ */
 const CONTROL: [number, number][] = [
-  [190, 520],
-  [205, 300],
-  [330, 150],
-  [560, 140],
-  [700, 270],
-  [850, 300],
-  [960, 170],
-  [1180, 120],
-  [1390, 190],
-  [1440, 400],
-  [1330, 540],
-  [1140, 560],
-  [1050, 680],
-  [1150, 780],
-  [930, 810],
-  [700, 790],
-  [590, 650],
-  [430, 690],
-  [300, 800],
-  [200, 700],
+  [250, 170],
+  [800, 170],
+  [1350, 170],
+  [1440, 240],
+  [1450, 420],
+  [1370, 480],
+  [1060, 480],
+  [990, 550],
+  [1000, 700],
+  [920, 770],
+  [600, 770],
+  [300, 770],
+  [200, 690],
+  [190, 470],
+  [300, 380],
+  [200, 270],
 ];
 
 const STEP = 4; // distance between stored points along the road
