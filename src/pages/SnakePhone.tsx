@@ -69,7 +69,9 @@ export default function SnakePhone({ uid, me, game, state, onExit }: { uid: stri
   const [sheetH, setSheetH] = useState(0);
 
   const ended = game.status === "ended";
-  const scene = state && !ended ? buildScene(uid, game, state, t0) : null;
+  // A winner keeps the board (their last move and the trophy) even when their win ends the game.
+  const winner = state?.phase === "won";
+  const scene = state && (!ended || winner) ? buildScene(uid, game, state, t0, ended ? onExit : undefined) : null;
   const sheetKey = scene?.sheet ? scene.sheetKey ?? "sheet" : "";
   useEffect(() => setPeek(false), [sheetKey]);
 
@@ -84,7 +86,7 @@ export default function SnakePhone({ uid, me, game, state, onExit }: { uid: stri
   }, [sheetKey]);
 
   if (!state) return <p className="card muted">Getting ready… / Bersedia…</p>;
-  if (ended)
+  if (ended && !winner)
     return (
       <>
         <StatusStrip me={me} st={state} />
@@ -136,7 +138,7 @@ export default function SnakePhone({ uid, me, game, state, onExit }: { uid: stri
 }
 
 /** Work out what the phone shows right now, from the player's state and how long the scene has run. */
-function buildScene(uid: string, game: Game, st: PlayerState, t0: number): Scene {
+function buildScene(uid: string, game: Game, st: PlayerState, t0: number, onExit?: () => void): Scene {
   const still = (pos: number): Motion => ({ kind: "still", pos });
   const now = Date.now();
   const e = now - t0;
@@ -164,7 +166,7 @@ function buildScene(uid: string, game: Game, st: PlayerState, t0: number): Scene
   if (r.outcome === "move" || r.outcome === "win") {
     const tl = moveTimeline(r);
     if (st.phase === "won" && e >= tl.walkEnd + 900)
-      return { camera: "full", motion: still(LAST_BOX), overlay: <Won rank={st.rank ?? 0} /> };
+      return { camera: "full", motion: still(LAST_BOX), overlay: <Won rank={st.rank ?? 0} onExit={onExit} /> };
     const land = r.outcome === "win" ? LAST_BOX : (r.land ?? r.to);
     const banner = <CorrectBanner bonus={r.bonus} />;
     if (e < tl.diceAt) return { camera: "full", motion: still(r.from), banner };
@@ -467,7 +469,7 @@ function Penalty({ until, frozenAt }: { until: number; frozenAt: number | null }
   );
 }
 
-function Won({ rank }: { rank: number }) {
+function Won({ rank, onExit }: { rank: number; onExit?: () => void }) {
   useEffect(() => sfx.win(), []);
   return (
     <div className="slp-alert a-won" role="alert">
@@ -475,6 +477,11 @@ function Won({ rank }: { rank: number }) {
       <div className="a-t1">#{rank}</div>
       <Bi en={`You finished #${rank}!`} ms={`Anda tamat di tempat #${rank}!`} className="a-t2" />
       <p className="a-sub">Well done! Watch the big screen. / Syabas! Lihat skrin besar.</p>
+      {onExit && (
+        <button className="big-btn a-exit" onClick={onExit}>
+          Exit / Keluar
+        </button>
+      )}
     </div>
   );
 }

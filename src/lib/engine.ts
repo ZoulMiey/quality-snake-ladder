@@ -3,7 +3,7 @@
 import { noQuestionsMessage, poolFor, type QChoice } from "./questionSets.ts";
 import { ref, get, onValue, update, set } from "firebase/database";
 import { db, serverNow } from "./firebase.ts";
-import { resolve, pickQuestion, shuffleOptions } from "./rules.ts";
+import { resolve, pickQuestion, shuffleOptions, winnersNeeded, MAX_WINNERS } from "./rules.ts";
 import { LAST_BOX } from "./board.ts";
 import { tokenById } from "./tokens.ts";
 import { eventById, placeSpecials } from "./specials.ts";
@@ -13,7 +13,7 @@ import { fixStates, type FeedItem, type Game, type Player, type PlayerState, typ
 export const QUESTION_MS = 30_000;
 /** "Get ready" countdown before the first question. */
 export const COUNTDOWN_MS = 5_000;
-export const MAX_WINNERS = 5;
+export { MAX_WINNERS };
 /** Waiting time after a wrong answer (always 5 seconds, however many wrong answers). Result times are in phoneTiming.ts. */
 export { PENALTY_MS };
 const GRACE_MS = 800;
@@ -280,7 +280,7 @@ export class Engine {
 
       const total = Object.keys(this.players).length;
       const winners = this.game?.winners?.length ?? 0;
-      if (winners >= Math.min(MAX_WINNERS, total)) await this.finish();
+      if (winners >= winnersNeeded(total)) await this.finish();
     } finally {
       this.busy.delete(uid);
     }

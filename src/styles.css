@@ -736,5 +736,6 @@ button:disabled { cursor: default; }
 .a-good .a-move b { color: var(--good); } .a-bad .a-move b { color: var(--bad); }
 .a-move span { color: var(--muted); font-size: 14px; }
 .a-won { background: radial-gradient(circle at 50% 35%, #f5c542, #b8901f); color: var(--gold-ink); }
+.a-exit { margin-top: 14px; width: min(280px, 100%); background: var(--felt); color: #fff; box-shadow: 0 4px 0 #062219; }
 .a-won .bi .ms { color: var(--gold-ink); opacity: .85; }
 @media (prefers-reduced-motion: reduce) { .a-icon, .slp-sheet, .slp-alert { animation: none; } }

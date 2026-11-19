@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { get, ref, set, update } from "firebase/database";
 import { db, ensureSignedIn, serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
-import { Engine, MAX_WINNERS, QUESTION_MS, playAgain, removePlayer, resetGame } from "../lib/engine.ts";
+import { winnersNeeded } from "../lib/rules.ts";
+import { Engine, QUESTION_MS, playAgain, removePlayer, resetGame } from "../lib/engine.ts";
 import { tokenById, MAX_PLAYERS } from "../lib/tokens.ts";
 import { isMuted, setMuted, sfx, unlockAudio } from "../lib/sound.ts";
 import Board, { type BoardPiece } from "../components/Board.tsx";
@@ -519,7 +520,7 @@ function GameView({
             <div className="podium">
               <h2>🏆 Winners / Pemenang</h2>
               <ol>
-                {ranking.slice(0, Math.max(winners.length, Math.min(MAX_WINNERS, ranking.length))).map((p, i) => {
+                {ranking.slice(0, Math.max(winners.length, winnersNeeded(ranking.length))).map((p, i) => {
                   const t = tokenById(p.player.token);
                   return (
                     <li key={p.uid} className={`place p${i + 1}`}>
@@ -552,7 +553,7 @@ function GameView({
         )}
         <div className="panel">
           <h3>
-            Players <span className="muted">· {winners.length}/{Math.min(MAX_WINNERS, pieces.length)} finished</span>
+            Players <span className="muted">· {winners.length}/{winnersNeeded(pieces.length)} finished</span>
           </h3>
           <ul className={`ranking ${ranking.length > 10 ? "many" : ""}`}>
             {ranking.map((p) => (

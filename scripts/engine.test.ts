@@ -1,6 +1,6 @@
 // Checks the game rules. Run: npm test
 import assert from "node:assert/strict";
-import { resolve, pickQuestion, shuffleOptions } from "../src/lib/rules.ts";
+import { resolve, pickQuestion, shuffleOptions, winnersNeeded } from "../src/lib/rules.ts";
 import { SNAKES, LADDERS, LAST_BOX } from "../src/lib/board.ts";
 import { placeSpecials, EVENTS, EVENT_SETS, eventById } from "../src/lib/specials.ts";
 import { resultMs, moveTimeline, PENALTY_MS, VERDICT_MS, WRONG_MS, SLIDE_MS, SHAKE_MS, CLIMB_MS, ZOOM_OUT_MS } from "../src/lib/phoneTiming.ts";
@@ -147,6 +147,9 @@ t("questions never repeat for a player until all are used", () => {
     used.add(p.q.id);
   }
   assert.equal(pickQuestion(pool, used)!.reset, true);
+});
+t("the game ends after one winner fewer than the players, at most 5", () => {
+  assert.deepEqual([1, 2, 3, 4, 5, 6, 7, 10, 20].map(winnersNeeded), [1, 1, 2, 3, 4, 5, 5, 5, 5]);
 });
 t("shuffling keeps track of the correct answer", () => {
   for (let i = 0; i < 50; i++) {

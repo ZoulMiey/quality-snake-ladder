@@ -1,6 +1,6 @@
 // Snake & Ladder phone board: plays a game with 3 phones and takes a screenshot of each phone screen
 // the first time it appears (countdown, question, dice, snake/ladder alerts, verdicts, penalty, win).
-// Start from a fresh emulator. Run: node scripts/e2e/snake-phone.cjs (QSET=world|logo|malaysia|general|mix to pick a question set)
+// Start from a fresh emulator. Run: node scripts/e2e/snake-phone.cjs (QSET=world|logo|malaysia|general|mix to pick a question set, PLAYERS=1-3)
 const { chromium, devices } = require("playwright");
 const OUT = process.env.SHOTS || require("path").join(__dirname, "shots");
 require("fs").mkdirSync(OUT, { recursive: true });
@@ -43,7 +43,7 @@ const SCREENS = {
   await proj.getByRole("button", { name: /Snake & Ladder/ }).click();
 
   const phones = [];
-  for (const [name, tok] of [["Aina", "Lion"], ["Bala", "Rocket"], ["Chong", "Panda"]]) {
+  for (const [name, tok] of [["Aina", "Lion"], ["Bala", "Rocket"], ["Chong", "Panda"]].slice(0, +(process.env.PLAYERS || 3))) {
     const p = await (await browser.newContext({ ...devices["iPhone 13"] })).newPage();
     watch(p, name);
     await p.goto(BASE + "/join");
@@ -53,7 +53,7 @@ const SCREENS = {
     await p.getByText("You're in!").waitFor({ timeout: 10000 });
     phones.push({ name, p });
   }
-  log("3 phones joined");
+  log(phones.length, "phones joined");
   if (process.env.QSET) {
     // Pick the question set the way the lobby does (it saves game/qset).
     await fetch("http://127.0.0.1:9000/game/qset.json?ns=demo-qsl-default-rtdb", { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify(process.env.QSET) });
@@ -97,6 +97,17 @@ const SCREENS = {
     }
     await proj.waitForTimeout(250);
   }
+  // The winner's phone shows the trophy, even when their win ended the game.
+  for (const ph of phones) {
+    if (seen.won) break;
+    if (await ph.p.locator(".slp-alert.a-won").waitFor({ timeout: 6000 }).then(() => true).catch(() => false)) {
+      seen.won = ph.name;
+      await ph.p.screenshot({ path: `${OUT}/sl-phone-won.png` });
+      log("seen won on", ph.name, "exit button:", await ph.p.locator(".a-exit").count());
+    }
+  }
+  const end = await (await fetch("http://127.0.0.1:9000/game.json?ns=demo-qsl-default-rtdb", { headers: { Authorization: "Bearer owner" } })).json();
+  log("game status:", end?.status, "winners:", (end?.winners || []).length);
   log("answers:", answered, "time:", Math.round((Date.now() - start) / 1000) + "s");
   log("screens seen:", Object.keys(seen).join(", "));
   log("not seen:", Object.keys(SCREENS).filter((k) => !seen[k]).join(", ") || "none");

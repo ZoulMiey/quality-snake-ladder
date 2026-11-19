@@ -37,7 +37,7 @@ export default function Rules({ compact, mode, variant }: { compact?: boolean; m
     { icon: "🔥", en: `${BONUS_STREAK} right in a row\n= 2 dice`, ms: `${BONUS_STREAK} betul berturut = 2 dadu` },
     { icon: "🐍🪜", en: "Answer right to\nstay safe or climb", ms: "Jawab betul untuk selamat atau naik" },
     { icon: "🧪📄", en: "Quality boxes move you\nforward or back", ms: "Petak kualiti: maju atau undur" },
-    { icon: "🏁", en: `First ${MAX_WINNERS} to box ${LAST_BOX}\nwin!`, ms: `${MAX_WINNERS} pemain pertama ke petak ${LAST_BOX} menang` },
+    { icon: "🏁", en: `Race to box ${LAST_BOX}!\nWinners: players − 1 (max ${MAX_WINNERS})`, ms: `Lumba ke petak ${LAST_BOX}! Pemenang: pemain − 1 (maks ${MAX_WINNERS})` },
   ];
   return (
     <ul className={`rule-tiles ${compact ? "compact" : ""}`} aria-label="How to play">
