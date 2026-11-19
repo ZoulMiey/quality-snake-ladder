@@ -22,6 +22,19 @@ import GamePreview from "../components/GamePreview.tsx";
 import { QSETS, poolFor, type QChoice } from "../lib/questionSets.ts";
 import { eventById } from "../lib/specials.ts";
 import { DiceRoll } from "../components/Dice.tsx";
+import { SL_ALERT_MS } from "../lib/phoneTiming.ts";
+import {
+  ALERT_TEXT,
+  CARD_LINGER_MS,
+  MAX_CARDS,
+  SPOTLIGHT_MAX_PLAYERS,
+  currentMoments,
+  isMomentOutcome,
+  verdictText,
+  verdictTimes,
+  type Moment,
+  type Verdict,
+} from "../lib/moments.ts";
 import QuestionManager, { seedQuestionsIfEmpty } from "../components/QuestionManager.tsx";
 import { fixStates, type FeedItem, type Game, type GameMode, type Player, type PlayerState, type Question } from "../lib/types.ts";
 
@@ -500,6 +513,14 @@ function GameView({
     () => Object.entries(players).map(([uid, player]) => ({ uid, player, state: states[uid] })),
     [players, states],
   );
+  // Snake & ladder moments: spotlight for 1–8 players, glow + side cards for 9–20.
+  const verdicts = useVerdicts(states);
+  const localNow = Date.now();
+  const animating = Object.values(verdicts).some((v) => localNow < verdictTimes(v).doneAt);
+  useFrames(animating);
+  const clock = game.paused && game.pausedAt ? game.pausedAt : serverNow();
+  const moments = game.status === "playing" ? currentMoments(states, verdicts, clock, localNow, QUESTION_MS, SL_ALERT_MS) : [];
+  const spotlight = pieces.length <= SPOTLIGHT_MAX_PLAYERS;
   const winners = (game.winners ?? []).filter((u) => players[u]);
   const ranking = [...pieces].sort((a, b) => {
     const ra = a.state?.rank ?? 99;
@@ -512,7 +533,7 @@ function GameView({
   return (
     <main className={`game ${ended ? "ended" : ""}`}>
       <section className="board-side">
-        <Board pieces={pieces} highlight={highlight} specials={game.specials} posOverride={hop} />
+        <Board pieces={pieces} highlight={highlight} specials={game.specials} posOverride={hop} moments={moments} spotlight={spotlight} />
         {game.paused && <div className="paused-overlay">⏸ Paused / Dihentikan seketika</div>}
         {game.status === "playing" && game.goAt && <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="board-cd" />}
         {ended && (
@@ -540,6 +561,7 @@ function GameView({
         )}
       </section>
       <aside className="side">
+        {!spotlight && <MomentCards moments={moments} players={players} />}
         {lastRoll && players[lastRoll.uid] && (
           <div className="panel roll-panel">
             <h3>Latest roll</h3>
@@ -573,6 +595,89 @@ function GameView({
         </div>
       </aside>
     </main>
+  );
+}
+
+/**
+ * Snake/ladder answers as they arrive, with this computer's time, so the projector can play the slide or
+ * climb in step with the phone. Recorded during render (not in an effect) so the piece never starts its
+ * normal straight move first. Answers that were already there when the projector opened are ignored.
+ */
+function useVerdicts(states: Record<string, PlayerState>): Record<string, Verdict> {
+  const seen = useRef<Record<string, number>>({});
+  const verdicts = useRef<Record<string, Verdict>>({});
+  const now = Date.now();
+  for (const [uid, st] of Object.entries(states)) {
+    const prev = seen.current[uid];
+    if (prev === st.seq) continue;
+    seen.current[uid] = st.seq;
+    if (prev === undefined) continue;
+    const r = st.result;
+    if (st.phase === "result" && r && isMomentOutcome(r.outcome) && (r.kind === "snake" || r.kind === "ladder"))
+      verdicts.current[uid] = { kind: r.kind, outcome: r.outcome, from: r.from, to: r.to, at: now, seq: st.seq };
+  }
+  for (const [uid, v] of Object.entries(verdicts.current)) if (now >= verdictTimes(v).doneAt) delete verdicts.current[uid];
+  return verdicts.current;
+}
+
+/** Re-render every frame while a piece is sliding or climbing (and while its spotlight fades). */
+function useFrames(on: boolean) {
+  const [, setN] = useState(0);
+  useEffect(() => {
+    if (!on) return;
+    let id = 0;
+    const tick = () => {
+      setN((n) => n + 1);
+      id = requestAnimationFrame(tick);
+    };
+    id = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(id);
+  }, [on]);
+}
+
+/** 9–20 players: alert cards at the top of the side panel, newest first, at most 3. */
+function MomentCards({ moments, players }: { moments: Moment[]; players: Record<string, Player> }) {
+  const cards = moments
+    .filter((m) => m.stage !== "after" || (m.afterMs ?? 0) < CARD_LINGER_MS)
+    .sort((a, b) => b.startedAt - a.startedAt)
+    .slice(0, MAX_CARDS);
+  if (!cards.length) return null;
+  return (
+    <div className="m-cards">
+      {cards.map((m) => {
+        const p = players[m.uid];
+        const t = tokenById(p?.token);
+        const a = ALERT_TEXT[m.kind];
+        const v = m.outcome ? verdictText(m.outcome, m.from!, m.to!) : null;
+        const leaving = m.stage === "after" && (m.afterMs ?? 0) > CARD_LINGER_MS - 350;
+        return (
+          <div key={m.key} className={`m-card ${v ? `tone-${v.tone}` : `ask-${m.kind}`} ${leaving ? "leaving" : ""} ${cards.length > 1 ? "compact" : ""}`}>
+            <div className="m-card-head">
+              <b>{v ? v.en : `${a.icon} ${a.en}`}</b>
+              <small>{v ? v.ms : a.ms}</small>
+            </div>
+            <div className="m-card-who">
+              {t.emoji} {p?.name ?? "Player"} · Box {m.box}
+            </div>
+            {v ? (
+              <div className="m-card-res">
+                <b>{v.sub}</b>
+                <small>{v.subMs}</small>
+              </div>
+            ) : (
+              <div className="m-card-res">
+                <span>
+                  {m.stage === "alert" ? "Get ready…" : `Answering… ${m.secs}s`} <small>{m.stage === "alert" ? "Bersedia…" : "Sedang menjawab…"}</small>
+                </span>
+                <span className="m-bar">
+                  <span style={{ width: `${((m.secs ?? 30) / (QUESTION_MS / 1000)) * 100}%` }} />
+                </span>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

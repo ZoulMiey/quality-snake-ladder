@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import { resolve, pickQuestion, shuffleOptions, winnersNeeded } from "../src/lib/rules.ts";
 import { SNAKES, LADDERS, LAST_BOX } from "../src/lib/board.ts";
 import { placeSpecials, EVENTS, EVENT_SETS, eventById } from "../src/lib/specials.ts";
-import { resultMs, moveTimeline, PENALTY_MS, VERDICT_MS, WRONG_MS, SLIDE_MS, SHAKE_MS, CLIMB_MS, ZOOM_OUT_MS } from "../src/lib/phoneTiming.ts";
+import { resultMs, moveTimeline, PENALTY_MS, VERDICT_MS, WRONG_MS, SLIDE_MS, SHAKE_MS, CLIMB_MS, ZOOM_OUT_MS, SL_ALERT_MS } from "../src/lib/phoneTiming.ts";
+import { currentMoments, verdictTimes, climbProgress, slideProgress, SPOTLIGHT_MAX_PLAYERS, type Verdict } from "../src/lib/moments.ts";
+import type { PlayerState } from "../src/lib/types.ts";
 
 // A snake head and a ladder bottom that can be reached with two small dice from a plain box.
 const [HEAD, TAIL] = Object.entries(SNAKES).map(([a, b]) => [+a, b])[0];
@@ -171,5 +173,43 @@ t("the phone's animations always finish before the next question", () => {
   assert.ok(VERDICT_MS + SHAKE_MS + 300 < PENALTY_MS && WRONG_MS < PENALTY_MS, "wrong-answer screens fit in the penalty");
   assert.equal(resultMs(r(HEAD, 0, "snake", false).result), PENALTY_MS);
   assert.equal(resultMs(r(5, 0, "turn", false).result), PENALTY_MS);
+});
+t("projector snake/ladder moments follow the question, then the answer, in step with the phone", () => {
+  const Q = 30_000;
+  const st = (over: Partial<PlayerState>): PlayerState =>
+    ({ pos: HEAD, streak: 0, phase: "question", kind: "snake", q: null, deadline: 0, until: 0, result: null, seq: 3, rank: null, correct: 0, answered: 0, ...over }) as PlayerState;
+  // Asked at t = 1000: alert for 2 s, then 30 s to answer.
+  const asked = st({ deadline: 1000 + SL_ALERT_MS + Q });
+  assert.equal(currentMoments({ a: asked }, {}, 1500, 0, Q, SL_ALERT_MS)[0].stage, "alert");
+  const ans = currentMoments({ a: asked }, {}, 1000 + SL_ALERT_MS + 6000, 0, Q, SL_ALERT_MS)[0];
+  assert.equal(ans.stage, "answer");
+  assert.equal(ans.secs, 24);
+  assert.equal(ans.end, TAIL);
+  assert.equal(currentMoments({ a: st({ kind: "turn" }) }, {}, 0, 0, Q, SL_ALERT_MS).length, 0, "normal questions are not moments");
+  // Wrong answer: verdict 2 s, then the slide, then the moment ends before the 5-second penalty is over.
+  const slid = st({ phase: "result", pos: TAIL, seq: 4 });
+  const v: Verdict = { kind: "snake", outcome: "slide", from: HEAD, to: TAIL, at: 10_000, seq: 4 };
+  const at = (ms: number) => currentMoments({ a: slid }, { a: v }, 0, 10_000 + ms, Q, SL_ALERT_MS)[0];
+  assert.equal(at(500).stage, "verdict");
+  assert.equal(at(VERDICT_MS + SLIDE_MS / 2).stage, "move");
+  assert.ok(Math.abs(at(VERDICT_MS + SLIDE_MS / 2).ride! - 0.5) < 1e-9);
+  assert.equal(at(VERDICT_MS + SLIDE_MS + 100).stage, "after");
+  assert.ok(verdictTimes(v).moveEnd - v.at < PENALTY_MS, "the slide ends before the next question");
+  assert.equal(currentMoments({ a: slid }, { a: v }, 0, verdictTimes(v).doneAt, Q, SL_ALERT_MS).length, 0);
+  // A new snake/ladder question after the piece stopped replaces the old moment.
+  const again = st({ pos: FOOT, kind: "ladder", deadline: 99_999_999, seq: 5 });
+  assert.equal(currentMoments({ a: again }, { a: v }, 0, verdictTimes(v).moveEnd + 10, Q, SL_ALERT_MS)[0].kind, "ladder");
+  // Climb and slide progress run from 0 to 1 and never go back.
+  for (const f of [(x: number) => climbProgress(x, 7), slideProgress]) {
+    let last = 0;
+    for (let i = 0; i <= 100; i++) {
+      const y = f(i / 100);
+      assert.ok(y >= last - 1e-12 && y <= 1);
+      last = y;
+    }
+    assert.equal(f(0), 0);
+    assert.ok(Math.abs(f(1) - 1) < 1e-9);
+  }
+  assert.equal(SPOTLIGHT_MAX_PLAYERS, 8, "spotlight for 1–8 players, glow + cards for 9–20");
 });
 console.log(`\n${n} checks passed`);
