@@ -985,3 +985,10 @@ button:disabled { cursor: default; }
 .fish-ended .fe-kg { font-family: var(--display); font-weight: 800; font-size: 36px; color: #0369a1; }
 .fe-list { list-style: none; padding: 0; margin: 4px 0; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; font-weight: 700; }
 .fish-ended .me-piece { margin: 0 auto; }
+/* Fishing Derby: BIG / GOLDEN card in the bottom half while the catch plays above (owner, Nov 2026). */
+.slp-alert.fp-bigcard { position: absolute; left: 8px; right: 8px; bottom: 8px; height: 46%; z-index: 6; border-radius: 22px; gap: 4px; padding: 14px; box-shadow: 0 -8px 24px rgba(0,0,0,.35); animation: slp-up .35s cubic-bezier(.3,.7,.2,1); }
+.slp-alert.fp-bigcard .a-icon { font-size: 44px; }
+.slp-alert.fp-bigcard .a-t1 { font-size: 36px; }
+.slp-alert.fp-bigcard .a-t2 { font-size: 18px; }
+.slp-alert.fp-bigcard .fa-kg { font-size: 26px; }
+.slp-alert.fp-bigcard::after { display: none; }

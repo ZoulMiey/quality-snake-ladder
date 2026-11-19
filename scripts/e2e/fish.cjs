@@ -1,5 +1,5 @@
-// Fishing Derby, a full 5-minute game: projector + N phones (default 4). Phone 1 draws the 3D pond, the
-// others the flat pond (?pond=flat) to keep the test machine light. Bots answer after 2–6 s, right with
+// Fishing Derby, a full 5-minute game: projector + N phones (default 4), phones with the side-view pond.
+// Bots answer after 2–6 s, right with
 // chance ACC (default 0.8). Screenshots: lobby, countdown ("You are"), question, BIG/GOLDEN/SNAP alerts,
 // frenzy, projector zoom (1–8 players) or notice cards (9+), podium and the phone's end screen.
 // Clears the database first. Options: N, ACC.
@@ -35,7 +35,7 @@ const dbGet = async () => (await fetch(DB, { headers: { Authorization: "Bearer o
     const name = NAMES[i % 20] + (i >= 20 ? ` ${Math.floor(i / 20) + 1}` : "");
     const p = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })).newPage();
     watch(p, name);
-    await p.goto(BASE + "/join" + (i === 0 ? "" : "?pond=flat"));
+    await p.goto(BASE + "/join");
     await p.locator("#name").fill(name);
     await p.getByRole("button", { name: /Join/ }).click();
     await p.getByText("You're in!").waitFor({ timeout: 15000 });
@@ -67,14 +67,14 @@ const dbGet = async () => (await fetch(DB, { headers: { Authorization: "Bearer o
         if (!st) return;
         // Screenshots of phone 1 (3D).
         if (idx === 0) {
-          const alertEl = ph.p.locator(".slp-overlay .slp-alert");
+          const alertEl = ph.p.locator(".slp-alert");
           const alertCls = (await alertEl.count()) ? await alertEl.first().getAttribute("class", { timeout: 500 }).catch(() => null) : null;
           for (const [k, cls] of [["big", "fa-big"], ["gold", "fa-gold"], ["snap", "fa-snap"], ["frenzy", "fa-frenzy"]])
             if (alertCls && alertCls.includes(cls) && want.has(k)) {
               want.delete(k);
               await ph.p.screenshot({ path: `${OUT}/fish-phone-${k}.png` });
               log("phone shot", k);
-              if (k === "big" || k === "gold") ph.leapAt = Date.now() + 2600;
+              if (k === "big" || k === "gold") ph.leapAt = Date.now() + 1700;
             }
           if (ph.leapAt && Date.now() > ph.leapAt && want.has("leap")) {
             want.delete("leap");

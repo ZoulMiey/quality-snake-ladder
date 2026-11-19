@@ -1,5 +1,6 @@
 // Checks the Fishing Derby rules, and simulates 5-minute games. Run: npm test
 import assert from "node:assert/strict";
+import { SIDE_BEATS } from "../src/fish/pondSide.ts";
 import { catchFor, addCatch, newFishState, frenzyAt, rankFishers, shoutOuts, boatOrder, boatSpot, GAME_MS, QUESTION_MS, FRENZY_MS, RESULT_MS, SNAP_MS, type FishState } from "../src/fish/rules.ts";
 
 let n = 0;
@@ -70,9 +71,9 @@ t("totals, ranking (tie = more right answers) and shout-outs", () => {
   assert.equal(shoutOuts([["x", newFishState()]]).golden, null);
 });
 
-t("result times leave room for the phone's animation", () => {
-  assert.ok(RESULT_MS.fish >= 2_500);
-  assert.ok(RESULT_MS.big >= 2_000 + 1_300 + 1_000);
+t("result times leave room for the phone's side-view catch", () => {
+  assert.ok(RESULT_MS.fish >= SIDE_BEATS.fish.land + 300);
+  assert.ok(RESULT_MS.big >= SIDE_BEATS.big.land + 400);
   assert.ok(RESULT_MS.gold >= RESULT_MS.big);
 });
 

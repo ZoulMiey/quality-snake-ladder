@@ -20,12 +20,11 @@ export const GOLD_STREAK = 5;
 export const ZOOM_MAX_PLAYERS = 8;
 
 /**
- * How long each result stays before the next question. The phone's animation fits inside:
- * fish = card away + bobber dips + fish leaps onto the boat; big/golden = 2 s full-screen alert first.
+ * How long each result stays before the next question. The phone's side-view catch fits inside
+ * (SIDE_BEATS in pondSide.ts): a fish swims to the hook, bites, is reeled up and lands in the boat
+ * (2.2 s; big and golden 3.5 s). The BIG / GOLDEN alert shows at the same time as the catch (owner, Nov 2026).
  */
-export const ALERT_MS = 2_000;
-export const LEAP_MS = 1_300;
-export const RESULT_MS = { fish: 2_600, big: 4_600, gold: 5_200, snap: SNAP_MS } as const;
+export const RESULT_MS = { fish: 2_600, big: 4_000, gold: 4_200, snap: SNAP_MS } as const;
 
 export type CatchKind = "fish" | "big" | "gold" | "snap";
 

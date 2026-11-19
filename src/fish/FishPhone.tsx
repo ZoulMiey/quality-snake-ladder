@@ -9,9 +9,9 @@ import { tokenById } from "../lib/tokens.ts";
 import { sfx, unlockAudio } from "../lib/sound.ts";
 import Countdown from "../components/Countdown.tsx";
 import type { FeedItem, Game, Player } from "../lib/types.ts";
-import { ALERT_MS, BIG_STREAK, GOLD_STREAK, QUESTION_MS, boatOrder, fixFishState, frenzyAt, type Catch, type FishState } from "./rules.ts";
+import { BIG_STREAK, GOLD_STREAK, QUESTION_MS, RESULT_MS, boatOrder, fixFishState, frenzyAt, type Catch, type FishState } from "./rules.ts";
 import type { PondApi } from "./pondApi.ts";
-import { PondFlat } from "./pondFlat.ts";
+import { PondSide } from "./pondSide.ts";
 import { fishClock, mmss } from "./FishView.tsx";
 
 const HAPTIC = {
@@ -52,55 +52,20 @@ export default function FishPhone({ uid, me, game, onExit }: { uid: string; me: 
   const playing = game.status === "playing" && clock.started;
   const ended = game.status === "ended";
 
-  // The pond: 3D when the phone can, otherwise flat.
-  const [mode, setMode] = useState<"3d" | "flat" | null>(null);
-  const cv3 = useRef<HTMLCanvasElement>(null);
-  const cvFlat = useRef<HTMLCanvasElement>(null);
-  const floats = useRef<HTMLDivElement>(null);
+  // The pond, seen from the side (owner's pick). The view never moves.
+  const cv = useRef<HTMLCanvasElement>(null);
   const pond = useRef<PondApi | null>(null);
+  const [ready, setReady] = useState(0);
   useEffect(() => {
-    let dead = false;
-    (async () => {
-      try {
-        // "?pond=flat" forces the flat pond (tests, or a phone that struggles with 3D).
-        if (new URLSearchParams(location.search).get("pond") === "flat") throw new Error("flat asked");
-        const m = await import("./pondScene.ts");
-        if (dead) return;
-        if (!m.canDo3D()) throw new Error("no 3D");
-        setMode("3d");
-      } catch {
-        if (!dead) setMode("flat");
-      }
-    })();
+    if (!cv.current) return;
+    const api = new PondSide(cv.current);
+    pond.current = api;
+    setReady((n) => n + 1);
     return () => {
-      dead = true;
-    };
-  }, []);
-  useEffect(() => {
-    if (!mode) return;
-    let api: PondApi | null = null;
-    let dead = false;
-    (async () => {
-      try {
-        if (mode === "3d") {
-          const m = await import("./pondScene.ts");
-          if (dead) return;
-          api = new m.PondScene(cv3.current!, floats.current!);
-        } else api = new PondFlat(cvFlat.current!);
-      } catch {
-        if (!dead) setMode("flat");
-        return;
-      }
-      pond.current = api;
-      setReady((n) => n + 1);
-    })();
-    return () => {
-      dead = true;
-      api?.dispose();
+      api.dispose();
       pond.current = null;
     };
-  }, [mode]);
-  const [ready, setReady] = useState(0);
+  }, [!!st && !!players && !ended]);
 
   // Boats around the pond (same order as the projector).
   useEffect(() => {
@@ -128,12 +93,14 @@ export default function FishPhone({ uid, me, game, onExit }: { uid: string; me: 
     const p = pond.current;
     const now = Date.now();
     if (r.kind === "fish") {
-      p?.catchAt(uid, "fish", 450, `+${r.kg} kg`);
+      p?.catchAt(uid, "fish", 0, `+${r.kg} kg`);
       sfx.reel();
       buzz(HAPTIC.fish);
     } else if (r.kind === "big" || r.kind === "gold") {
-      setAlert({ kind: r.kind, until: now + ALERT_MS, r });
-      p?.catchAt(uid, r.kind, ALERT_MS, `+${r.kg} kg`, r.kind === "gold");
+      // The alert and the catch play at the same time (owner, Nov 2026): the alert card sits in the
+      // bottom half while the fish is caught in the top half.
+      setAlert({ kind: r.kind, until: now + RESULT_MS[r.kind] - 200, r });
+      p?.catchAt(uid, r.kind, 0, `+${r.kg} kg`, r.kind === "gold");
     } else {
       setAlert({ kind: "snap", until: now + SNAP_ALERT_MS, r, answer: st.q?.opts[r.correctIdx] });
     }
@@ -196,9 +163,7 @@ export default function FishPhone({ uid, me, game, onExit }: { uid: string; me: 
         <span className={`fp-clock ${fr.on && playing ? "fr" : ""}`}>{fr.on && playing ? `🌀 ×2 · ${Math.ceil(fr.endsIn / 1000)}s` : `⏱ ${mmss(clock.left)}`}</span>
       </div>
       <div className="slp-view">
-        {mode === "3d" && <canvas ref={cv3} className="fp-canvas" aria-label="Your boat on the pond" />}
-        {mode === "flat" && <canvas ref={cvFlat} className="fp-canvas" aria-label="Your boat on the pond" />}
-        <div className="fp-floats" ref={floats} />
+        <canvas ref={cv} className="fp-canvas" aria-label="Your boat on the pond, seen from the side" />
         <StreakDots streak={st.streak} />
         {game.paused && game.status === "playing" && <div className="paused-bar slp-paused">Paused by host / Dihentikan seketika</div>}
         {st.phase === "result" && st.result?.kind === "snap" && !showAlert && (
@@ -220,7 +185,8 @@ export default function FishPhone({ uid, me, game, onExit }: { uid: string; me: 
           <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="slp-cd" you={me.token} />
         </div>
       )}
-      {showAlert && (
+      {showAlert && (showAlert.kind === "big" || showAlert.kind === "gold") && <FishAlert a={showAlert} />}
+      {showAlert && showAlert.kind !== "big" && showAlert.kind !== "gold" && (
         <div className="slp-overlay">
           <FishAlert a={showAlert} />
         </div>
@@ -291,7 +257,7 @@ function FishAlert({ a }: { a: Alert }) {
     );
   const gold = a.kind === "gold";
   return (
-    <div className={`slp-alert a-good ${gold ? "fa-gold" : "fa-big"}`} role="alert">
+    <div className={`slp-alert a-good fp-bigcard ${gold ? "fa-gold" : "fa-big"}`} role="alert">
       <div className="a-icon">{gold ? "✨🐟✨" : "🐠"}</div>
       <div className="a-t1">{gold ? "SUPER BIG GOLDEN FISH!" : "BIG FISH!"}</div>
       <div className="a-t2">{gold ? "IKAN EMAS SUPER BESAR!" : "IKAN BESAR!"}</div>
