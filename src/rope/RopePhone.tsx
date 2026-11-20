@@ -11,7 +11,7 @@ import { sfx, unlockAudio } from "../lib/sound.ts";
 import Countdown from "../components/Countdown.tsx";
 import type { FeedItem, Game, Player } from "../lib/types.ts";
 import { fixRope } from "./engine.ts";
-import { HEAVE_WARN_MS, POWER_STREAK, QUESTION_MS, SIDE_NAME, fixRopeState, heaveAt, other, type RopeResult, type RopeState, type Side } from "./rules.ts";
+import { HEAVE_WARN_MS, POWER_STREAK, QUESTION_MS, READY_QID, ROUND_BANNER_MS, SIDE_NAME, fixRopeState, heaveAt, other, type RopeResult, type RopeState, type Side } from "./rules.ts";
 import { drawRopePhone, newPhoneMemory } from "./phone3d.ts";
 import { mmss, ropeClock } from "./RopeView.tsx";
 
@@ -260,7 +260,7 @@ export default function RopePhone({ uid, me, game, onExit }: { uid: string; me: 
             <RopeQuestion uid={uid} st={st} paused={game.paused} pausedAt={game.pausedAt} />
           </div>
         )}
-        {rope.phase === "break" && game.status === "playing" && <BreakCard rope={rope} mySide={mySide} left={clock.breakLeft} />}
+        {rope.phase === "break" && game.status === "playing" && !rope.breakUntil && <BreakCard uid={uid} rope={rope} mySide={mySide} players={players} />}
       </div>
       {game.goAt && serverNow() < game.goAt + 900 && (
         <div className="slp-overlay">
@@ -275,6 +275,7 @@ export default function RopePhone({ uid, me, game, onExit }: { uid: string; me: 
           <RopeAlert a={showAlert} />
         </div>
       )}
+      {rope.phase === "break" && game.status === "playing" && rope.breakUntil && !game.paused && <NextRoundCount round={rope.round + 1} left={clock.breakLeft} />}
     </div>
   );
 }
@@ -297,9 +298,9 @@ function RopeAlert({ a }: { a: Alert }) {
         <div className="a-t1">HEAVE!</div>
         <div className="a-t2">TARIK KUAT!</div>
         <p className="a-sub">
-          Every pull counts double for 10 s!
+          Every pull counts double for 30 s!
           <br />
-          Setiap tarikan ×2 selama 10 saat!
+          Setiap tarikan ×2 selama 30 saat!
         </p>
       </div>
     );
@@ -324,10 +325,64 @@ function RopeAlert({ a }: { a: Alert }) {
   );
 }
 
-function BreakCard({ rope, mySide, left }: { rope: NonNullable<ReturnType<typeof fixRope>>; mySide: Side; left: number }) {
+/** 5, 4, 3, 2, 1, then "ROUND 2!" (owner's tweak), full screen on every phone. */
+function NextRoundCount({ round, left }: { round: number; left: number }) {
+  const n = left > ROUND_BANNER_MS ? Math.ceil((left - ROUND_BANNER_MS) / 1000) : 0;
+  const last = useRef(-1);
+  useEffect(() => {
+    if (last.current === n) return;
+    last.current = n;
+    if (n === 0) {
+      sfx.go();
+      buzz(HAPTIC.heave);
+    } else sfx.count();
+  }, [n]);
+  return (
+    <div className="slp-overlay">
+      <div className={`countdown slp-cd rp-count ${n === 0 ? "go" : ""}`} role="status" aria-live="assertive">
+        {n > 0 ? (
+          <>
+            <div className="cd-ready">
+              <span className="en">Round {round} in</span>
+              <span className="ms">Pusingan {round} dalam</span>
+            </div>
+            <div key={n} className="cd-num">
+              {n}
+            </div>
+          </>
+        ) : (
+          <>
+            <div key="go" className="rp-round">
+              ROUND <b>{round}!</b>
+            </div>
+            <div className="cd-ready">
+              <span className="en">PULL!</span>
+              <span className="ms">PUSINGAN {round} · TARIK!</span>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BreakCard({ uid, rope, mySide, players }: { uid: string; rope: NonNullable<ReturnType<typeof fixRope>>; mySide: Side; players: Record<string, Player> }) {
   const win = rope.last?.win;
   const won = win === mySide;
-  const secs = Math.ceil(left / 1000);
+  const everyone = Object.keys(rope.teams).filter((u) => players[u]);
+  const readyN = everyone.filter((u) => rope.ready?.[u]).length;
+  const [sent, setSent] = useState(false);
+  const iAmReady = !!rope.ready?.[uid] || sent;
+  async function ready() {
+    unlockAudio();
+    setSent(true);
+    buzz(HAPTIC.pull);
+    try {
+      await set(ref(db, `answers/${uid}`), { qid: READY_QID, choice: rope.round });
+    } catch {
+      setSent(false);
+    }
+  }
   return (
     <div className={`rp-break ${won ? "won" : win === "draw" ? "draw" : "lost"}`}>
       <b>{win === "draw" ? "A DRAW! · SERI!" : won ? "YOUR TEAM WINS THE ROUND! 🎉" : "SPLASH! 💦"}</b>
@@ -335,8 +390,17 @@ function BreakCard({ rope, mySide, left }: { rope: NonNullable<ReturnType<typeof
       <div className="rr-score">
         <i className="red">{rope.wins.red}</i> – <i className="blue">{rope.wins.blue}</i>
       </div>
+      {iAmReady ? (
+        <div className="rp-ready done">
+          ✔ You're ready! Waiting for the others… <small>Anda sudah sedia! Menunggu yang lain… ({readyN}/{everyone.length})</small>
+        </div>
+      ) : (
+        <button type="button" className="big-btn rp-ready" onClick={ready}>
+          ✋ READY for round {rope.round + 1} <small>SEDIA untuk pusingan {rope.round + 1}</small>
+        </button>
+      )}
       <small>
-        Round {rope.round + 1} in {secs} s · Pusingan {rope.round + 1} dalam {secs} saat
+        {readyN} / {everyone.length} ready · sedia
       </small>
     </div>
   );

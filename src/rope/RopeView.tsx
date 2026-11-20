@@ -9,7 +9,7 @@ import { sfx } from "../lib/sound.ts";
 import Countdown from "../components/Countdown.tsx";
 import type { FeedItem, Game, Player, RopeGame } from "../lib/types.ts";
 import { fixRope } from "./engine.ts";
-import { BREAK_MS, HEAVE_MS, HEAVE_WARN_MS, ROUND_MS, SIDES, SIDE_NAME, fixRopeState, heaveAt, mvpOrder, other, shoutOuts, type RopeState, type Side } from "./rules.ts";
+import { HEAVE_MS, ROUND_BANNER_MS, HEAVE_WARN_MS, ROUND_MS, SIDES, SIDE_NAME, fixRopeState, heaveAt, mvpOrder, other, shoutOuts, type RopeState, type Side } from "./rules.ts";
 import {
   CX,
   DISP,
@@ -73,7 +73,7 @@ function roundOver(rope: RopeGame | null) {
   return { win: rope.last.win as Side, at: rope.last.at };
 }
 
-export default function RopeView({ game, players, feed, onAgain }: { game: Game; players: Record<string, Player>; feed: FeedItem[]; onAgain: () => void }) {
+export default function RopeView({ game, players, feed, onAgain, onStartRound }: { game: Game; players: Record<string, Player>; feed: FeedItem[]; onAgain: () => void; onStartRound?: () => void }) {
   useNow(250);
   const rope = useMemo(() => fixRope(game.rope), [game.rope]);
   const states = useRopeStates(players);
@@ -255,14 +255,18 @@ export default function RopeView({ game, players, feed, onAgain }: { game: Game;
   // Countdowns: 5 s before each HEAVE!, the last 10 s of each round, and the break between rounds.
   const heaveSoon = playing && !game.paused && !h.on && h.nextIn !== null && h.nextIn <= HEAVE_WARN_MS ? Math.ceil(h.nextIn / 1000) : null;
   const final = playing && !game.paused && clock.left > 0 && clock.left <= 10_000 ? Math.ceil(clock.left / 1000) : null;
+  // Between rounds: 5-second countdown once everyone is ready, then "ROUND 2".
+  const counting = game.status === "playing" && rope?.phase === "break" && !!rope.breakUntil && !game.paused;
+  const countNum = counting ? (clock.breakLeft > ROUND_BANNER_MS ? Math.ceil((clock.breakLeft - ROUND_BANNER_MS) / 1000) : 0) : null;
   const beep = useRef("");
   useEffect(() => {
-    const k = heaveSoon !== null ? `h${heaveSoon}` : final !== null ? `e${final}` : "";
+    const k = heaveSoon !== null ? `h${heaveSoon}` : final !== null ? `e${final}` : countNum !== null ? `c${countNum}` : "";
     if (!k || beep.current === k) return;
     beep.current = k;
-    if (heaveSoon !== null) sfx.count();
+    if (countNum === 0) sfx.go();
+    else if (heaveSoon !== null || countNum !== null) sfx.count();
     else sfx.tick();
-  }, [heaveSoon, final]);
+  }, [heaveSoon, final, countNum]);
 
   const list = Object.entries(states);
   const order = mvpOrder(list);
@@ -303,7 +307,24 @@ export default function RopeView({ game, players, feed, onAgain }: { game: Game;
               <small>Pusingan hampir tamat!</small>
             </div>
           )}
-          {inBreak && rope && <RoundBanner rope={rope} left={clock.breakLeft} />}
+          {inBreak && rope && !rope.breakUntil && <RoundBanner rope={rope} players={players} states={states} onStartRound={onStartRound} />}
+          {inBreak && rope && countNum !== null && (
+            <div className={`rope-count ${countNum === 0 ? "go" : ""}`} key={countNum}>
+              {countNum > 0 ? (
+                <>
+                  <small>
+                    Round {rope.round + 1} in · Pusingan {rope.round + 1} dalam
+                  </small>
+                  <b>{countNum}</b>
+                </>
+              ) : (
+                <>
+                  <b>ROUND {rope.round + 1}!</b>
+                  <small>PUSINGAN {rope.round + 1}! · PULL! TARIK!</small>
+                </>
+              )}
+            </div>
+          )}
           {game.paused && <div className="paused-overlay">⏸ Paused / Dihentikan seketika</div>}
           {game.status === "playing" && game.goAt && <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="board-cd" />}
           {ended && rope && <RopePodium rope={rope} states={states} players={players} onAgain={onAgain} />}
@@ -388,10 +409,12 @@ function heaveBanner(c: CanvasRenderingContext2D, endsIn: number, t: number) {
   c.restore();
 }
 
-function RoundBanner({ rope, left }: { rope: RopeGame; left: number }) {
+function RoundBanner({ rope, players, states, onStartRound }: { rope: RopeGame; players: Record<string, Player>; states: Record<string, RopeState>; onStartRound?: () => void }) {
   const last = rope.last;
   const win = last?.win;
-  const secs = Math.ceil(left / 1000);
+  const everyone = Object.keys(states);
+  const ready = everyone.filter((u) => rope.ready?.[u]);
+  const waiting = everyone.filter((u) => !rope.ready?.[u]);
   return (
     <div className={`rope-round ${win ?? "draw"}`}>
       {win && win !== "draw" ? (
@@ -413,10 +436,21 @@ function RoundBanner({ rope, left }: { rope: RopeGame; left: number }) {
       <div className="rr-score">
         <i className="red">{rope.wins.red}</i> – <i className="blue">{rope.wins.blue}</i>
       </div>
-      <small className="rr-next">
-        Round {rope.round + 1} starts in {secs} · Pusingan {rope.round + 1} dalam {secs} saat
-      </small>
-      <div className="rr-bar" style={{ width: `${(left / BREAK_MS) * 100}%` }} />
+      <div className="rr-ready">
+        <b>
+          ✋ Ready for round {rope.round + 1}? Press READY on your phone! · Tekan SEDIA di telefon!
+        </b>
+        <span className="rr-count">
+          {ready.length} / {everyone.length} ready · sedia
+        </span>
+        {waiting.length > 0 && waiting.length <= 12 && <small>Waiting for / Menunggu: {waiting.map((u) => players[u]?.name ?? "Player").join(", ")}</small>}
+        {onStartRound && (
+          <button className="btn rr-now" onClick={onStartRound}>
+            ▶ Start round now
+          </button>
+        )}
+      </div>
+      <div className="rr-bar" style={{ width: `${everyone.length ? (ready.length / everyone.length) * 100 : 0}%` }} />
     </div>
   );
 }

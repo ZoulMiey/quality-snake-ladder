@@ -346,7 +346,9 @@ function HostScreen() {
       {status !== "lobby" && game?.mode === "clash" && game.clashFormat === "boss" && <RaidView game={game} players={players ?? {}} onAgain={() => playAgain()} />}
       {status !== "lobby" && game?.mode === "clash" && game.clashFormat !== "boss" && <ClashView game={game} players={players ?? {}} onAgain={() => playAgain()} />}
       {status !== "lobby" && game?.mode === "fish" && <FishView game={game} players={players ?? {}} feed={feed} onAgain={() => playAgain()} />}
-      {status !== "lobby" && game?.mode === "rope" && <RopeView game={game} players={players ?? {}} feed={feed} onAgain={() => playAgain()} />}
+      {status !== "lobby" && game?.mode === "rope" && (
+        <RopeView game={game} players={players ?? {}} feed={feed} onAgain={() => playAgain()} onStartRound={iRun && engine.current instanceof RopeEngine ? () => void (engine.current as RopeEngine).startRoundNow() : undefined} />
+      )}
       {status !== "lobby" && game?.mode !== "kart" && game?.mode !== "clash" && game?.mode !== "fish" && game?.mode !== "rope" && (
         <GameView game={game!} players={players ?? {}} states={states ?? {}} feed={feed} highlight={highlight} lastRoll={lastRoll} hop={hop} onAgain={() => playAgain()} />
       )}

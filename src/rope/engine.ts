@@ -11,8 +11,9 @@ import { tokenById } from "../lib/tokens.ts";
 import { COUNTDOWN_MS } from "../lib/engine.ts";
 import type { FeedItem, Game, Player, Question, RopeGame } from "../lib/types.ts";
 import {
-  BREAK_MS,
+  NEXT_ROUND_MS,
   QUESTION_MS,
+  READY_QID,
   RIGHT_MS,
   ROUND_MS,
   SIDE_NAME,
@@ -52,6 +53,7 @@ export function fixRope(r: Partial<RopeGame> | null | undefined): RopeGame | nul
     phase: r.phase ?? "play",
     endsAt: r.endsAt ?? 0,
     breakUntil: r.breakUntil ?? null,
+    ready: r.ready ?? {},
     last: r.last ?? null,
     right: { red: r.right?.red ?? 0, blue: r.right?.blue ?? 0 },
     champion: r.champion ?? null,
@@ -300,11 +302,37 @@ export class RopeEngine {
   }
 
   private onAnswer(uid: string, a: { qid: string; choice: number }) {
+    if (a.qid === READY_QID) {
+      void this.onReady(uid, a.choice);
+      return;
+    }
     if (!this.game || this.game.status !== "playing" || this.game.paused || this.rope?.phase !== "play") return;
     const st = this.states[uid];
     const p = this.priv[uid];
     if (!st || !p || st.phase !== "question" || p.qid !== a.qid) return;
     void this.judge(uid, a.choice);
+  }
+
+  /** A phone pressed READY between rounds. When everyone still in the game is ready, the countdown starts. */
+  private async onReady(uid: string, round: number) {
+    const r = this.rope;
+    if (!this.game || this.game.status !== "playing" || !r || r.phase !== "break" || r.breakUntil || round !== r.round || !this.states[uid]) return;
+    if (r.ready?.[uid]) return;
+    r.ready = { ...(r.ready ?? {}), [uid]: true };
+    const updates: Record<string, unknown> = { [`game/rope/ready/${uid}`]: true, [`answers/${uid}`]: null };
+    if (Object.keys(this.states).every((u) => r.ready?.[u])) {
+      r.breakUntil = serverNow() + NEXT_ROUND_MS;
+      updates["game/rope/breakUntil"] = r.breakUntil;
+    }
+    await update(ref(db), updates);
+  }
+
+  /** Host: start the next round now, even if not everyone pressed READY. */
+  async startRoundNow() {
+    const r = this.rope;
+    if (!this.game || this.game.status !== "playing" || !r || r.phase !== "break" || r.breakUntil) return;
+    r.breakUntil = serverNow() + NEXT_ROUND_MS;
+    await set(ref(db, "game/rope/breakUntil"), r.breakUntil);
   }
 
   private tick() {
@@ -315,6 +343,11 @@ export class RopeEngine {
     if (g.goAt && now < g.goAt) return;
     if (r.phase === "break") {
       if (r.breakUntil && now >= r.breakUntil) void this.nextRound();
+      // A player removed while the others wait: start once everyone left is ready.
+      else if (!r.breakUntil && Object.keys(this.states).length && Object.keys(this.states).every((u) => r.ready?.[u])) {
+        r.breakUntil = now + NEXT_ROUND_MS;
+        void set(ref(db, "game/rope/breakUntil"), r.breakUntil);
+      }
       return;
     }
     if (r.phase !== "play") return;
@@ -325,7 +358,7 @@ export class RopeEngine {
     const h = heaveAt(this.elapsed(now));
     if (h.on && h.index !== this.heaveShown) {
       this.heaveShown = h.index;
-      void this.pushFeed({ at: now, uid: "", text: "💥 HEAVE! Every pull counts double for 10 s", tone: "win", k: "heave" });
+      void this.pushFeed({ at: now, uid: "", text: "💥 HEAVE! Every pull counts double for 30 s", tone: "win", k: "heave" });
       this.onEvent?.({ type: "heave" });
     }
     for (const [uid, st] of Object.entries(this.states)) {
@@ -413,7 +446,8 @@ export class RopeEngine {
         return;
       }
       r.phase = "break";
-      r.breakUntil = now + BREAK_MS;
+      r.breakUntil = null;
+      r.ready = {};
       const updates: Record<string, unknown> = { "game/rope": r, "game/ropeX": Math.round(this.x * 10000) / 10000, answers: null };
       for (const [uid, st] of Object.entries(this.states)) {
         st.phase = "break";
@@ -436,6 +470,7 @@ export class RopeEngine {
     r.round += 1;
     r.phase = "play";
     r.breakUntil = null;
+    r.ready = {};
     r.endsAt = now + ROUND_MS;
     r.right = { red: 0, blue: 0 };
     this.x = 0;

@@ -1,7 +1,10 @@
 // Pull the Rope, a full best-of-3 match: projector + N phones (default 8).
 // Phones pick sides (every 4th player leaves it to the game; the host moves one player from Blue to Red).
 // Round 1: both teams answer right with chance ACC (default 0.75), so it runs into HEAVE! at 1:00.
-// Later rounds: Red ACC_RED (0.4), Blue ACC_BLUE (0.95), so Blue pulls Red into the river.
+// Round 2: the team that lost round 1 answers well (ACC_BLUE 0.95 v ACC_RED 0.4), so the match goes to 1–1;
+// round 3: Blue answers well and pulls Red into the river.
+// Between rounds every phone presses READY (after round 2 the last phone does not, and the host presses
+// "Start round now"), then the 5-second countdown and "ROUND N".
 // Screenshots of every moment go to scripts/e2e/shots (or $SHOTS). Clears the database first.
 // Options: N, ACC, ACC_RED, ACC_BLUE, R1_SECS (how long round 1 is played evenly, default 75).
 const { chromium } = require("playwright");
@@ -69,8 +72,10 @@ const dbGet = async () => (await fetch(DB, { headers: { Authorization: "Bearer o
   Object.values(teams).forEach((s) => count[s]++);
   log("teams at start:", JSON.stringify(count), "order red:", all.game.rope.order.red.length, "blue:", all.game.rope.order.blue.length);
 
-  const want = new Set(["question", "toast", "wrong", "heave", "soon", "break", "river"]);
-  const projWant = new Set(["game", "splash", "soon", "heave", "round", "final"]);
+  const want = new Set(["question", "toast", "wrong", "heave", "soon", "break", "river", "ready", "count", "go"]);
+  const projWant = new Set(["game", "splash", "soon", "heave", "round", "final", "count", "go"]);
+  const readyAt = {};
+  let hostPressed = false;
   const seen = {};
   const t0 = Date.now();
   let ended = false;
@@ -117,6 +122,30 @@ const dbGet = async () => (await fetch(DB, { headers: { Authorization: "Bearer o
             log("phone shot river, flag", g.ropeX);
           }
         }
+        // Between rounds: press READY after 1–4 s (after round 2 the last phone waits for the host).
+        if (rope.phase === "break" && !rope.breakUntil) {
+          const btn = ph.p.locator("button.rp-ready");
+          if (!(await btn.count())) return;
+          if (idx === phones.length - 1 && rope.round === 2) return;
+          readyAt[`${uid}-${rope.round}`] ??= Date.now() + 1000 + Math.random() * 3000;
+          if (Date.now() < readyAt[`${uid}-${rope.round}`]) return;
+          await btn.click({ timeout: 5000 }).catch(() => {});
+          if (idx === 0 && want.has("ready")) {
+            want.delete("ready");
+            await ph.p.waitForTimeout(400);
+            await ph.p.screenshot({ path: `${OUT}/rope-phone-ready.png` });
+            log("phone shot ready |", (await ph.p.locator(".rp-break").innerText().catch(() => "")).replace(/\n/g, " ").slice(0, 120));
+          }
+          return;
+        }
+        if (idx === 0 && rope.phase === "break" && rope.breakUntil) {
+          const k = (await ph.p.locator(".rp-count.go").count()) ? "go" : (await ph.p.locator(".rp-count").count()) ? "count" : "";
+          if (k && want.has(k)) {
+            want.delete(k);
+            await ph.p.screenshot({ path: `${OUT}/rope-phone-${k}.png` });
+            log("phone shot", k, "|", (await ph.p.locator(".rp-count").innerText().catch(() => "")).replace(/\n/g, " "));
+          }
+        }
         if (st.phase !== "question") return;
         const key = `${uid}-${st.seq}`;
         seen[key] ??= Date.now() + 1500 + Math.random() * 4000;
@@ -129,7 +158,9 @@ const dbGet = async () => (await fetch(DB, { headers: { Authorization: "Bearer o
           await ph.p.screenshot({ path: `${OUT}/rope-phone-question.png` });
           log("phone shot question");
         }
-        const acc = even ? ACC : teams[uid] === "red" ? ACC_RED : ACC_BLUE;
+        // Round 2 goes to the team that lost round 1, so there is always a round 3 (and a break after round 2).
+        const fav = rope.round === 2 && rope.last?.win === "blue" ? "red" : "blue";
+        const acc = even ? ACC : teams[uid] === fav ? ACC_BLUE : ACC_RED;
         const right = all.private?.[uid]?.correctIdx ?? 0;
         await btns
           .nth(Math.random() < acc ? right : (right + 1) % n)
@@ -161,6 +192,25 @@ const dbGet = async () => (await fetch(DB, { headers: { Authorization: "Bearer o
         await proj.screenshot({ path: `${OUT}/rope-projector-${k}.png` });
         log("projector shot", k);
       }
+    if (rope.phase === "break" && !rope.breakUntil && rope.round === 2 && !hostPressed) {
+      const others = Object.keys(rope.teams).filter((u) => !(rope.ready || {})[u]);
+      if (others.length === 1) {
+        await proj.waitForTimeout(2000);
+        await proj.screenshot({ path: `${OUT}/rope-projector-ready.png` });
+        log("projector waiting:", (await proj.locator(".rr-ready").innerText().catch(() => "")).replace(/\n/g, " "));
+        await proj.getByRole("button", { name: "▶ Start round now" }).click();
+        hostPressed = true;
+        log("host pressed Start round now");
+      }
+    }
+    for (const k of ["count", "go"]) {
+      const sel = k === "go" ? ".rope-count.go" : ".rope-count";
+      if (projWant.has(k) && (await proj.locator(sel).count()) && (k === "go" || !(await proj.locator(".rope-count.go").count()))) {
+        projWant.delete(k);
+        await proj.screenshot({ path: `${OUT}/rope-projector-${k}.png` });
+        log("projector shot", k, "|", (await proj.locator(".rope-count").innerText().catch(() => "")).replace(/\n/g, " "));
+      }
+    }
     if (projWant.has("round") && (await proj.locator(".rope-round").count())) {
       projWant.delete("round");
       await proj.waitForTimeout(2500);

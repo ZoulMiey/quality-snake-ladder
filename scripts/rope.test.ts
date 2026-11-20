@@ -1,7 +1,8 @@
 // Checks the Pull the Rope rules, and simulates rounds to show the balance numbers. Run: npm test
 import assert from "node:assert/strict";
 import {
-  BREAK_MS,
+  NEXT_ROUND_MS,
+  READY_COUNT_MS,
   HEAVE_AT,
   HEAVE_MS,
   QUESTION_MS,
@@ -30,11 +31,12 @@ const t = (name: string, fn: () => void) => {
 const close = (a: number, b: number, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} ≈ ${b}`);
 const opts = (ms = 6000, heave = false, sideCount = 12, total = 24) => ({ ms, heave, sideCount, total, choice: 0, correctIdx: 0 });
 
-t("3:00 rounds, 15 s questions, 3 s wait after a wrong answer, 10 s break", () => {
+t("3:00 rounds, 15 s questions, 3 s wait after a wrong answer; 5 s countdown + ROUND banner after READY", () => {
   assert.equal(ROUND_MS, 180_000);
   assert.equal(QUESTION_MS, 15_000);
   assert.equal(WRONG_MS, 3_000);
-  assert.equal(BREAK_MS, 10_000);
+  assert.equal(READY_COUNT_MS, 5_000);
+  assert.equal(NEXT_ROUND_MS, 6_500);
 });
 
 t("each pull is shared by team size: 2 players pull as hard as 4 in total", () => {
@@ -75,15 +77,16 @@ t("FAST = right within 3 s (plus 0.3 s for the network)", () => {
   assert.equal(judgeAnswer(0, false, opts(1000)).result.fast, false);
 });
 
-t("HEAVE! at 1:00 and 2:00 for 10 s", () => {
+t("HEAVE! every minute (1:00 and 2:00) for 30 s", () => {
   assert.deepEqual(HEAVE_AT, [60_000, 120_000]);
-  assert.equal(HEAVE_MS, 10_000);
+  assert.equal(HEAVE_MS, 30_000);
   assert.equal(heaveAt(59_999).on, false);
   assert.equal(heaveAt(59_000).nextIn, 1_000);
   assert.equal(heaveAt(60_000).on, true);
-  assert.equal(heaveAt(69_999).index, 0);
-  assert.equal(heaveAt(70_000).on, false);
-  assert.equal(heaveAt(125_000).index, 1);
+  assert.equal(heaveAt(89_999).index, 0);
+  assert.equal(heaveAt(90_000).on, false);
+  assert.equal(heaveAt(90_000).nextIn, 30_000);
+  assert.equal(heaveAt(145_000).index, 1);
   assert.equal(heaveAt(150_000).nextIn, null);
 });
 
@@ -158,7 +161,7 @@ function stats(red: SimTeam, blue: SimTeam, rounds = 1500, seed = 7) {
 const mmss = (ms: number) => (isNaN(ms) ? "–" : `${Math.floor(ms / 60000)}:${String(Math.round((ms % 60000) / 1000)).padStart(2, "0")}`);
 const show = (label: string, s: ReturnType<typeof stats>) => console.log(`   ${label.padEnd(28)} bank ${Math.round(s.bank * 100)}% (~${mmss(s.med)}), Blue wins ${Math.round(s.blue * 100)}%`);
 
-t("simulation: even teams are a coin toss and usually go to time", () => {
+t("simulation: even teams are a coin toss; about half the rounds go to time", () => {
   const s = stats({ n: 12, acc: 0.7 }, { n: 12, acc: 0.7 });
   show("12 v 12, both 70%", s);
   assert.ok(s.blue > 0.42 && s.blue < 0.58);

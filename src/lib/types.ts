@@ -106,8 +106,10 @@ export type RopeGame = {
   phase: "play" | "break" | "done";
   /** When this round's 3:00 are up (moved on when the game is paused). */
   endsAt: number;
-  /** End of the break between rounds. */
+  /** Between rounds: when the next round starts (set once everyone is ready); null while waiting. */
   breakUntil: number | null;
+  /** Between rounds: who pressed READY (uid → true). */
+  ready?: Record<string, true> | null;
   /** How the last round ended. */
   last: { win: "red" | "blue" | "draw"; how: "bank" | "time" | "host"; x: number; at: number } | null;
   /** Right answers per team this round (a tie-break). */

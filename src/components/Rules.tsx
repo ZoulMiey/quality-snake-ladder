@@ -33,7 +33,7 @@ const ROPE_TILES = [
   { icon: "🔴🔵", en: "Red vs Blue:\npick your side", ms: "Merah lawan Biru: pilih pihak" },
   { icon: "💪", en: "Right answer =\nyour team pulls", ms: "Betul = pasukan anda menarik" },
   { icon: "⚡", en: "FAST ×1.25 · 3 in a row\n= POWER PULL ×2", ms: "Pantas · 3 berturut = tarikan kuat ×2" },
-  { icon: "💥", en: "HEAVE! at 1:00 and 2:00\nevery pull ×2 for 10 s", ms: "Tarik kuat: setiap tarikan ×2" },
+  { icon: "💥", en: "HEAVE! every minute:\nevery pull ×2 for 30 s", ms: "Setiap minit: setiap tarikan ×2 selama 30 saat" },
   { icon: "💦", en: "Flag to your bank wins\nthe round. Best of 3!", ms: "Bendera ke tebing anda menang. Terbaik 3!" },
 ];
 

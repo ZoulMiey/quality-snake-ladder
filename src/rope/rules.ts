@@ -5,9 +5,11 @@
 //     the right answer is shown, wait 3 s.
 //   - Each pull is shared out by team size, so a team of 2 is as strong as a team of 4 (owner's question 3).
 //     The pull is also scaled by the number of players, so rounds last about as long with 2 or 50 players.
-//   - FAST (right within 3 s) ×1.25 · POWER PULL (every 3rd right answer in a row) ×2 · HEAVE! ×2 for 10 s at 1:00 and 2:00.
-//   - The centre flag reaching your bank wins the round; otherwise the flag's side at 3:00. Best of 3 rounds,
-//     10 s break between rounds. MVP = most right answers.
+//   - FAST (right within 3 s) ×1.25 · POWER PULL (every 3rd right answer in a row) ×2 · HEAVE! ×2 every minute
+//     (1:00 and 2:00) for 30 s (owner's tweak after the first test; it was 10 s).
+//   - The centre flag reaching your bank wins the round; otherwise the flag's side at 3:00. Best of 3 rounds.
+//     Between rounds everyone presses READY on their phone (owner's tweak); when all are ready (or the host
+//     presses "Start round now"), a 5-second countdown, then "ROUND 2", then play. MVP = most right answers.
 // Simulation (scripts/rope.test.ts, 3,000 rounds each): even teams reach a bank in ~35% of rounds (~2:00),
 // 70% v 80% right in ~80% of rounds (~1:30, the better team wins 95%); 4 v 2 and 20 v 10 are 50/50.
 import type { PublicQuestion } from "../lib/types.ts";
@@ -27,7 +29,12 @@ export const QUESTION_MS = 15_000;
 export const WRONG_MS = 3_000;
 /** The short "PULL!" moment after a right answer before the next question. */
 export const RIGHT_MS = 1_000;
-export const BREAK_MS = 10_000;
+/** Between rounds: the countdown after everyone is ready, then the "ROUND 2" banner, then play. */
+export const READY_COUNT_MS = 5_000;
+export const ROUND_BANNER_MS = 1_500;
+export const NEXT_ROUND_MS = READY_COUNT_MS + ROUND_BANNER_MS;
+/** A phone says "ready" by writing this as its answer (answers/{uid}), so no new security rules are needed. */
+export const READY_QID = "ready";
 export const ROUNDS_TO_WIN = 2;
 /** Best of 3; a drawn round adds a round, up to 5. */
 export const MAX_ROUNDS = 5;
@@ -41,7 +48,7 @@ export const FAST_MULT = 1.25;
 export const POWER_STREAK = 3;
 export const POWER_MULT = 2;
 export const HEAVE_AT = [60_000, 120_000];
-export const HEAVE_MS = 10_000;
+export const HEAVE_MS = 30_000;
 export const HEAVE_WARN_MS = 5_000;
 export const HEAVE_MULT = 2;
 
