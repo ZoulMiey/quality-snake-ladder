@@ -66,7 +66,7 @@ export type PlayerState = {
 
 export type Player = { name: string; token: string; joinedAt: number };
 
-export type GameMode = "snake" | "kart" | "clash" | "fish";
+export type GameMode = "snake" | "kart" | "clash" | "fish" | "rope";
 
 export type Game = {
   status: "lobby" | "playing" | "ended";
@@ -94,6 +94,30 @@ export type Game = {
   endsAt?: number | null;
   /** Fishing Derby: everyone's place, refreshed every few seconds (uid → 1, 2, 3…). */
   ranks?: Record<string, number> | null;
+  /** Pull the Rope: rounds, wins and teams (see src/rope/rules.ts). */
+  rope?: RopeGame | null;
+  /** Pull the Rope: the centre flag, −1 (Red bank) … 0 … +1 (Blue bank). Written a few times a second. */
+  ropeX?: number | null;
+};
+
+export type RopeGame = {
+  round: number;
+  wins: { red: number; blue: number };
+  phase: "play" | "break" | "done";
+  /** When this round's 3:00 are up (moved on when the game is paused). */
+  endsAt: number;
+  /** End of the break between rounds. */
+  breakUntil: number | null;
+  /** How the last round ended. */
+  last: { win: "red" | "blue" | "draw"; how: "bank" | "time" | "host"; x: number; at: number } | null;
+  /** Right answers per team this round (a tie-break). */
+  right: { red: number; blue: number };
+  /** Who won the match (when it is over). */
+  champion: "red" | "blue" | "draw" | null;
+  /** uid → side, fixed at Start. */
+  teams: Record<string, "red" | "blue">;
+  /** Front-to-back order of each team (everyone agrees on where each player stands). */
+  order: { red: string[]; blue: string[] };
 };
 
 export type FeedItem = {
@@ -102,7 +126,7 @@ export type FeedItem = {
   text: string;
   tone: "good" | "bad" | "info" | "win";
   /** Fishing Derby: what was caught (phones show other players' catches from the feed). */
-  k?: "fish" | "big" | "gold" | "snap" | "frenzy";
+  k?: "fish" | "big" | "gold" | "snap" | "frenzy" | "power" | "heave" | "round";
   kg?: number;
   name?: string;
 };

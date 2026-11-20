@@ -15,6 +15,9 @@ import { BossEngine } from "../clash/bossEngine.ts";
 import RaidView from "../clash/RaidView.tsx";
 import { FishEngine } from "../fish/engine.ts";
 import FishView from "../fish/FishView.tsx";
+import { RopeEngine } from "../rope/engine.ts";
+import RopeView from "../rope/RopeView.tsx";
+import { RopeRoster, useRopeSides } from "../rope/RopeLobby.tsx";
 import ClashView from "../clash/ClashView.tsx";
 import { ClashFormatPick, ClashRoster, useLineUp } from "../clash/ClashLobby.tsx";
 import Qr from "../components/Qr.tsx";
@@ -41,10 +44,11 @@ import QuestionManager, { seedQuestionsIfEmpty } from "../components/QuestionMan
 import { fixStates, type FeedItem, type Game, type GameMode, type Player, type PlayerState, type Question } from "../lib/types.ts";
 
 /** The referee for the chosen game, with sounds on the projector for the race. */
-type AnyEngine = Engine | KartEngine | ClashEngine | BossEngine | FishEngine;
+type AnyEngine = Engine | KartEngine | ClashEngine | BossEngine | FishEngine | RopeEngine;
 function makeEngine(mode: GameMode | undefined, tab: string, format?: string): AnyEngine {
   if (mode === "clash") return format === "boss" ? new BossEngine(tab) : new ClashEngine(tab);
   if (mode === "fish") return new FishEngine(tab);
+  if (mode === "rope") return new RopeEngine(tab);
   if (mode !== "kart") return new Engine(tab);
   const e = new KartEngine(tab);
   e.onEvent = (ev) => {
@@ -342,7 +346,8 @@ function HostScreen() {
       {status !== "lobby" && game?.mode === "clash" && game.clashFormat === "boss" && <RaidView game={game} players={players ?? {}} onAgain={() => playAgain()} />}
       {status !== "lobby" && game?.mode === "clash" && game.clashFormat !== "boss" && <ClashView game={game} players={players ?? {}} onAgain={() => playAgain()} />}
       {status !== "lobby" && game?.mode === "fish" && <FishView game={game} players={players ?? {}} feed={feed} onAgain={() => playAgain()} />}
-      {status !== "lobby" && game?.mode !== "kart" && game?.mode !== "clash" && game?.mode !== "fish" && (
+      {status !== "lobby" && game?.mode === "rope" && <RopeView game={game} players={players ?? {}} feed={feed} onAgain={() => playAgain()} />}
+      {status !== "lobby" && game?.mode !== "kart" && game?.mode !== "clash" && game?.mode !== "fish" && game?.mode !== "rope" && (
         <GameView game={game!} players={players ?? {}} states={states ?? {}} feed={feed} highlight={highlight} lastRoll={lastRoll} hop={hop} onAgain={() => playAgain()} />
       )}
       {showQs && <QuestionManager onClose={() => setShowQs(false)} />}
@@ -355,6 +360,7 @@ const GAMES: { m: GameMode; desc: string; ms: string }[] = [
   { m: "kart", desc: "Tilt your phone to steer. Right answers give turbo. 3 laps.", ms: "Condongkan telefon untuk memandu. Jawapan betul beri turbo. 3 pusingan." },
   { m: "clash", desc: "Monster battles: Single 1 v 1, Team 3 v 3 or Boss Raid.", ms: "Pertarungan raksasa: 1 lawan 1, 3 lawan 3 atau Serangan Bos." },
   { m: "fish", desc: "Answer to catch fish. 3 in a row = BIG FISH, 5 = GOLDEN. Heaviest catch in 5 minutes wins.", ms: "Jawab untuk tangkap ikan. Tangkapan paling berat dalam 5 minit menang." },
+  { m: "rope", desc: "Red vs Blue across a river. Right answers pull the rope. Best of 3: the losers get a splash!", ms: "Merah lawan Biru merentasi sungai. Jawapan betul menarik tali. Terbaik 3 pusingan!" },
 ];
 
 function LobbyView({
@@ -386,9 +392,10 @@ function LobbyView({
 }) {
   const url = `${location.origin}/join`;
   const clash = useLineUp(clashFormat, players);
+  const ropeSides = useRopeSides(players);
   const cap = mode ? gameMaxPlayers(mode, clashFormat) : MAX_PLAYERS;
   const tooMany = list0(players).length > cap;
-  const canStart = !!mode && !!list0(players).length && !tooMany && !!enabledQs && (qsetCounts[qset] ?? 0) > 0 && (mode !== "clash" || clash.ready);
+  const canStart = !!mode && !!list0(players).length && !tooMany && !!enabledQs && (qsetCounts[qset] ?? 0) > 0 && (mode !== "clash" || clash.ready) && (mode !== "rope" || ropeSides.ready);
   // Only the 15 players who joined last are listed; the counter shows everyone.
   const all = Object.entries(players).sort((a, b) => (b[1].joinedAt ?? 0) - (a[1].joinedAt ?? 0));
   const list = all.slice(0, LIST_MAX);
@@ -497,11 +504,14 @@ function LobbyView({
               </p>
             )}
             {mode === "clash" && list.length > 0 && <ClashRoster format={clashFormat} players={players} />}
+            {mode === "rope" && list.length > 0 && <RopeRoster players={players} />}
+            {mode === "rope" && list.length > 0 && !ropeSides.ready && <p className="waiting">Pull the Rope needs at least 1 player on each side. Players pick on their phones; you can move them here. / Perlu sekurang-kurangnya 1 pemain di setiap pihak.</p>}
             {mode === "clash" && list.length > 0 && !clash.ready && (
               <p className="waiting">
                 {clashFormat === "boss" ? "Waiting for at least one player to pick a monster." : clashFormat === "solo" ? "Waiting for one player on Red and one on Blue, each with 3 monsters." : "Waiting for at least one player on each team."} Players pick on their phones.
               </p>
             )}
+            {mode !== "rope" && (
             <ul className={`lobby-players ${list.length > 10 ? "many" : ""}`}>
               {list.map(([uid, p]) => {
                 const t = tokenById(p.token);
@@ -516,7 +526,8 @@ function LobbyView({
                 );
               })}
             </ul>
-            {all.length > list.length && (
+            )}
+            {mode !== "rope" && all.length > list.length && (
               <p className="more-players">
                 + {all.length - list.length} more / lagi
               </p>

@@ -624,10 +624,11 @@ button:disabled { cursor: default; }
 .clash-win.raid-win { background: rgba(10,8,30,.9); }
 .raid-win .big-btn { width: auto; display: inline-block; padding: 12px 28px; font-size: 20px; }
 /* ---------- Lobby: game list, then the chosen game ---------- */
-.game-list { display: grid; gap: 14px; }
+.game-list { display: grid; gap: 10px; }
 .gl-title { font-family: var(--display); font-size: 38px; margin: 0 0 4px; line-height: 1.1; }
 .gl-title span { display: block; font-family: var(--body); font-size: 18px; font-weight: 500; opacity: .75; }
-.game-card { display: grid; grid-template-columns: clamp(180px, 16vw, 280px) minmax(0, 1fr) auto; gap: 18px; align-items: center; text-align: left; padding: 14px; border-radius: 18px; border: 3px solid rgba(255,255,255,.16); background: rgba(0,0,0,.2); color: #fff; transition: border-color .15s, background .15s, transform .1s; }
+/* 5 games: the preview size follows the screen height so all cards fit on the projector. */
+.game-card { display: grid; grid-template-columns: clamp(140px, min(14vw, 20vh), 260px) minmax(0, 1fr) auto; gap: 18px; align-items: center; text-align: left; padding: 10px 14px; border-radius: 18px; border: 3px solid rgba(255,255,255,.16); background: rgba(0,0,0,.2); color: #fff; transition: border-color .15s, background .15s, transform .1s; }
 .game-card:hover { border-color: var(--gold); background: rgba(245,197,66,.12); }
 .game-card:active { transform: scale(.99); }
 .game-preview { display: block; width: 100%; aspect-ratio: 16 / 9; height: auto; border-radius: 10px; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
@@ -1022,3 +1023,79 @@ button:disabled { cursor: default; }
 .fp-soon { display: flex; align-items: center; gap: 8px; border-radius: 999px; padding: 3px 16px; font-size: 18px; }
 .fp-soon b { font-size: 30px; }
 .fp-soon small { max-width: 110px; text-align: left; line-height: 1.15; }
+
+/* Pull the Rope: projector */
+.rope-stage { background: #6cc6f5; }
+.fh-frenzy.on.heave, .fish-bigmsg.soon.heave { background: #ea580c; }
+.rope-round { position: absolute; left: 50%; top: 13%; transform: translateX(-50%); z-index: 5; display: grid; justify-items: center; gap: 4px; text-align: center; color: #fff; background: #334155; border: 6px solid #fff; border-radius: 28px; padding: 14px 40px 18px; box-shadow: 0 14px 40px rgba(0,0,0,.4); animation: fp-pop .35s cubic-bezier(.3,1.6,.5,1); overflow: hidden; min-width: min(640px, 80%); }
+.rope-round.red { background: #dc2626; } .rope-round.blue { background: #2563eb; }
+.rope-round b { font-family: var(--display); font-weight: 800; font-size: 54px; line-height: 1; }
+.rope-round span { font-family: var(--display); font-weight: 800; font-size: 26px; opacity: .95; }
+.rope-round small { font-weight: 700; font-size: 18px; opacity: .92; }
+.rope-round .rr-next { font-size: 20px; }
+.rr-bar { position: absolute; left: 0; bottom: 0; height: 6px; background: rgba(255,255,255,.85); transition: width .25s linear; }
+.rr-score { font-family: var(--display); font-weight: 800; font-size: 44px; line-height: 1; display: flex; gap: 12px; align-items: center; justify-content: center; }
+.rr-score i { font-style: normal; min-width: 54px; padding: 2px 12px; border-radius: 12px; background: #fff; }
+.rr-score i.red { color: #dc2626; } .rr-score i.blue { color: #2563eb; }
+.rr-score.big { font-size: 56px; margin: 0 0 14px; }
+.rope-score .rs-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rs-team { border-radius: 10px; padding: 6px 10px; display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 6px; color: #fff; }
+.rs-team.red { background: #dc2626; } .rs-team.blue { background: #2563eb; }
+.rs-team b { font-family: var(--display); font-size: 20px; line-height: 1; }
+.rs-team small { grid-column: 1; opacity: .85; font-size: 12px; }
+.rs-team .rs-wins { grid-column: 2; grid-row: 1 / span 2; font-family: var(--display); font-weight: 800; font-size: 40px; line-height: 1; }
+.rs-team .rs-meta { grid-column: 1 / span 2; font-size: 12px; font-weight: 700; opacity: .9; }
+.rope-ranking li { grid-template-columns: 22px 24px minmax(0, 1fr) auto 52px; }
+.rope-podium h2 small { display: block; font-size: 26px; opacity: .85; }
+.rope-podium h2.rp-champ.red { color: #ff8a8d; } .rope-podium h2.rp-champ.blue { color: #8cc6ff; }
+.rope-podium .fish-shout b { color: var(--gold); }
+
+/* Pull the Rope: lobby */
+.rope-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rope-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.14); border-radius: 999px; padding: 3px 4px 3px 12px; font-weight: 700; font-size: 15px; }
+.rope-chip button { border: 0; border-radius: 999px; width: 28px; height: 28px; font-weight: 800; background: rgba(255,255,255,.85); color: var(--ink); cursor: pointer; }
+.rope-chip button:hover { background: #fff; }
+.rope-chip.none { padding: 3px 4px; }
+.rope-chip button.red { background: #ff8a8d; } .rope-chip button.blue { background: #8cc6ff; }
+.rope-unpicked { display: grid; gap: 6px; }
+.rope-roster .cr-stats { margin: 10px 0 0; }
+.rope-pick .cp-side { padding: 18px 6px; }
+.rope-pick .cp-side .en { font-size: 26px; }
+.rope-pick .cp-side.red { border-color: #ffb3b5; } .rope-pick .cp-side.blue { border-color: #a9d3ff; }
+.rope-pick .cp-side.red.on { background: #ef4444; border-color: #b91c1c; color: #fff; }
+.rope-pick .cp-side.blue.on { background: #3b82f6; border-color: #1d4ed8; color: #fff; }
+.rope-pick .cp-side.on .ms { color: #fff; }
+
+/* Pull the Rope: phone */
+.rp-strip { gap: 8px; }
+.rp-team { font-family: var(--display); font-weight: 800; font-size: 14px; color: #fff; border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+.rp-team.red { background: #ef4444; } .rp-team.blue { background: #3b82f6; }
+.rp-meter { position: relative; flex: 1; min-width: 60px; height: 16px; border-radius: 999px; background: #e5e7eb; }
+.rp-fill { position: absolute; top: 0; bottom: 0; transition: left .25s, width .25s; }
+.rp-fill.red { background: #ef4444; border-radius: 999px 0 0 999px; } .rp-fill.blue { background: #3b82f6; border-radius: 0 999px 999px 0; }
+.rp-mid { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; background: #94a3b8; }
+.rp-flag { position: absolute; top: 50%; transform: translate(-50%, -55%); font-size: 18px; transition: left .25s; }
+.rp-streak small { font-size: 10px; font-weight: 800; color: #fff; align-self: center; }
+.rp-toast { border-color: #16a34a; }
+.rp-toast b { color: #16a34a; }
+.rp-toast small { color: #ea580c; }
+.rp-toast small.fast { color: #0369a1; }
+.rp-toast small.hv { color: #ea580c; }
+.rp-toast.power { border-color: #ea580c; background: #fff7ed; }
+.rp-soon { background: #ea580c; }
+.rp-heave { background: #ea580c; }
+.slp-alert.rp-heave-alert { background: radial-gradient(circle at 50% 35%, #fb923c, #9a3412); }
+.rp-break { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 6; display: grid; justify-items: center; gap: 6px; text-align: center; color: #fff; border: 4px solid #fff; border-radius: 22px; padding: 16px 12px; box-shadow: 0 -8px 24px rgba(0,0,0,.35); animation: slp-up .35s cubic-bezier(.3,.7,.2,1); }
+.rp-break.won { background: radial-gradient(circle at 50% 30%, #22c55e, #0b5a2a); }
+.rp-break.lost { background: radial-gradient(circle at 50% 30%, #38bdf8, #075985); }
+.rp-break.draw { background: #475569; }
+.rp-break b { font-family: var(--display); font-weight: 800; font-size: 28px; line-height: 1.05; }
+.rp-break span { font-weight: 700; }
+.rp-break .rr-score { font-size: 34px; }
+.rp-youteam { position: absolute; left: 12px; right: 12px; bottom: 16px; z-index: 2; text-align: center; font-weight: 700; color: #fff; background: rgba(13,59,44,.94); border-radius: 18px; padding: 10px 12px 12px; box-shadow: 0 8px 20px rgba(0,0,0,.3); }
+.rp-youteam b { display: block; width: max-content; margin: 6px auto 0; }
+.rp-youteam b { display: inline-block; margin-top: 4px; padding: 4px 14px; border-radius: 999px; font-family: var(--display); font-size: 22px; }
+.rp-youteam.red b { background: #ef4444; } .rp-youteam.blue b { background: #3b82f6; }
+.timer.fast .timer-fill { background: #0ea5e9; }
+.rope-ended .rr-score { font-size: 40px; margin: 6px 0; }
+@media (prefers-reduced-motion: reduce) { .rope-round, .rp-break { animation: none; } }

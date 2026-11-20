@@ -9,6 +9,8 @@ import RaidPhone, { RaidPick } from "../clash/RaidPhone.tsx";
 import { useDbValue } from "../lib/useDb.ts";
 import SnakePhone from "./SnakePhone.tsx";
 import FishPhone from "../fish/FishPhone.tsx";
+import RopePhone from "../rope/RopePhone.tsx";
+import { RopePick } from "../rope/RopeLobby.tsx";
 import { MAX_PLAYERS, hasPiece, tokenById } from "../lib/tokens.ts";
 import { unlockAudio } from "../lib/sound.ts";
 import { fixState, type Game, type GameMode, type Player, type PlayerState } from "../lib/types.ts";
@@ -71,6 +73,7 @@ export default function Join() {
     body = (
       <>
         {game?.mode === "clash" && game.clashFormat === "boss" && <RaidPick uid={uid} />}
+        {game?.mode === "rope" && <RopePick uid={uid} />}
         {game?.mode === "clash" && game.clashFormat !== "boss" && <ClashPick uid={uid} format={game.clashFormat === "solo" ? "solo" : "team"} key={game.clashFormat ?? "team"} />}
         <Lobby uid={uid} me={me} mode={game?.mode} variant={game?.clashFormat} />
       </>
@@ -79,6 +82,7 @@ export default function Join() {
   else if (game.mode === "clash") body = <ClashPhone uid={uid} me={me} game={game} onExit={exit} />;
   else if (game.mode === "kart") body = <KartPhone uid={uid} me={me} game={game} onExit={exit} />;
   else if (game.mode === "fish") body = <FishPhone uid={uid} me={me} game={game} onExit={exit} />;
+  else if (game.mode === "rope") body = <RopePhone uid={uid} me={me} game={game} onExit={exit} />;
   else body = <SnakePhone uid={uid} me={me} game={game} state={state ?? null} onExit={exit} />;
 
   return (

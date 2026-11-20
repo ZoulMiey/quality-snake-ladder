@@ -6,6 +6,7 @@ import { PATH_POINTS, WORLD_H, WORLD_W } from "../kart/track.ts";
 import { sprite } from "../clash/sprites.ts";
 import { titan } from "../clash/titan.ts";
 import { PW, PH, drawPond, drawBoat, layoutBoats, leapingFish } from "../fish/pond2d.ts";
+import { SW, SH, CX, ROPE_Y, drawBackground, drawFlag, drawFrontWater, drawRope, layoutSide, pegDoll } from "../rope/scene.ts";
 
 function fish(c: CanvasRenderingContext2D) {
   const k = Math.max(W / PW, H / PH) * 1.05;
@@ -18,6 +19,35 @@ function fish(c: CanvasRenderingContext2D) {
   const boats = layoutBoats(people);
   for (const b of boats) drawBoat(c, b, 0, { tags: false, scale: 1.3 });
   leapingFish(c, boats[2], 0.5, 0, "gold", 1.4);
+  c.restore();
+}
+
+function rope(c: CanvasRenderingContext2D) {
+  const k = Math.max(W / SW, H / SH) * 1.05;
+  c.save();
+  c.translate(W / 2, H / 2);
+  c.scale(k, k);
+  c.translate(-SW / 2, -SH / 2 - 60);
+  drawBackground(c, 0, false);
+  const pieces = ["🦁", "🐼", "🦊", "🐳", "🐸", "🚀"];
+  const s = 70;
+  drawRope(c, 20, SW - 20, ROPE_Y);
+  for (const side of ["red", "blue"] as const) {
+    const dir = side === "red" ? -1 : 1;
+    layoutSide(side, ["a", "b", "c"]).forEach((sp, i) => {
+      let x = CX + dir * sp.dist + (dir > 0 ? s * 0.3 : s);
+      let gy = sp.gy;
+      let pose: "pull" | "wet" = "pull";
+      if (side === "red" && i === 0) {
+        x = CX - 120;
+        gy = 540;
+        pose = "wet";
+      }
+      pegDoll(c, { x, gy, s: sp.s * 1.2, face: side === "red" ? 1 : -1, side, emoji: pieces[i + (side === "red" ? 0 : 3)], pose, i, t: 0, ropeY: ROPE_Y });
+    });
+  }
+  drawFlag(c, CX + s, ROPE_Y + 2);
+  drawFrontWater(c, 0);
   c.restore();
 }
 
@@ -148,6 +178,7 @@ export default function GamePreview({ mode, className }: { mode: GameMode; class
     if (mode === "snake") snake(c);
     else if (mode === "kart") kart(c);
     else if (mode === "fish") fish(c);
+    else if (mode === "rope") rope(c);
     else clash(c);
   }, [mode]);
   return <canvas ref={cv} width={W * 2} height={H * 2} className={`game-preview ${className ?? ""}`} aria-hidden="true" />;

@@ -1,6 +1,6 @@
 # Handover: Quality Month Games
 
-Last updated **20 Nov 2026, end of the fourth session**. It covers this repository only. Read it fully before changing anything.
+Last updated **20 Nov 2026, fifth session**. It covers this repository only. Read it fully before changing anything.
 
 ## Starting a new session
 
@@ -25,6 +25,11 @@ Last updated **20 Nov 2026, end of the fourth session**. It covers this reposito
    - **Step 3 of 3 (agreed, not started):** check each game with 30–50 players, add **Quality Clash 5 v 5**, raise Boss Raid to **30 raiders** (re-tune with a simulation).
    - Owner asked how names are remembered: the name box is filled from the phone's own browser storage (`localStorage` key `qsl-name`, set in `Join.tsx`), not from Firebase. Offered to turn it off; owner did not ask for it.
 
+5. **Fifth session (20 Nov 2026): new game Pull the Rope (Tarik Tali).**
+   - Discussed rules with the owner (numbered answers), then drafts: projector (2 top views, 2 side views) → owner picked **B2 river crossing, with a wider river**; phone (3 over-the-shoulder cameras) → **P2 high behind the team**; characters (5 styles) → **wooden peg dolls**.
+   - Simulation shown to the owner before building (pull strength scaled by players; table in "Pull the Rope" below). Owner: "yes. build".
+   - Built, tested on the emulator with 8 and 50 phones, pushed live. **Not yet tested by the owner on real phones / the projector.**
+
 ## What this is
 
 A web app with live, projector-based quiz games for Quality Month 2026. Players scan a QR code on the projector, type their name, and play on their phones while the projector shows the shared game. Everything is bilingual: **English on top, Malay underneath**.
@@ -35,6 +40,7 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 | **Quality Cart** (Kart Kualiti) | Held sideways, full screen: smooth driver's view, tilt to steer, items, questions at the thumbs | Top-down "Factory Block" circuit with all carts, top 15 positions, live feed |
 | **Quality Clash** (Pertempuran Kualiti) | Pick a side and monster(s), answer to attack; full 16-bit arena from the player's own side | 16-bit battle arena: **Single 1 v 1**, **Team 3 v 3**, or **Boss Raid** against the Defect Titan |
 | **Fishing Derby** (Pertandingan Memancing) | Side view: your boat on the surface, fish under the water; a fish bites and is reeled into your boat; question card at the bottom | Cartoon pond with every boat, catches, zoom or notice cards, clock, frenzy, top 15 |
+| **Pull the Rope** (Tarik Tali) | Camera high behind your team looking across the river; question card at the bottom; PULL! / WRONG / HEAVE! / round result | Side view of a river crossing: Red and Blue peg dolls pulling, players slip into the river with a SPLASH, score, MVP list, feed |
 
 ## Where things are
 
@@ -60,6 +66,8 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 | Fishing Derby (rules, projector, first phone) | `https://claude.ai/artifact/ULUpjtsYfFVsYN2chpj1Ah` | projector as drawn |
 | Fishing Derby 3D phone (3 cameras) | `https://claude.ai/artifact/BemgFLNobDesu7PfzxprQq` | camera A (later replaced) |
 | Fishing Derby side view (A cartoon / B 3D aquarium) | `https://claude.ai/artifact/VUt4haXB4DsLVBd9Av9G3t` | **A cartoon cutaway** (live) |
+| Pull the Rope views (now shows the picks: B2 wider river + P2) | `https://claude.ai/artifact/RLvgyFjDMdjX5ZmychENwp` | projector **B2 river**, phone **P2** (built) |
+| Pull the Rope characters (5 styles) | `https://claude.ai/artifact/CN6FXNQsQbSJseefWpXHeQ` | **5 wooden peg dolls** (built) |
 
 ## How it works
 
@@ -67,7 +75,7 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 - **Host PIN.** The first visit to `/` creates a host PIN; other computers need the PIN to open the projector. `secret/pin` is never readable.
 - **Reloading the projector** during a game resumes it (the window remembers it is the referee via `sessionStorage`; engines keep a snapshot in `private/`). Another window can take over with "Run it from this window".
 - **Players and pieces (fourth session):** up to **50 players** (`MAX_PLAYERS` = 50 pieces in `src/lib/tokens.ts`, all emoji from 2018 or earlier). Phones join with a **name only** (`token: ""`); the 51st phone sees "The game is full (50 players)". When the host presses **Start**, `start()` in `Screen.tsx` gives every player a **different random piece** (`assignPieces`; players who already have one keep it, so **"Play again" keeps the pieces**), then starts the engine. The phone countdown shows "You are / Anda ialah 🦊 Fox" (`you` prop of `Countdown`). Before Start, the phone lobby shows a ❔ and "Your piece is given at random when the game starts". The `tokens/` database node is no longer used (rules unchanged).
-- **Per-game limits** (`gameMaxPlayers` in `tokens.ts`): Snake & Ladder 50, Fishing Derby 50, Clash 1 v 1 50 (2 fight, the rest watch), **Quality Cart 30**, **Clash Team 30**, **Boss Raid 30** (but `MAX_RAIDERS` is still 20 until Step 3). Too many players: Start is blocked with "Quality Cart: max 30 players (45 joined). Remove players or pick another game."
+- **Per-game limits** (`gameMaxPlayers` in `tokens.ts`): Snake & Ladder 50, Fishing Derby 50, Pull the Rope 50, Clash 1 v 1 50 (2 fight, the rest watch), **Quality Cart 30**, **Clash Team 30**, **Boss Raid 30** (but `MAX_RAIDERS` is still 20 until Step 3). Too many players: Start is blocked with "Quality Cart: max 30 players (45 joined). Remove players or pick another game."
 - **Top 15 on the projector:** the lobby lists the 15 players who joined last, with "+ 35 more" and a "50/50" counter; in-game lists show the top 15 (Snake & Ladder, Quality Cart, Fishing Derby) with "+ N more".
 - **Lobby (projector):** big QR code on the left; on the right, game cards with small preview pictures (`src/components/GamePreview.tsx`). Picking one shows the game name with "← Change game", the **question set** picker, the game's options (Clash modes; Fishing mode: **Open play**, Teams "coming soon"), the players, the rules tiles and **Start game**. "New game" keeps the picked game and set.
 - **Question sets:** each question has a `set`: `quality`, `world`, `logo`, `malaysia` or `general` (missing = quality). The host picks Quality · World · Logo · Malaysia · General Knowledge · **Mix** (= all except Quality); saved as `game.qset`; engines ask only switched-on questions from that set (`poolFor` in `src/lib/questionSets.ts`). Start is blocked if the set has none switched on.
@@ -148,6 +156,31 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 - The feed is written one item at a time (`feed/{n}`, last 12 kept) so phones only download new items; feed items carry `k` (fish/big/gold/snap/frenzy), `kg`, `name`, which phones use for the neighbours' catches. The database then returns the feed as a list with gaps; `Screen.tsx` filters them out.
 - `game.ranks` (everyone's place) is refreshed every 3 s for the phones' "#rank". Pause moves `endsAt`.
 
+### Pull the Rope (Tarik Tali): built 20 Nov 2026
+**Rules** (`src/rope/rules.ts`; owner's answers in the fifth session)
+- Two teams, **Red and Blue**. Players **pick a side on the phone** in the lobby (they can talk it over first); the **host can move anyone** to the other side on the projector (→ / ← buttons). Players who did not pick join the smaller team at Start. Start needs at least 1 player per side. Up to 50 players, no joining mid-game.
+- Everyone answers their own questions (**15 s**). Right = your team pulls. Wrong / time out = no pull, right answer shown, **wait 3 s**. After a right answer a 1 s "PULL!" before the next question.
+- **Pull** = 0.3 × √(total players ÷ 24) ÷ (players in your team). Shared by team size, so **4 v 2 is fair** (owner's question); scaled by players so rounds last about as long with 2 or 50 players. **FAST** (right within 3 s, +0.3 s network allowance) ×1.25 · **POWER PULL** (every 3rd right answer in a row) ×2 · **HEAVE!** at 1:00 and 2:00 for 10 s ×2 (5 s "HEAVE IN 5…1" countdown first).
+- The centre flag goes from 0 to ±1. **Flag reaches your bank = you win the round**; otherwise the flag's side at **3:00** (tie: more right answers this round; still tied = draw, which adds a round, max 5). **Best of 3**, **10 s break** between rounds (same teams, same sides).
+- End: winning team, **MVP = most right answers** (tie: faster fastest answer), best player on each team, fastest answer, longest streak. "Play again with the same teams".
+- Simulation (3,000 rounds each, shown to the owner; `npm test` prints a smaller run): even 12 v 12 → 35–39% of rounds reach a bank (~2:00), the rest go to time, 50/50; 70% v 80% right → ~80% reach a bank (~1:30), better team wins 95%; 25 v 25 70% v 80% → 92% (~1:10), 99%; 4 v 2 and 20 v 10 at the same skill → 50/50; 1 v 1 still ~2:00. About 6 "splash moments" per round.
+
+**Projector** (`src/rope/RopeView.tsx`, drawing in `src/rope/scene.ts`)
+- Side view (owner's B2, river ~⅓ of the width). Peg dolls (owner's pick 5) in team colour with their piece on the belly; 1 row up to 8 per side, 2 rows up to 16, 3 rows above (25 a side). Names hidden above 24 players.
+- As the flag moves, the losing side's front players slide into the river (**SPLASH!** + drops + sound), waist-deep, still holding on; they climb out if the rope swings back. The winning side only steps back 30% of the way so it stays in view.
+- Round end: the whole losing team is **dragged into the river one after another**, winners cheer; banner "BLUE WINS ROUND 1! · BIRU MENANG PUSINGAN 1!" with the score and "Round 2 starts in 8".
+- HUD: clock, round, "HEAVE! in 0:42"; big orange "HEAVE IN 5" and red "Round almost over! 10"; orange sky + banner during HEAVE!. Side panel: best-of-3 score with players and right answers per team, top 15 by right answers (MVP list), live feed (power pulls, HEAVE!, rounds).
+
+**Phone** (`src/rope/RopePhone.tsx`, 3D view in `src/rope/phone3d.ts`)
+- Owner's **P2**: camera high behind you, fixed (no zoom; the field slides as the rope moves). Your team is always on your side of the screen; YOU · ANDA arrow. Teammates standing between you and the camera are left out (they would block the view). Peg dolls as flat cut-outs; your team from behind (piece on the back), the other team from the front.
+- Top bar: team chip, flag meter, clock. POWER dots (3rd = power pull). Toast "💪 PULL! TARIK! ⚡ FAST / ×2 / HEAVE ×2". WRONG / TIME'S UP card with the right answer (2.4 s of the 3 s wait). HEAVE! 1.5 s flash then an orange pill; countdown pills. Round break card (won / SPLASH! / draw, score, next round in N). Countdown shows "Your team: RED · MERAH". End screen: result, score, right answers, fastest, streak, MVP.
+- Vibration (Android): pull tap, power quick taps, wrong long buzz, heave three taps, round won / lost.
+
+**How it is built**
+- Referee `src/rope/engine.ts` (`RopeEngine`, same pattern as Fishing). Reuses `state/{uid}` (a `RopeState`), `private`, `used`, `answers`, `feed`, plus **`game.rope`** (round, wins, phase play/break/done, endsAt, breakUntil, last, right, champion, teams, order) and **`game.ropeX`** (the flag, written at most 4×/s when it moves). `fixRope` / `fixRopeState` fill dropped values back in.
+- **Sides are stored in `clash/pick/{uid}` = `{side, c: ["rope"], at}`**, the same place as Quality Clash teams, so **no rules change was needed** (Clash ignores the "rope" monster). "New game" clears them, "Play again" keeps them; players auto-assigned at Start are written there too.
+- Phones read only their own state, the game and the feed (not everyone's state), to keep downloads small with 50 phones. Other players' power pulls reach phones through the feed (`k: "power"`).
+
 ## Questions
 
 - Stored in the database (`questions`), managed with the **Questions** button in the lobby: set tabs, switch on/off, edit (with a **Set** field), add, delete, "Switch all on" per set, "Restore original questions" (all 406 defaults).
@@ -157,7 +190,7 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 
 ## Data in Firebase (Realtime Database)
 
-`game` (status, mode, qset, clashFormat, bossMode, fishMode, goAt, endsAt, ranks, winners, event boxes) · `players` (name, token = piece, joinedAt) · `questions` (host only) · `state` (Snake & Ladder or Fishing per-player state) · `private`, `used` (host only) · `answers` (each phone its own) · `feed` · `kart/*` · `clash/pick/{uid}` (phones, lobby only) · `clash/b`, `clash/ev`, `clash/q/{uid}` (1 v 1 / Team) · `clash/raid`, `clash/rev`, `clash/result`, `clash/records/best` (Boss Raid) · `setup` (pinSet, qsetsAdded) · `tokens` (no longer used).
+`game` (status, mode, qset, clashFormat, bossMode, fishMode, goAt, endsAt, ranks, winners, event boxes, rope, ropeX) · `players` (name, token = piece, joinedAt) · `questions` (host only) · `state` (Snake & Ladder, Fishing or Pull the Rope per-player state) · `private`, `used` (host only) · `answers` (each phone its own) · `feed` · `kart/*` · `clash/pick/{uid}` (phones, lobby only; also Pull the Rope sides) · `clash/b`, `clash/ev`, `clash/q/{uid}` (1 v 1 / Team) · `clash/raid`, `clash/rev`, `clash/result`, `clash/records/best` (Boss Raid) · `setup` (pinSet, qsetsAdded) · `tokens` (no longer used).
 
 ## Important when changing things
 
@@ -179,7 +212,7 @@ npm install
 npm test
 ```
 
-Runs 6 suites: Snake & Ladder rules (22, including phone timings, event boxes, winners, projector moments, 50 unique pieces and per-game limits), Quality Cart (11), Quality Clash (11), Boss Raid (10), questions (4), Fishing Derby (9: catch rules, frenzy windows, ranking, shout-outs, result times vs the side-view catch, simulation).
+Runs 7 suites: Snake & Ladder rules (22, including phone timings, event boxes, winners, projector moments, 50 unique pieces and per-game limits), Quality Cart (11), Quality Clash (11), Boss Raid (10), questions (4), Fishing Derby (9: catch rules, frenzy windows, ranking, shout-outs, result times vs the side-view catch, simulation), Pull the Rope (14: timings, pull sharing, bonuses, HEAVE! windows, round and match winners, team filling, MVP, simulations).
 
 End-to-end tests use the Firebase emulator (needs Java) and Playwright. In this cloud sandbox: download the emulator once with the proxy, then run it with the proxy variables unset:
 
@@ -200,6 +233,7 @@ Scripts (host PIN `2468`; screenshots to `scripts/e2e/shots/` or `$SHOTS`):
 - `node scripts/e2e/snake-50-players.cjs` (50 phones: 51st refused, Quality Cart blocked above 30, lobby lists 15, "You are …" countdown, 50 unique pieces, ~90 s of play; options `N`, `SECS`). Clears the database first.
 - `N=3 node scripts/e2e/snake-moments.cjs` (spotlight) and `N=12 …` (glow + cards). Clears the database first.
 - `N=4 node scripts/e2e/fish.cjs` (zoom mode) and `N=12 ACC=0.75 node scripts/e2e/fish.cjs` (notice cards): a full 5-minute Fishing Derby, screenshots of every moment (question, catch label, BIG, leap, GOLDEN, snap, frenzy countdown, frenzy, last 10 s, podium, end screen). Clears the database first. Last runs passed with no errors.
+- `node scripts/e2e/rope.cjs` (default 8 phones; `N=50 R1_SECS=20 …` for 50): side picking, the host moving a player, countdown, a full best-of-3 match (round 1 even until HEAVE!, then Red 40% v Blue 95%), screenshots of every moment (question, PULL!, WRONG, HEAVE countdown and pill, river view, splash, round banner, break card, podium, end screen). Clears the database first. Last runs passed with no errors.
 - `node scripts/e2e/cart.cjs`; `node scripts/e2e/clash.cjs` and `MODE=solo …`; `MODE=ta N=12 node scripts/e2e/boss.cjs`, `MODE=hs N=1 ACC=0.3 …`.
 - Sandbox notes: background servers stop after their time limit; restart when needed. To reset the emulator, stop it (`pkill -f "firebase-tools@14.27.0 emulators"`, `pkill -f firebase-database-emulator`) and start again; don't use a broad `pkill -f emulator` (it also stops `vite --mode emulator`). The first page load after installing/removing packages can be slow (Vite re-optimises): if a script times out waiting for the PIN field, run it again. Headless browsers report "AudioContext" errors (no sound card): the scripts ignore them.
 - The sandbox cannot reach `vercel.app`, so a deploy can't be checked from here; ask the owner to open the live site.
@@ -216,6 +250,7 @@ Scripts (host PIN `2468`; screenshots to `scripts/e2e/shots/` or `$SHOTS`):
 
 ## Open items
 
+0. **Pull the Rope (new, 20 Nov):** owner to test on real phones and the projector, then send numbered tweaks. Things to watch: the phone camera when you stand at the very front or back of a big team; the feed fills with POWER PULL lines in a big game; balance with real groups (simulation numbers above).
 1. **Fishing Derby, latest tweaks (20 Nov) to re-test on real phones:** catch label, boat in the middle, frenzy countdown, last 10 s countdown. Known small thing: a SNAP!/FRENZY full-screen alert (up to 2.4 s) covers the phone's countdown pill while it shows.
 2. **Fishing Derby Teams mode:** after open play is final. Not designed yet: discuss first (team count, how teams are picked, scoring), then draft.
 3. **Step 1 (50 players, random pieces) and the Snake & Ladder projector moments:** built, not yet checked by the owner on the real projector / with a big group.
