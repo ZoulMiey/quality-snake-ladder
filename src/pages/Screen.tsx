@@ -458,17 +458,21 @@ function LobbyView({
           </div>
         ) : (
           <div className="game-detail">
-            <div className="gd-head">
-              <GamePreview mode={mode} className="small" />
-              <div className="gd-name">
-                <span className="en">
-                  {GAME_NAMES[mode].icon} {GAME_NAMES[mode].en}
-                </span>
-                <span className="ms">{GAME_NAMES[mode].ms}</span>
+            <div className="gd-head big">
+              <GamePreview mode={mode} big />
+              <div className="gd-info">
+                <div className="gd-name">
+                  <span className="en">
+                    {GAME_NAMES[mode].icon} {GAME_NAMES[mode].en}
+                  </span>
+                  <span className="ms">{GAME_NAMES[mode].ms}</span>
+                </div>
+                <p className="gd-desc">{GAMES.find((g) => g.m === mode)?.desc}</p>
+                <p className="gd-desc ms">{GAMES.find((g) => g.m === mode)?.ms}</p>
+                <button className="btn gd-change" onClick={() => onMode(null)}>
+                  ← Change game <span>/ Tukar permainan</span>
+                </button>
               </div>
-              <button className="btn gd-change" onClick={() => onMode(null)}>
-                ← Change game <span>/ Tukar permainan</span>
-              </button>
             </div>
             <div className="qset-pick">
               <div className="lbl">
