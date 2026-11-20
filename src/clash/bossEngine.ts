@@ -1,5 +1,6 @@
 // The Boss Raid referee. It runs in the projector window only: it gives each player their own
 // question stream, makes their monsters hit the Titan, runs the Titan's stomps and the revive questions.
+import { startTicker } from "../lib/ticker.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";
 import { get, onValue, ref, set, update } from "firebase/database";
 import { db, serverNow } from "../lib/firebase.ts";
@@ -46,7 +47,7 @@ export class BossEngine {
   private events: RaidEvent[] = [];
   private evN = 0;
   private stops: (() => void)[] = [];
-  private timer: number | undefined;
+  private stopTicker: (() => void) | undefined;
   private finishing = false;
 
   constructor(readonly tabId: string) {}
@@ -128,14 +129,14 @@ export class BossEngine {
         if (pool.length) this.pool = pool;
       }),
     );
-    this.timer = window.setInterval(() => this.tick(), 200);
+    this.stopTicker = startTicker(() => this.tick(), 200);
   }
 
   private stopListening() {
     this.stops.forEach((f) => f());
     this.stops = [];
-    if (this.timer) clearInterval(this.timer);
-    this.timer = undefined;
+    this.stopTicker?.();
+    this.stopTicker = undefined;
   }
 
   stop() {

@@ -1,5 +1,6 @@
 // The Quality Cart referee. It runs in the projector window only: it moves the carts,
 // reads each phone's tilt, hands out questions and items, and writes what each phone needs to show.
+import { startTicker } from "../lib/ticker.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";
 import { get, onValue, ref, set, update } from "firebase/database";
 import { db, serverNow } from "../lib/firebase.ts";
@@ -57,7 +58,7 @@ export class KartEngine {
   private feed: FeedItem[] = [];
   private world: World | null = null;
   private stops: (() => void)[] = [];
-  private timer: number | undefined;
+  private stopTicker: (() => void) | undefined;
   private lastTick = 0;
   private lastSync = 0;
   private lastSnap = 0;
@@ -138,14 +139,14 @@ export class KartEngine {
       }),
     );
     this.lastTick = performance.now();
-    this.timer = window.setInterval(() => this.tick(), TICK_MS);
+    this.stopTicker = startTicker(() => this.tick(), TICK_MS);
   }
 
   private stopListening() {
     this.stops.forEach((f) => f());
     this.stops = [];
-    if (this.timer) clearInterval(this.timer);
-    this.timer = undefined;
+    this.stopTicker?.();
+    this.stopTicker = undefined;
   }
 
   stop() {

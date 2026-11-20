@@ -30,6 +30,7 @@ Last updated **20 Nov 2026, fifth session**. It covers this repository only. Rea
    - Simulation shown to the owner before building (pull strength scaled by players; table in "Pull the Rope" below). Owner: "yes. build".
    - Built, tested on the emulator with 8 and 50 phones, pushed live.
    - Owner's first test → tweaks (done, pushed): **READY button between rounds** (everyone ready → 5-second countdown → "ROUND 2!"; host "Start round now" for missing phones), **HEAVE! every minute for 30 s** (was 10 s). Owner asked for new **phone camera drafts** ("from behind, from shoulder"): draft `https://claude.ai/artifact/Lgum79xpfXb8EKWPccE3d9` (A right behind you, B over your shoulder, C behind a little higher, D low wide). Owner picked **C, moved a little to the side** "so the player can see the opponent (splash into river)" → built and pushed (replaces P2).
+   - Owner's 1 v 1 test (projector and two "phones" as windows on one computer) → 2 bugs, fixed and pushed: (1) "it hang, no question appear… until HEAVE time": not reproducible with the projector on screen (4 min of 1 v 1, no stall); most likely Chrome slowing the hidden projector page's timers to once a minute. **All six engines now tick through a Web Worker** (`src/lib/ticker.ts`, `startTicker`), which hidden pages do not slow down. (2) Blue player saw no river: with the side camera the river's far corners were behind the camera and the whole shape was skipped; ground shapes are now cut at the camera (`quad` in `phone3d.ts`).
 
 ## What this is
 
@@ -197,6 +198,7 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 
 ## Important when changing things
 
+- **The projector page is the referee.** Engines tick through a Web Worker (`startTicker` in `src/lib/ticker.ts`) so a hidden or covered projector window does not freeze the game; keep using it for new engines. Sounds and animations still pause while the page is hidden.
 - **Security rules** (`database.rules.json`) are **not deployed automatically**. After any change, the owner must paste the whole file into Firebase console → Realtime Database → Rules → Publish. The current file is already published. **The fourth session changed no rules** (random pieces use the host's existing right to write `players/*`; Fishing reuses existing paths).
 - Firebase drops empty lists/objects; `fixState` / `fixFishState` / `fixBoard` / `fixRaid` fill them back in. Keep this in mind for new fields.
 - A Firebase multi-path update cannot contain a path and its own child; the engines avoid this.

@@ -130,12 +130,33 @@ export function drawRopePhone(c: CanvasRenderingContext2D, W: number, H: number,
   }
   c.fillStyle = "#6fc24d";
   c.fillRect(0, hy, W, H - hy);
+  // Ground shapes are cut at the camera instead of dropped: with the camera to one side, the far corners of
+  // the river can be behind it (owner's test: the Blue player saw no river).
+  const NEAR = 0.15;
   const quad = (pts: V3[], col: string) => {
-    const q = pts.map(P);
-    if (q.some((v) => !v)) return;
+    const cam = pts.map((p) => {
+      const d = sub(p, C);
+      return [dot(d, r), dot(d, up), dot(d, f)] as V3;
+    });
+    const poly: V3[] = [];
+    for (let i = 0; i < cam.length; i++) {
+      const a = cam[i];
+      const b = cam[(i + 1) % cam.length];
+      if (a[2] >= NEAR) poly.push(a);
+      if (a[2] >= NEAR !== b[2] >= NEAR) {
+        const k = (NEAR - a[2]) / (b[2] - a[2]);
+        poly.push([a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, NEAR]);
+      }
+    }
+    if (poly.length < 3) return;
     c.fillStyle = col;
     c.beginPath();
-    q.forEach((v, i) => (i ? c.lineTo(v!.x, v!.y) : c.moveTo(v!.x, v!.y)));
+    poly.forEach((q, i) => {
+      const x = cx + (F * q[0]) / q[2];
+      const y = cy - (F * q[1]) / q[2];
+      if (i) c.lineTo(x, y);
+      else c.moveTo(x, y);
+    });
     c.fill();
   };
   for (let x = -24; x < 30; x += 2) if (Math.round(x / 2) % 2 === 0) quad([[x, 0, -9], [x + 2, 0, -9], [x + 2, 0, 9], [x, 0, 9]], "#62b443");

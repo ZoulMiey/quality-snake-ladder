@@ -3,6 +3,7 @@
 // It reuses the same database paths as Snake & Ladder (state, private, used, answers, feed), so no
 // new security rules are needed. The feed is written one item at a time (feed/{n}) so 50 phones only
 // download what is new.
+import { startTicker } from "../lib/ticker.ts";
 import { ref, get, onValue, update, set } from "firebase/database";
 import { db, serverNow } from "../lib/firebase.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";
@@ -34,7 +35,7 @@ export class FishEngine {
   private feedN = 0;
   private busy = new Set<string>();
   private stops: (() => void)[] = [];
-  private timer: number | undefined;
+  private stopTicker: (() => void) | undefined;
   private lastRanks = "";
   private ranksAt = 0;
   private frenzyShown = -1;
@@ -121,14 +122,14 @@ export class FishEngine {
         if (pool.length) this.pool = pool;
       }),
     );
-    this.timer = window.setInterval(() => this.tick(), 250);
+    this.stopTicker = startTicker(() => this.tick(), 250);
   }
 
   private stopListening() {
     this.stops.forEach((f) => f());
     this.stops = [];
-    if (this.timer) clearInterval(this.timer);
-    this.timer = undefined;
+    this.stopTicker?.();
+    this.stopTicker = undefined;
   }
 
   stop() {

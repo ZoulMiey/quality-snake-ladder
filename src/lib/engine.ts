@@ -1,5 +1,6 @@
 // The game engine. It runs in the projector window only, and is the single referee:
 // it gives out questions, checks answers, rolls the dice and moves the pieces.
+import { startTicker } from "./ticker.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "./questionSets.ts";
 import { ref, get, onValue, update, set } from "firebase/database";
 import { db, serverNow } from "./firebase.ts";
@@ -37,7 +38,7 @@ export class Engine {
   private feed: FeedItem[] = [];
   private busy = new Set<string>();
   private stops: (() => void)[] = [];
-  private timer: number | undefined;
+  private stopTicker: (() => void) | undefined;
   onEvent?: (e: { type: "result"; uid: string; result: Result } | { type: "end" }) => void;
 
   constructor(readonly tabId: string) {}
@@ -133,14 +134,14 @@ export class Engine {
         if (pool.length) this.pool = pool;
       }),
     );
-    this.timer = window.setInterval(() => this.tick(), 250);
+    this.stopTicker = startTicker(() => this.tick(), 250);
   }
 
   private stopListening() {
     this.stops.forEach((f) => f());
     this.stops = [];
-    if (this.timer) clearInterval(this.timer);
-    this.timer = undefined;
+    this.stopTicker?.();
+    this.stopTicker = undefined;
   }
 
   stop() {
