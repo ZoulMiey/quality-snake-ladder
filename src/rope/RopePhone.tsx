@@ -1,4 +1,4 @@
-// Pull the Rope on a phone: the river view from high behind your team on top (owner's pick P2), the question
+// Pull the Rope on a phone: the river view from behind you, moved to one side (owner's pick C, see phone3d.ts), the question
 // card at the bottom like the other games. Right answer = "PULL!"; wrong = the right answer is shown and you
 // wait 3 s. HEAVE! and last-10-seconds countdowns, a round result card in the breaks, vibration on Android.
 // Phones only read their own state, the game and the feed (small), so 50 phones stay cheap.

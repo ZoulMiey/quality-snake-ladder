@@ -1,5 +1,6 @@
-// Pull the Rope on a phone: camera high behind your own team (owner's pick P2), looking along the rope across
-// the river at the other team. Simple 3D projection on a 2D canvas; the peg dolls are flat cut-outs.
+// Pull the Rope on a phone: camera a little behind and above you, moved to one side so you see past your
+// teammates to the other team and their splashes (owner's pick C from https://claude.ai/artifact/Lgum79xpfXb8EKWPccE3d9,
+// "move the camera a little left/right"; it replaced the first P2 view). Simple 3D projection on a 2D canvas; the peg dolls are flat cut-outs.
 // The camera stays fixed behind you (no zoom); the field slides as the rope moves.
 // World units: the rope runs along u; your bank is at +u, the river from −RH to +RH; z = across the field.
 import { SIDE_NAME, other, type Side } from "./rules.ts";
@@ -7,8 +8,12 @@ import { addSplash, clamp, drawSplashes, ease, EMO, type Drop, type Pop } from "
 
 const RH = 1.6;
 const LEAD = 2.05;
-const CAM_OFF: [number, number, number] = [4.4, 3.7, 0.2];
-const CAM_TGT: [number, number, number] = [-7, 0, 0];
+/** Camera position and target, relative to you (u along the rope, up, z across the field). */
+const CAM_OFF: [number, number, number] = [2.9, 2.5, -1.3];
+const CAM_TGT: [number, number, number] = [-6, 0.7, 0.75];
+/** Lens and horizon: the view sits in the top half, above the question card. */
+const LENS = 1.0;
+const HORIZON = 0.26;
 const WOOD = "#e9c891";
 const HAIR = ["#2b1d14", "#7c2d12", "#111827", "#a16207", "#4a2f1f"];
 
@@ -88,14 +93,14 @@ export function drawRopePhone(c: CanvasRenderingContext2D, W: number, H: number,
   const me = figs.find((f) => f.uid === sc.me) ?? { u: LEAD, z: 0.32 };
 
   // Camera behind me.
-  const C: V3 = [me.u + CAM_OFF[0], CAM_OFF[1], CAM_OFF[2]];
-  const T: V3 = [me.u + CAM_TGT[0], CAM_TGT[1], CAM_TGT[2]];
+  const C: V3 = [me.u + CAM_OFF[0], CAM_OFF[1], me.z + CAM_OFF[2]];
+  const T: V3 = [me.u + CAM_TGT[0], CAM_TGT[1], me.z * 0.3 + CAM_TGT[2]];
   const f = norm(sub(T, C));
   const r = norm(cross(f, [0, 1, 0]));
   const up = cross(r, f);
-  const F = W * 1.0;
+  const F = W * LENS;
   const cx = W / 2;
-  const cy = H * 0.3;
+  const cy = H * HORIZON;
   const P = (p: V3) => {
     const d = sub(p, C);
     const z = dot(d, f);
@@ -145,8 +150,8 @@ export function drawRopePhone(c: CanvasRenderingContext2D, W: number, H: number,
   quad([[RH, 0, -3.6], [RH + 0.14, 0, -3.6], [RH + 0.14, 0, 3.6], [RH, 0, 3.6]], myCol.color);
   quad([[-RH - 0.14, 0, -3.6], [-RH, 0, -3.6], [-RH, 0, 3.6], [-RH - 0.14, 0, 3.6]], opCol.color);
 
-  // The rope.
-  const ropeTo = Math.max(...figs.filter((x) => x.mine).map((x) => x.u), LEAD) + 0.3;
+  // The rope (the part behind you is left out: it would pass right by the camera).
+  const ropeTo = me.u + 0.25;
   const ropeFrom = Math.min(...figs.filter((x) => !x.mine).map((x) => x.u), -LEAD) - 0.3;
   const rp: ({ x: number; y: number; k: number } | null)[] = [];
   for (let u = ropeFrom; u <= ropeTo; u += 0.2) rp.push(P([u, 1.0 - 0.08 * Math.sin((Math.PI * (u - ropeFrom)) / (ropeTo - ropeFrom)), 0]));

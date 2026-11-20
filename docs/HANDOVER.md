@@ -29,7 +29,7 @@ Last updated **20 Nov 2026, fifth session**. It covers this repository only. Rea
    - Discussed rules with the owner (numbered answers), then drafts: projector (2 top views, 2 side views) → owner picked **B2 river crossing, with a wider river**; phone (3 over-the-shoulder cameras) → **P2 high behind the team**; characters (5 styles) → **wooden peg dolls**.
    - Simulation shown to the owner before building (pull strength scaled by players; table in "Pull the Rope" below). Owner: "yes. build".
    - Built, tested on the emulator with 8 and 50 phones, pushed live.
-   - Owner's first test → tweaks (done, pushed): **READY button between rounds** (everyone ready → 5-second countdown → "ROUND 2!"; host "Start round now" for missing phones), **HEAVE! every minute for 30 s** (was 10 s). Owner asked for new **phone camera drafts** ("from behind, from shoulder"): draft `https://claude.ai/artifact/Lgum79xpfXb8EKWPccE3d9` (A right behind you, B over your shoulder, C behind a little higher, D low wide), **waiting for the owner's pick**; the phone still uses P2.
+   - Owner's first test → tweaks (done, pushed): **READY button between rounds** (everyone ready → 5-second countdown → "ROUND 2!"; host "Start round now" for missing phones), **HEAVE! every minute for 30 s** (was 10 s). Owner asked for new **phone camera drafts** ("from behind, from shoulder"): draft `https://claude.ai/artifact/Lgum79xpfXb8EKWPccE3d9` (A right behind you, B over your shoulder, C behind a little higher, D low wide). Owner picked **C, moved a little to the side** "so the player can see the opponent (splash into river)" → built and pushed (replaces P2).
 
 ## What this is
 
@@ -41,7 +41,7 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 | **Quality Cart** (Kart Kualiti) | Held sideways, full screen: smooth driver's view, tilt to steer, items, questions at the thumbs | Top-down "Factory Block" circuit with all carts, top 15 positions, live feed |
 | **Quality Clash** (Pertempuran Kualiti) | Pick a side and monster(s), answer to attack; full 16-bit arena from the player's own side | 16-bit battle arena: **Single 1 v 1**, **Team 3 v 3**, or **Boss Raid** against the Defect Titan |
 | **Fishing Derby** (Pertandingan Memancing) | Side view: your boat on the surface, fish under the water; a fish bites and is reeled into your boat; question card at the bottom | Cartoon pond with every boat, catches, zoom or notice cards, clock, frenzy, top 15 |
-| **Pull the Rope** (Tarik Tali) | Camera high behind your team looking across the river; question card at the bottom; PULL! / WRONG / HEAVE! / round result | Side view of a river crossing: Red and Blue peg dolls pulling, players slip into the river with a SPLASH, score, MVP list, feed |
+| **Pull the Rope** (Tarik Tali) | Camera behind and above you, moved to one side so you see past your team to the other team; question card at the bottom; PULL! / WRONG / HEAVE! / round result | Side view of a river crossing: Red and Blue peg dolls pulling, players slip into the river with a SPLASH, score, MVP list, feed |
 
 ## Where things are
 
@@ -68,6 +68,7 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 | Fishing Derby 3D phone (3 cameras) | `https://claude.ai/artifact/BemgFLNobDesu7PfzxprQq` | camera A (later replaced) |
 | Fishing Derby side view (A cartoon / B 3D aquarium) | `https://claude.ai/artifact/VUt4haXB4DsLVBd9Av9G3t` | **A cartoon cutaway** (live) |
 | Pull the Rope views (now shows the picks: B2 wider river + P2) | `https://claude.ai/artifact/RLvgyFjDMdjX5ZmychENwp` | projector **B2 river**, phone **P2** (built) |
+| Pull the Rope phone cameras (A–D) | `https://claude.ai/artifact/Lgum79xpfXb8EKWPccE3d9` | **C**, moved to the side (built) |
 | Pull the Rope characters (5 styles) | `https://claude.ai/artifact/CN6FXNQsQbSJseefWpXHeQ` | **5 wooden peg dolls** (built) |
 
 ## How it works
@@ -174,7 +175,7 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 - HUD: clock, round, "HEAVE! in 0:42"; big orange "HEAVE IN 5" and red "Round almost over! 10"; orange sky + banner during HEAVE!. Side panel: best-of-3 score with players and right answers per team, top 15 by right answers (MVP list), live feed (power pulls, HEAVE!, rounds).
 
 **Phone** (`src/rope/RopePhone.tsx`, 3D view in `src/rope/phone3d.ts`)
-- Owner's **P2**: camera high behind you, fixed (no zoom; the field slides as the rope moves). Your team is always on your side of the screen; YOU · ANDA arrow. Teammates standing between you and the camera are left out (they would block the view). Peg dolls as flat cut-outs; your team from behind (piece on the back), the other team from the front.
+- Owner's **C, moved to the side** (replaced the first pick P2): camera 2.9 behind, 2.5 up and 1.3 to the side of you (`CAM_OFF`, `CAM_TGT`, `LENS`, `HORIZON` in `phone3d.ts`), fixed (no zoom; the field slides as the rope moves). Your team forms a diagonal line and the other team shows beside it, so their splashes are visible. The rope behind you is not drawn. Your team is always on your side of the screen; YOU · ANDA arrow. Teammates standing between you and the camera are left out (they would block the view). Peg dolls as flat cut-outs; your team from behind (piece on the back), the other team from the front.
 - Top bar: team chip, flag meter, clock. POWER dots (3rd = power pull). Toast "💪 PULL! TARIK! ⚡ FAST / ×2 / HEAVE ×2". WRONG / TIME'S UP card with the right answer (2.4 s of the 3 s wait). HEAVE! 1.5 s flash then an orange pill; countdown pills. Round break card (won / SPLASH! / draw, score, **READY** button, "3 / 12 ready"); then a full-screen 5…1 and "ROUND 2!". Countdown shows "Your team: RED · MERAH". End screen: result, score, right answers, fastest, streak, MVP.
 - Vibration (Android): pull tap, power quick taps, wrong long buzz, heave three taps, round won / lost.
 
@@ -252,7 +253,7 @@ Scripts (host PIN `2468`; screenshots to `scripts/e2e/shots/` or `$SHOTS`):
 
 ## Open items
 
-0. **Pull the Rope (new, 20 Nov):** owner to pick a phone camera from the draft (A/B/C/D, link above) → build it in `src/rope/phone3d.ts` (`CAM_OFF`, `CAM_TGT`, `F`, `cy`; the draft also hides the rope behind you). Then re-test READY + 30 s HEAVE! on real phones. Things to watch: the phone camera when you stand at the very front or back of a big team; the feed fills with POWER PULL lines in a big game; balance with real groups (simulation numbers above).
+0. **Pull the Rope (new, 20 Nov):** owner to re-test on real phones: READY between rounds, 30 s HEAVE!, the new side camera (C moved to the side). Things to watch: the phone camera when you stand at the very front or back of a big team; the feed fills with POWER PULL lines in a big game; balance with real groups (simulation numbers above).
 1. **Fishing Derby, latest tweaks (20 Nov) to re-test on real phones:** catch label, boat in the middle, frenzy countdown, last 10 s countdown. Known small thing: a SNAP!/FRENZY full-screen alert (up to 2.4 s) covers the phone's countdown pill while it shows.
 2. **Fishing Derby Teams mode:** after open play is final. Not designed yet: discuss first (team count, how teams are picked, scoring), then draft.
 3. **Step 1 (50 players, random pieces) and the Snake & Ladder projector moments:** built, not yet checked by the owner on the real projector / with a big group.
