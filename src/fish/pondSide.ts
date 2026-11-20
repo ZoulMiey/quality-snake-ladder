@@ -39,7 +39,7 @@ export class PondSide implements PondApi {
   private floats: { text: string; at: number; gold?: boolean }[] = [];
   // Fish depths are fractions of the water (0 = surface, 1 = sand), so any phone height works.
   private fishes: Swimmer[] = [
-    ...Array.from({ length: 9 }, (_, i) => ({ x: rnd() * UW, d: 0.12 + rnd() * 0.8, dir: rnd() < 0.5 ? -1 : 1, sp: 18 + rnd() * 26, len: 30 + rnd() * 22, col: COLS[i % COLS.length], ph: rnd() * 6 })),
+    ...Array.from({ length: 9 }, (_, i) => ({ x: rnd() * UW, d: i < 4 ? rnd() * 0.12 : 0.15 + rnd() * 0.75, dir: rnd() < 0.5 ? -1 : 1, sp: 18 + rnd() * 26, len: 30 + rnd() * 22, col: COLS[i % COLS.length], ph: rnd() * 6 })),
     { x: 60, d: 0.78, dir: 1, sp: 12, len: 80, col: "#3f6212", ph: 0 },
     { x: 330, d: 0.9, dir: -1, sp: 10, len: 70, col: "#475569", ph: 2 },
   ];
@@ -91,9 +91,10 @@ export class PondSide implements PondApi {
     const c = cv.getContext("2d")!;
     const k = W / UW;
     const VH = H / k;
-    // The question card covers about the bottom 57%: surface and hook sit in the top part.
-    const SURF = clamp(VH * 0.17, 95, 150);
-    const HOOK = { x: 292, y: SURF + 120 };
+    // The question card covers about the bottom 55%. The boat sits in the middle of the part above it
+    // (owner, Nov 2026), with the hook not too deep so the whole catch stays in view.
+    const SURF = clamp(VH * 0.27, 120, 230);
+    const HOOK = { x: 292, y: SURF + 78 };
     const BOAT = { x: 172, y: SURF };
     const SAND = VH - 40;
     const depthY = (d: number) => SURF + 30 + d * (SAND - SURF - 60);

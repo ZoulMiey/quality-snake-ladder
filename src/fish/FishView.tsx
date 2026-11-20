@@ -164,6 +164,18 @@ export default function FishView({ game, players, feed, onAgain }: { game: Game;
     return () => cancelAnimationFrame(id);
   }, []);
 
+  // Countdowns (owner, Nov 2026): 5 s before each frenzy, and the last 10 s of the game.
+  const frenzySoon = playing && !game.paused && !fr.on && fr.nextIn !== null && fr.nextIn <= 5_000 ? Math.ceil(fr.nextIn / 1000) : null;
+  const final = playing && !game.paused && clock.left > 0 && clock.left <= 10_000 ? Math.ceil(clock.left / 1000) : null;
+  const beep = useRef("");
+  useEffect(() => {
+    const k = frenzySoon !== null ? `f${frenzySoon}` : final !== null ? `e${final}` : "";
+    if (!k || beep.current === k) return;
+    beep.current = k;
+    if (frenzySoon !== null) sfx.count();
+    else sfx.tick();
+  }, [frenzySoon, final]);
+
   const order = rankFishers(Object.entries(states));
   const ended = game.status === "ended";
   return (
@@ -181,6 +193,20 @@ export default function FishView({ game, players, feed, onAgain }: { game: Game;
                   Next frenzy in {mmss(fr.nextIn)} <small>/ Pesta seterusnya</small>
                 </span>
               ) : null}
+            </div>
+          )}
+          {frenzySoon !== null && (
+            <div className="fish-bigmsg soon" key={`soon-${frenzySoon}`}>
+              🌀 FISHING FRENZY IN
+              <b>{frenzySoon}</b>
+              <small>Pesta memancing dalam {frenzySoon} saat · ×2</small>
+            </div>
+          )}
+          {final !== null && (
+            <div className="fish-bigmsg final" key={`final-${final}`}>
+              Time's almost up!
+              <b>{final}</b>
+              <small>Masa hampir tamat!</small>
             </div>
           )}
           {game.paused && <div className="paused-overlay">⏸ Paused / Dihentikan seketika</div>}

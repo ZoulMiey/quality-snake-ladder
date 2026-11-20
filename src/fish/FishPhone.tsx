@@ -29,6 +29,8 @@ const buzz = (p: number[]) => {
 };
 const LETTERS = ["A", "B", "C", "D"];
 const SNAP_ALERT_MS = 2_400;
+const FRENZY_WARN_MS = 5_000;
+const FINAL_MS = 10_000;
 
 type Alert = { kind: "big" | "gold" | "snap" | "frenzy"; until: number; r?: Catch; answer?: { en: string; ms: string } };
 
@@ -81,6 +83,8 @@ export default function FishPhone({ uid, me, game, onExit }: { uid: string; me: 
 
   // My catches.
   const [alert, setAlert] = useState<Alert | null>(null);
+  // What I just caught, big and readable at the top of the pond (owner: the weight was hard to see).
+  const [toast, setToast] = useState<{ name: string; kg: number; frenzy: boolean; until: number; key: number } | null>(null);
   const lastSeq = useRef<number | null>(null);
   useEffect(() => {
     if (!st) return;
@@ -93,14 +97,15 @@ export default function FishPhone({ uid, me, game, onExit }: { uid: string; me: 
     const p = pond.current;
     const now = Date.now();
     if (r.kind === "fish") {
-      p?.catchAt(uid, "fish", 0, `+${r.kg} kg`);
+      p?.catchAt(uid, "fish", 0);
+      setToast({ name: r.name, kg: r.kg, frenzy: r.frenzy, until: now + 2_600, key: st.seq });
       sfx.reel();
       buzz(HAPTIC.fish);
     } else if (r.kind === "big" || r.kind === "gold") {
       // The alert and the catch play at the same time (owner, Nov 2026): the alert card sits in the
       // bottom half while the fish is caught in the top half.
       setAlert({ kind: r.kind, until: now + RESULT_MS[r.kind] - 200, r });
-      p?.catchAt(uid, r.kind, 0, `+${r.kg} kg`, r.kind === "gold");
+      p?.catchAt(uid, r.kind, 0, undefined, r.kind === "gold");
     } else {
       setAlert({ kind: "snap", until: now + SNAP_ALERT_MS, r, answer: st.q?.opts[r.correctIdx] });
     }
@@ -141,6 +146,18 @@ export default function FishPhone({ uid, me, game, onExit }: { uid: string; me: 
   });
 
   const showAlert = alert && alert.until > Date.now() ? alert : null;
+  const toastNow = toast && toast.until > Date.now() ? toast : null;
+  // Countdowns (owner, Nov 2026): 5 s before each frenzy, and the last 10 s of the game.
+  const frenzySoon = playing && !game.paused && !fr.on && fr.nextIn !== null && fr.nextIn <= FRENZY_WARN_MS ? Math.ceil(fr.nextIn / 1000) : null;
+  const final = playing && !game.paused && clock.left > 0 && clock.left <= FINAL_MS ? Math.ceil(clock.left / 1000) : null;
+  const beep = useRef("");
+  useEffect(() => {
+    const k = frenzySoon !== null ? `f${frenzySoon}` : final !== null ? `e${final}` : "";
+    if (!k || beep.current === k) return;
+    beep.current = k;
+    if (frenzySoon !== null) sfx.count();
+    else sfx.tick();
+  }, [frenzySoon, final]);
   const [peek, setPeek] = useState(false);
   const qid = st?.phase === "question" ? `${st.q?.id}-${st.seq}` : "";
   useEffect(() => setPeek(false), [qid]);
@@ -159,12 +176,39 @@ export default function FishPhone({ uid, me, game, onExit }: { uid: string; me: 
           {rank ? <b>#{rank} </b> : null}
           {me.name}
         </span>
-        <span className="fp-kg">{st.kg.toFixed(1)} kg</span>
-        <span className={`fp-clock ${fr.on && playing ? "fr" : ""}`}>{fr.on && playing ? `🌀 ×2 · ${Math.ceil(fr.endsIn / 1000)}s` : `⏱ ${mmss(clock.left)}`}</span>
+        <span className="fp-kg" key={st.kg}>
+          {st.kg.toFixed(1)} kg
+        </span>
+        <span className={`fp-clock ${final ? "final" : ""}`}>⏱ {mmss(clock.left)}</span>
       </div>
       <div className="slp-view">
         <canvas ref={cv} className="fp-canvas" aria-label="Your boat on the pond, seen from the side" />
         <StreakDots streak={st.streak} />
+        <div className="fp-msgs" aria-live="polite">
+          {toastNow && (
+            <div className={`fp-toast ${toastNow.frenzy ? "fr" : ""}`} key={toastNow.key}>
+              🐟 {toastNow.name} <b>+{toastNow.kg} kg</b>
+              {toastNow.frenzy && <small>×2</small>}
+            </div>
+          )}
+          {frenzySoon !== null && (
+            <div className="fp-soon" key={`soon-${frenzySoon}`}>
+              🌀 FRENZY IN <b>{frenzySoon}</b>
+              <small>Pesta memancing dalam {frenzySoon}</small>
+            </div>
+          )}
+          {fr.on && playing && (
+            <div className="fp-frpill">
+              🌀 ×2 · {Math.ceil(fr.endsIn / 1000)}s <small>Pesta memancing</small>
+            </div>
+          )}
+          {final !== null && (
+            <div className="fp-final" key={`final-${final}`}>
+              {final}
+              <small>Time's almost up! / Masa hampir tamat!</small>
+            </div>
+          )}
+        </div>
         {game.paused && game.status === "playing" && <div className="paused-bar slp-paused">Paused by host / Dihentikan seketika</div>}
         {st.phase === "result" && st.result?.kind === "snap" && !showAlert && (
           <div className="slp-banner fp-wait">

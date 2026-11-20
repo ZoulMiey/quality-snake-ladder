@@ -992,3 +992,33 @@ button:disabled { cursor: default; }
 .slp-alert.fp-bigcard .a-t2 { font-size: 18px; }
 .slp-alert.fp-bigcard .fa-kg { font-size: 26px; }
 .slp-alert.fp-bigcard::after { display: none; }
+/* Fishing Derby: catch label, frenzy and final countdowns (owner, Nov 2026). */
+.fp-kg { animation: fp-kg .9s ease-out; }
+@keyframes fp-kg { 0% { color: #16a34a; transform: scale(1.35); } 100% { color: inherit; transform: none; } }
+.fp-msgs { position: absolute; top: 34px; left: 8px; right: 8px; z-index: 4; display: grid; justify-items: center; gap: 6px; pointer-events: none; }
+.fp-toast { background: #fff; color: var(--ink); border: 3px solid #0369a1; border-radius: 999px; padding: 6px 16px; font-weight: 700; font-size: 18px; box-shadow: 0 6px 16px rgba(0,0,0,.25); animation: fp-pop .35s cubic-bezier(.3,1.6,.5,1), fp-out .4s ease-in 2.2s forwards; white-space: nowrap; }
+.fp-toast b { font-family: var(--display); font-weight: 800; font-size: 24px; color: #0369a1; margin-left: 4px; }
+.fp-toast small { font-weight: 800; color: #7c3aed; margin-left: 6px; }
+.fp-toast.fr { border-color: #7c3aed; }
+.fp-toast.fr b { color: #7c3aed; }
+.fp-soon { display: grid; justify-items: center; background: #7c3aed; color: #fff; border: 3px solid #fff; border-radius: 18px; padding: 6px 18px; font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1.1; box-shadow: 0 6px 16px rgba(0,0,0,.3); animation: fp-pop .35s cubic-bezier(.3,1.6,.5,1); }
+.fp-soon b { font-size: 34px; }
+.fp-soon small, .fp-final small, .fp-frpill small { font-family: var(--body); font-weight: 600; font-size: 12px; opacity: .9; }
+.fp-frpill { display: grid; justify-items: center; background: #7c3aed; color: #fff; border-radius: 999px; padding: 3px 14px; font-weight: 800; font-size: 15px; line-height: 1.15; }
+.fp-final { display: grid; justify-items: center; background: #dc2626; color: #fff; border: 4px solid #fff; border-radius: 22px; padding: 2px 22px 6px; font-family: var(--display); font-weight: 800; font-size: 54px; line-height: 1; box-shadow: 0 8px 20px rgba(0,0,0,.35); animation: fp-pop .35s cubic-bezier(.3,1.6,.5,1); }
+.fp-clock.final { background: #dc2626; color: #fff; animation: pulse 1s ease-in-out infinite; }
+@keyframes fp-pop { from { transform: scale(.4); opacity: 0; } }
+@keyframes fp-out { to { opacity: 0; transform: translateY(-10px); } }
+.fish-bigmsg { position: absolute; left: 50%; top: 16%; transform: translateX(-50%); z-index: 4; display: grid; justify-items: center; pointer-events: none; color: #fff; font-family: var(--display); font-weight: 800; text-align: center; border: 6px solid #fff; border-radius: 28px; padding: 10px 40px 14px; box-shadow: 0 14px 40px rgba(0,0,0,.4); animation: fp-pop .35s cubic-bezier(.3,1.6,.5,1); }
+.fish-bigmsg.soon { background: #7c3aed; font-size: 54px; line-height: 1.05; }
+.fish-bigmsg.soon b { font-size: 110px; line-height: 1; }
+.fish-bigmsg.final { background: #dc2626; font-size: 30px; }
+.fish-bigmsg.final b { font-size: 170px; line-height: 1; }
+.fish-bigmsg small { font-family: var(--body); font-weight: 700; font-size: 22px; opacity: .9; }
+@media (prefers-reduced-motion: reduce) { .fp-toast, .fp-soon, .fp-final, .fish-bigmsg { animation: none; } }
+/* Phone countdowns: slim, so they stay above the boat. */
+.fp-final { display: flex; align-items: center; gap: 10px; border-radius: 999px; padding: 2px 16px 2px 12px; font-size: 34px; border-width: 3px; }
+.fp-final small { max-width: 130px; text-align: left; line-height: 1.15; }
+.fp-soon { display: flex; align-items: center; gap: 8px; border-radius: 999px; padding: 3px 16px; font-size: 18px; }
+.fp-soon b { font-size: 30px; }
+.fp-soon small { max-width: 110px; text-align: left; line-height: 1.15; }

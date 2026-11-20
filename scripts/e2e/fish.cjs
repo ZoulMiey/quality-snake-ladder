@@ -49,8 +49,9 @@ const dbGet = async () => (await fetch(DB, { headers: { Authorization: "Bearer o
   await phones[0].p.screenshot({ path: `${OUT}/fish-phone-countdown.png` });
   log("countdown:", (await phones[0].p.locator(".cd-you").innerText().catch(() => "-")).replace(/\n/g, " "));
 
-  const want = new Set(["question", "big", "gold", "snap", "frenzy", "leap"]);
-  const projWant = new Set([N <= 8 ? "zoom" : "cards", "frenzy", "game"]);
+  const want = new Set(["question", "big", "gold", "snap", "frenzy", "leap", "toast", "soon", "final"]);
+  const projWant = new Set([N <= 8 ? "zoom" : "cards", "frenzy", "game", "soon", "final"]);
+  const domShots = { toast: ".fp-toast", soon: ".fp-soon", final: ".fp-final" };
   const seen = {};
   const t0 = Date.now();
   let ended = false;
@@ -75,6 +76,12 @@ const dbGet = async () => (await fetch(DB, { headers: { Authorization: "Bearer o
               await ph.p.screenshot({ path: `${OUT}/fish-phone-${k}.png` });
               log("phone shot", k);
               if (k === "big" || k === "gold") ph.leapAt = Date.now() + 1700;
+            }
+          for (const [k, sel] of Object.entries(domShots))
+            if (want.has(k) && (await ph.p.locator(sel).count())) {
+              want.delete(k);
+              await ph.p.screenshot({ path: `${OUT}/fish-phone-${k}.png` });
+              log("phone shot", k, "|", (await ph.p.locator(sel).first().innerText().catch(() => "")).replace(/\n/g, " "));
             }
           if (ph.leapAt && Date.now() > ph.leapAt && want.has("leap")) {
             want.delete("leap");
@@ -115,6 +122,11 @@ const dbGet = async () => (await fetch(DB, { headers: { Authorization: "Bearer o
       await proj.screenshot({ path: `${OUT}/fish-projector-frenzy.png` });
       log("projector frenzy chip:", await proj.locator(".fh-frenzy").innerText().catch(() => "-"));
     }
+    for (const k of ["soon", "final"])
+      if (projWant.has(k) && (await proj.locator(`.fish-bigmsg.${k}`).count())) {
+        projWant.delete(k);
+        await proj.screenshot({ path: `${OUT}/fish-projector-${k}.png` });
+      }
     if (projWant.has("cards") && (await proj.locator(".fish-card").count())) {
       projWant.delete("cards");
       await proj.screenshot({ path: `${OUT}/fish-projector-cards.png` });
