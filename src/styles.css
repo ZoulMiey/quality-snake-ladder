@@ -1139,3 +1139,14 @@ button:disabled { cursor: default; }
 .gd-desc.ms { font-size: 15px; opacity: .75; }
 .gd-info .gd-change { margin: 6px 0 0; }
 @media (max-width: 900px) { .gd-head.big { grid-template-columns: 1fr; } }
+
+/* Phone lobby: the game's moving preview (owner, Nov 2026) */
+.lobby-preview { width: 100%; display: grid; gap: 6px; margin-bottom: 6px; }
+.lobby-preview .game-preview { border-radius: 14px; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+.lobby-preview .lp-name { display: grid; line-height: 1.15; }
+.lobby-preview .lp-name b { font-family: var(--display); font-size: 22px; }
+.lobby-preview .lp-name span { font-size: 13px; color: var(--muted); }
+.lobby-preview .lp-label { font-weight: 700; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.lobby-preview.cycling .game-preview { animation: lp-fade .5s ease-out; }
+@keyframes lp-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .lobby-preview.cycling .game-preview { animation: none; } }

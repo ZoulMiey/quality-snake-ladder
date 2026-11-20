@@ -107,7 +107,7 @@ function snake(c: CanvasRenderingContext2D, t: number) {
     if (!jumpBox && u < 0.9) {
       c.font = `800 11px "Baloo 2",sans-serif`;
       c.fillStyle = b > a ? "#15803d" : "#b91c1c";
-      c.fillText(b > a ? "LADDER!" : "SNAKE!", x, y - 16);
+      c.fillText(b > a ? "LADDER!" : "SNAKE!", Math.max(24, Math.min(W - 24, x)), Math.max(8, y - 16));
     }
   });
 }

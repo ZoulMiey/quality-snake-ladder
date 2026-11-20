@@ -14,7 +14,8 @@ import { RopePick } from "../rope/RopeLobby.tsx";
 import { MAX_PLAYERS, hasPiece, tokenById } from "../lib/tokens.ts";
 import { unlockAudio } from "../lib/sound.ts";
 import { fixState, type Game, type GameMode, type Player, type PlayerState } from "../lib/types.ts";
-import Header from "../components/Header.tsx";
+import Header, { GAME_NAMES } from "../components/Header.tsx";
+import GamePreview from "../components/GamePreview.tsx";
 
 function Bi({ en, ms, className }: { en: string; ms: string; className?: string }) {
   return (
@@ -156,6 +157,7 @@ function Lobby({ uid, me, mode, variant }: { uid: string; me: Player; mode?: Gam
   }
   return (
     <div className="card center lobby-me">
+      <LobbyPreview mode={mode} />
       <div className={`me-piece ${got ? "" : "unknown"}`} style={{ ["--c" as string]: t.color }}>
         {t.emoji}
       </div>
@@ -173,6 +175,34 @@ function Lobby({ uid, me, mode, variant }: { uid: string; me: Player; mode?: Gam
         <button className="link-btn" onClick={leave}>
           Leave
         </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The game's moving preview on the phone (owner, Nov 2026). Before the host picks a game, the phone shows
+ * each game in turn, about 4 seconds each.
+ */
+const ALL_GAMES = Object.keys(GAME_NAMES) as GameMode[];
+function LobbyPreview({ mode }: { mode?: GameMode }) {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (mode) return;
+    const id = setInterval(() => setI((n) => (n + 1) % ALL_GAMES.length), 4000);
+    return () => clearInterval(id);
+  }, [mode]);
+  const show = mode ?? ALL_GAMES[i];
+  const name = GAME_NAMES[show];
+  return (
+    <div className={`lobby-preview ${mode ? "" : "cycling"}`}>
+      {!mode && <div className="lp-label">Games today · Permainan hari ini</div>}
+      <GamePreview mode={show} key={show} />
+      <div className="lp-name">
+        <b>
+          {name.icon} {name.en}
+        </b>
+        <span>{name.ms}</span>
       </div>
     </div>
   );
