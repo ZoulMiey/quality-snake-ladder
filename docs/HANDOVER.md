@@ -196,6 +196,14 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 
 `game` (status, mode, qset, clashFormat, bossMode, fishMode, goAt, endsAt, ranks, winners, event boxes, rope, ropeX) · `players` (name, token = piece, joinedAt) · `questions` (host only) · `state` (Snake & Ladder, Fishing or Pull the Rope per-player state) · `private`, `used` (host only) · `answers` (each phone its own) · `feed` · `kart/*` · `clash/pick/{uid}` (phones, lobby only; also Pull the Rope sides) · `clash/b`, `clash/ev`, `clash/q/{uid}` (1 v 1 / Team) · `clash/raid`, `clash/rev`, `clash/result`, `clash/records/best` (Boss Raid) · `setup` (pinSet, qsetsAdded) · `tokens` (no longer used).
 
+## End of every game (owner, Nov 2026)
+
+Every game's end screen shows three buttons (`src/components/EndButtons.tsx`; the actions come from `Screen.tsx` through `EndActionsContext`):
+- **Play again**: same game, same players (`playAgain`; pieces and Pull the Rope sides are kept).
+- **New game**: same game, new players (asks "Yes, new players" first; `resetGame`, everyone scans again).
+- **Change game**: back to the game list, then **with the same players** (`playAgain` + `game.mode = null`) or **with new players** (`resetGame` + `game.mode = null`).
+The header's "New game" button is hidden on the end screen (it is in the screen now); it still shows in the lobby and during a game.
+
 ## Important when changing things
 
 - **The projector page is the referee.** Engines tick through a Web Worker (`startTicker` in `src/lib/ticker.ts`) so a hidden or covered projector window does not freeze the game; keep using it for new engines. Sounds and animations still pause while the page is hidden.

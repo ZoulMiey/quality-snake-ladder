@@ -1,4 +1,5 @@
 // Boss Raid on the projector, plus the live canvas used by phones.
+import EndButtons from "../components/EndButtons.tsx";
 import { useEffect, useMemo, useRef } from "react";
 import { serverNow } from "../lib/firebase.ts";
 import { useDbValue } from "../lib/useDb.ts";
@@ -87,9 +88,7 @@ export default function RaidView({ game, players, onAgain }: { game: Game; playe
         {game.status === "ended" && res && r && (
           <div className="clash-win raid-win">
             <RaidResults res={res} r={r} players={players} />
-            <button className="big-btn" onClick={onAgain}>
-              Play again with the same players
-            </button>
+            <EndButtons onAgain={onAgain} />
           </div>
         )}
       </div>

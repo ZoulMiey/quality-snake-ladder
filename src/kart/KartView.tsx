@@ -1,3 +1,4 @@
+import EndButtons from "../components/EndButtons.tsx";
 import { useEffect, useRef } from "react";
 import { onValue, ref } from "firebase/database";
 import { db } from "../lib/firebase.ts";
@@ -344,9 +345,7 @@ export default function KartView({ game, players, feed, onAgain }: { game: Game;
                   );
                 })}
               </ol>
-              <button className="big-btn" onClick={onAgain}>
-                Race again with the same players
-              </button>
+              <EndButtons onAgain={onAgain} />
             </div>
           </div>
         )}

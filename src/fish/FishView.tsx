@@ -1,6 +1,7 @@
 // Fishing Derby on the projector: one big cartoon pond with every player's boat around the edge.
 // Small catches splash and show "+3.4 kg". BIG and GOLDEN fish: 1–8 players = the pond zooms in on that
 // boat with a banner; 9 or more = a pop-up over the boat and a notice card in the side panel (max 3).
+import EndButtons from "../components/EndButtons.tsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
@@ -383,9 +384,7 @@ function FishPodium({ order, players, onAgain }: { order: [string, FishState][];
             </div>
           )}
         </div>
-        <button className="big-btn" onClick={onAgain}>
-          Fish again with the same players
-        </button>
+        <EndButtons onAgain={onAgain} />
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import EndButtons, { EndActionsContext, type EndActions } from "../components/EndButtons.tsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { get, ref, set, update } from "firebase/database";
 import { db, ensureSignedIn, serverNow } from "../lib/firebase.ts";
@@ -270,9 +271,11 @@ function HostScreen() {
           Questions ({enabledQs})
         </button>
       )}
-      <button className="btn" onClick={() => setConfirm("reset")}>
-        New game
-      </button>
+      {status !== "ended" && (
+        <button className="btn" onClick={() => setConfirm("reset")}>
+          New game
+        </button>
+      )}
       <button className="btn" onClick={toggleSound} aria-pressed={!muted}>
         {muted ? "🔇 Sound off" : "🔊 Sound on"}
       </button>
@@ -281,6 +284,23 @@ function HostScreen() {
       </button>
     </>
   );
+
+  // End-of-game buttons (owner, Nov 2026): New game = same game with new players; Change game = back to the
+  // game list with the same players or with new players.
+  const endActions: EndActions = {
+    newPlayers: async () => {
+      engine.current?.stop();
+      engine.current = null;
+      await resetGame();
+    },
+    changeGame: async (samePlayers: boolean) => {
+      engine.current?.stop();
+      engine.current = null;
+      if (samePlayers) await playAgain();
+      else await resetGame();
+      await update(ref(db, "game"), { mode: null, status: "lobby" });
+    },
+  };
 
   if (game === undefined || players === undefined) {
     return (
@@ -292,6 +312,7 @@ function HostScreen() {
   }
 
   return (
+    <EndActionsContext.Provider value={endActions}>
     <div className="screen">
       <Header mode={game?.mode}>{tools}</Header>
       {confirm && (
@@ -354,6 +375,7 @@ function HostScreen() {
       )}
       {showQs && <QuestionManager onClose={() => setShowQs(false)} />}
     </div>
+    </EndActionsContext.Provider>
   );
 }
 
@@ -610,9 +632,7 @@ function GameView({
                   );
                 })}
               </ol>
-              <button className="big-btn" onClick={onAgain}>
-                Play again with the same players
-              </button>
+              <EndButtons onAgain={onAgain} />
             </div>
           </div>
         )}

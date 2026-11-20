@@ -1,5 +1,6 @@
 // Projector screen for Quality Clash: Blue on top facing the room, Red at the bottom seen from behind.
 // Drawn on a canvas from the battle state and the recent events in the database.
+import EndButtons from "../components/EndButtons.tsx";
 import { useEffect, useMemo, useRef } from "react";
 import { serverNow } from "../lib/firebase.ts";
 import { useDbValue } from "../lib/useDb.ts";
@@ -116,9 +117,7 @@ export default function ClashView({ game, players, onAgain }: { game: Game; play
               <h2>{winner === "red" ? "RED WINS!" : winner === "blue" ? "BLUE WINS!" : "Battle over"}</h2>
               <div className="ms">{winner === "red" ? "Merah menang!" : winner === "blue" ? "Biru menang!" : "Pertempuran tamat"}</div>
               <p className="clash-win-names">{winNames.join(" · ")}</p>
-              <button className="big-btn" onClick={onAgain}>
-                Play again with the same players
-              </button>
+              <EndButtons onAgain={onAgain} />
             </div>
           </div>
         )}

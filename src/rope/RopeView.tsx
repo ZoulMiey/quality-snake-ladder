@@ -1,6 +1,7 @@
 // Pull the Rope on the projector: the river crossing seen from the side (owner's pick B2, wider river) with
 // wooden peg dolls (owner's pick 5). Front players slip into the river with a SPLASH as the rope moves; at the
 // end of a round the whole losing team is dragged in, one after another.
+import EndButtons from "../components/EndButtons.tsx";
 import { useEffect, useMemo, useRef } from "react";
 import { serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
@@ -343,7 +344,7 @@ export default function RopeView({ game, players, feed, onAgain, onStartRound }:
                   <small>{SIDE_NAME[side].ms}</small>
                   <span className="rs-wins">{rope.wins[side]}</span>
                   <span className="rs-meta">
-                    {count[side]} players · ✔ {rope.right[side]}
+                    {count[side]} {count[side] === 1 ? "player" : "players"} · ✔ {rope.right[side]}
                   </span>
                 </div>
               ))}
@@ -520,9 +521,7 @@ function RopePodium({ rope, states, players, onAgain }: { rope: RopeGame; states
             </div>
           )}
         </div>
-        <button className="big-btn" onClick={onAgain}>
-          Play again with the same teams
-        </button>
+        <EndButtons onAgain={onAgain} />
       </div>
     </div>
   );
