@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ref, set, remove, serverTimestamp } from "firebase/database";
-import { auth, db, ensureSignedIn } from "../lib/firebase.ts";
-import { signOut } from "firebase/auth";
+import { db, ensureSignedIn } from "../lib/firebase.ts";
 import Rules from "../components/Rules.tsx";
 import KartPhone from "../kart/KartPhone.tsx";
 import ClashPhone, { ClashPick } from "../clash/ClashPhone.tsx";
@@ -42,9 +41,15 @@ export default function Join() {
   const stateRaw = useDbValue<PlayerState>(uid ? `state/${uid}` : null);
   const state = useMemo(() => fixState(stateRaw), [stateRaw]);
 
+  // Exit keeps this phone's sign-in, so joining again is the same player (signing out made a second copy of
+  // the player after "Play again", which keeps the players). Back in the lobby, Exit also leaves the game;
+  // the database only allows that in the lobby, so on the end screen the player stays listed until the next game.
   async function exit() {
     setExited(true);
-    await signOut(auth).catch(() => {});
+    if (uid && (!game || game.status === "lobby")) {
+      await remove(ref(db, `clash/pick/${uid}`)).catch(() => {});
+      await remove(ref(db, `players/${uid}`)).catch(() => {});
+    }
   }
 
   let body;
