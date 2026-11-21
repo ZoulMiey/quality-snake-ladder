@@ -8,7 +8,7 @@ const MODE = process.env.MODE === "hs" ? "hs" : "ta";
 const N = Number(process.env.N || 6);
 const ACC = Number(process.env.ACC || 0.8);
 const TAG = `boss-${MODE}-${N}`;
-const NAMES = ["Aina", "Ravi", "Hafiz", "Siti", "Mei Ling", "Daniel", "Farah", "Kumar", "Lina", "Arif", "Jun", "Nora", "Zul", "Priya", "Tan", "Yus", "Hana", "Ken", "Ali", "Bea"];
+const NAMES = ["Aina", "Ravi", "Hafiz", "Siti", "Mei Ling", "Daniel", "Farah", "Kumar", "Lina", "Arif", "Jun", "Nora", "Zul", "Priya", "Tan", "Yus", "Hana", "Ken", "Ali", "Bea", "Izzat", "Dewi", "Faiz", "Gopal", "Chen", "Amir", "Sara", "Iqbal", "Wei", "Nurul"];
 const MONS = ["Kaizen Dragon", "Audit Owl", "Viscosity Turtle", "Calibration Golem", "Sigma Fox", "pH Shark", "Sensor Bee", "Root Cause Rhino", "Sample Otter", "Gemba Falcon"];
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { headers: { Authorization: "Bearer owner" } })).json();

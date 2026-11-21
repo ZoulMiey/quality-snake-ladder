@@ -1,6 +1,6 @@
 // Checks the Boss Raid rules. Run: npm test
 import assert from "node:assert/strict";
-import { newRaid, raidHit, raidMiss, raidStomp, raidRevive, raiderState, raidRanking, titanHp, raiderHp, stompDamage, STOMP_EVERY_MS } from "../src/clash/boss.ts";
+import { newRaid, raidHit, raidMiss, raidStomp, raidRevive, raiderState, raidRanking, titanHp, raiderHp, stompDamage, STOMP_EVERY_MS, ADAPT, adaptTitan, stompNow, RAID_ATTACK } from "../src/clash/boss.ts";
 
 let n = 0;
 const t = (name: string, fn: () => void) => {
@@ -121,26 +121,31 @@ t("ranking: most points first, more right answers on a tie", () => {
   assert.deepEqual(raidRanking(r).map((x) => x.uid), ["u2", "u1", "u0"]);
 });
 
-// Raid length: answers take 2-10 s, 70% right; result 1.8 s, stun 3 s; stomp every 8 s.
-function raid(k: number, seed: number) {
+// Raid length: answers take 2-10 s, right with chance acc; result 1.8 s, stun 3 s; stomp every 8 s.
+// Mirrors the engine, including the adaptive Titan (adaptTitan before each timed stomp, damage rate over ADAPT.window).
+function raid(k: number, seed: number, acc = 0.7) {
   let s = seed;
   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
   const r = newRaid("hs", picks(k));
+  const log: [number, number][] = [];
   const next: Record<string, number> = Object.fromEntries(Object.keys(r.raiders).map((u) => [u, 2 + rnd() * 3]));
   let stomp = STOMP_EVERY_MS / 1000;
   for (let time = 0; time < 1200; time += 0.1) {
     if (time >= stomp) {
       stomp += STOMP_EVERY_MS / 1000;
+      while (log.length && log[0][0] < time - ADAPT.window) log.shift();
+      adaptTitan(r, log.reduce((a, x) => a + x[1], 0) / Math.min(ADAPT.window, Math.max(8, time)));
       for (const u of raidStomp(r).fainted) next[u] = time + 0.5;
     }
     for (const u of Object.keys(r.raiders)) {
       const st = raiderState(r.raiders[u]);
       if (st === "out" || time < next[u]) continue;
       const took = 2 + rnd() * 8;
-      const ok = rnd() < 0.7;
+      const ok = rnd() < acc;
       if (st === "down") raidRevive(r, u, ok);
       else if (ok) {
         const h = raidHit(r, u, took < 3);
+        if (h) log.push([time, h.dmg]);
         for (let c = 0; c < (h?.counter ?? 0); c++) for (const f of raidStomp(r).fainted) next[f] = time + 0.5;
       } else raidMiss(r, u);
       next[u] = time + took + (ok ? 1.8 : 3);
@@ -149,16 +154,37 @@ function raid(k: number, seed: number) {
   }
   return { time: 1200, winner: null };
 }
-t("raids always end in about 2–3 minutes, and the Titan wins roughly 1 in 3 for any group size", () => {
-  for (const k of [1, 3, 8, 20]) {
-    const runs = Array.from({ length: 101 }, (_, i) => raid(k, (i + 1) * 7919));
-    const times = runs.map((x) => x.time).sort((a, b) => a - b);
-    const lost = runs.filter((x) => x.winner === "titan").length;
-    console.log(`   ${String(k).padStart(2)} players: median ${(times[50] / 60).toFixed(1)} min, Titan wins ${lost}/101`);
-    assert.ok(runs.every((x) => x.winner), "every raid ends");
-    assert.ok(times[50] / 60 > 1.8 && times[50] / 60 < 3.2, `median ${times[50]}`);
-    assert.ok(lost >= 15 && lost <= 60, `Titan wins ${lost}/101`);
+const runRaids = (k: number, acc: number) => {
+  const runs = Array.from({ length: 101 }, (_, i) => raid(k, (i + 1) * 7919, acc));
+  const times = runs.map((x) => x.time).sort((a, b) => a - b);
+  return { median: times[50] / 60, lost: runs.filter((x) => x.winner === "titan").length, all: runs.every((x) => x.winner) };
+};
+t("adaptive Titan: a 70% group loses about 1 raid in 3 at any size (1-30), raids last about 2-3.5 minutes", () => {
+  for (const k of [1, 3, 8, 20, 30]) {
+    const { median, lost, all } = runRaids(k, 0.7);
+    console.log(`   ${String(k).padStart(2)} players, 70% right: median ${median.toFixed(1)} min, Titan wins ${lost}/101`);
+    assert.ok(all, "every raid ends");
+    assert.ok(median > 1.8 && median < 3.6, `median ${median}`);
+    assert.ok(lost >= 18 && lost <= 50, `Titan wins ${lost}/101`);
   }
+});
+t("adaptive Titan: no group always wins or always loses (50% and 90% right, 30 players)", () => {
+  for (const acc of [0.5, 0.9]) {
+    const { median, lost } = runRaids(30, acc);
+    console.log(`   30 players, ${acc * 100}% right: median ${median.toFixed(1)} min, Titan wins ${lost}/101`);
+    assert.ok(lost >= 5 && lost <= 97, `Titan wins ${lost}/101`);
+  }
+});
+t("adaptive Titan: toughness rises when the raiders race ahead, falls when they lag, within its limits", () => {
+  const r = newRaid("ta", picks(10));
+  for (let i = 0; i < 30; i++) adaptTitan(r, 5000);
+  assert.equal(r.d, ADAPT.max);
+  assert.ok(stompNow(r) > r.stomp);
+  const hit = raidHit(r, "u0", false)!;
+  assert.equal(hit.dmg, Math.round(RAID_ATTACK / Math.sqrt(ADAPT.max)));
+  for (let i = 0; i < 40; i++) adaptTitan(r, 1);
+  assert.equal(r.d, ADAPT.min);
+  assert.ok(stompNow(r) < r.stomp);
 });
 
 console.log(`\n${n} boss raid checks passed`);

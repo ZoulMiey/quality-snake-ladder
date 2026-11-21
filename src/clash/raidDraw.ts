@@ -309,11 +309,12 @@ function raider(c: Ctx, V: View, x: Raider, px: number, feet: number, scale: num
   c.fill();
   c.save();
   c.imageSmoothingEnabled = false;
+  // Owner: a fainted (or out) monster loses its colour; a stunned one keeps it (the red circle shows the stun).
   if (dead) {
-    c.globalAlpha = 0.35;
+    c.globalAlpha = 0.6;
+    c.filter = "grayscale(1) brightness(0.8)";
     y += 4 * scale;
   }
-  if (stunned && !dead) c.filter = "grayscale(0.8)";
   c.drawImage(sprite(x.c, true, V.flash[x.uid] ? "white" : ""), px - w / 2, y, w, w);
   c.restore();
   if (dead) txt(c, "💫", px, y + 6 * scale, 9 * scale, "#fff", "center", BODY);

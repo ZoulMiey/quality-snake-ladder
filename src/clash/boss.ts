@@ -1,8 +1,12 @@
 // Boss Raid rules in one place (no database, no browser), so they can be tested.
-// 1–20 players each have one monster and fight the Defect Titan together.
+// 1–30 players each have one monster and fight the Defect Titan together.
 // Time Attack: beat it as fast as possible. High Score: most damage (points) wins.
 // In both modes the Titan stomps every player every 8 seconds; a fainted monster gets one revive question per raid.
 // At 30% HP it becomes ENRAGED: a shield (10% of its HP) that must be broken first, and harder stomps.
+// The Titan ADAPTS (owner's pick "always close", Nov 2026): at every timed stomp it forecasts how long until it
+// falls and how long until the raiders are wiped out, and nudges its toughness `d` (armour and stomp) so the
+// race stays close. Simulated (1-30 players): Titan wins 28-38% against groups answering 70% right,
+// 48-72% at 50% right, 6-34% at 90% right; raids last about 2-3.5 minutes.
 import { CREATURE_IDS } from "./creatures.ts";
 import { FAST_MULT, SUPER_MULT, SUPER_STREAK } from "./sim.ts";
 
@@ -40,7 +44,40 @@ export type Raid = {
   /** The next counter-stomp comes when the Titan's HP drops to mark × 10% (9 = 90%, … 1 = 10%). */
   mark: number;
   winner: "players" | "titan" | null;
+  /** The adaptive Titan's toughness: hits on it are ÷ √d and its stomps × √d. 1 = normal. */
+  d?: number;
 };
+
+/** Adaptive Titan settings (simulated in scripts/boss.test.ts). */
+export const ADAPT = {
+  /** Aim: the Titan's forecast time to fall ÷ the raiders' forecast time to be wiped out. 1 = an even race. */
+  target: 1.0,
+  /** How strongly each stomp reacts, and the most it can change at one stomp (×e^±0.2 ≈ ±22%). */
+  gain: 0.6,
+  step: 0.2,
+  /** Lowest and highest toughness. Above ~1.6 very strong big groups lost more often than average ones. */
+  min: 0.35,
+  max: 1.6,
+  /** Seconds of recent damage used to measure the raiders' damage rate. */
+  window: 24,
+};
+const toughness = (r: Raid) => r.d ?? 1;
+/** Stomp damage right now (the adaptive Titan's toughness included). */
+export const stompNow = (r: Raid) => Math.round(r.stomp * Math.sqrt(toughness(r)));
+
+/**
+ * The adaptive Titan, called before each timed stomp. rate: the raiders' damage per second lately.
+ * Forecast: seconds until the Titan falls (HP + shield ÷ rate) and until half of the monsters still standing
+ * have fainted (their middle HP ÷ the stomp, × 8 s). If the raiders are well ahead it toughens, if well behind it eases.
+ */
+export function adaptTitan(r: Raid, rate: number) {
+  const alive = Object.values(r.raiders).filter((x) => x.hp > 0).map((x) => x.hp).sort((a, b) => a - b);
+  if (!alive.length || rate <= 0 || r.winner) return;
+  const tTitan = (r.titan.hp + r.titan.sh) / rate;
+  const tRaiders = (alive[Math.floor(alive.length / 2)] / Math.max(1, stompNow(r))) * (STOMP_EVERY_MS / 1000);
+  const step = Math.min(ADAPT.step, Math.max(-ADAPT.step, ADAPT.gain * Math.log(ADAPT.target / (tTitan / tRaiders))));
+  r.d = Math.min(ADAPT.max, Math.max(ADAPT.min, toughness(r) * Math.exp(step)));
+}
 export type RaiderState = "alive" | "down" | "out";
 /** alive: fighting. down: fainted, waiting for the revive question. out: fainted for good. */
 export const raiderState = (x: Raider): RaiderState => (x.hp > 0 ? "alive" : x.revive === "ready" ? "down" : "out");
@@ -74,7 +111,8 @@ export function raidHit(r: Raid, uid: string, fast: boolean): { dmg: number; sup
   let dmg = RAID_ATTACK;
   if (fast) dmg *= FAST_MULT;
   if (sup) dmg *= SUPER_MULT;
-  dmg = Math.round(dmg);
+  // the adaptive Titan's armour
+  dmg = Math.max(1, Math.round(dmg / Math.sqrt(toughness(r))));
   const blocked = Math.min(r.titan.sh, dmg);
   r.titan.sh -= blocked;
   r.titan.hp = Math.max(0, r.titan.hp - (dmg - blocked));
@@ -109,7 +147,7 @@ export function raidStomp(r: Raid): { hit: string[]; fainted: string[] } {
   if (r.winner) return { hit, fainted };
   for (const x of Object.values(r.raiders)) {
     if (raiderState(x) !== "alive") continue;
-    x.hp = Math.max(0, x.hp - r.stomp);
+    x.hp = Math.max(0, x.hp - stompNow(r));
     hit.push(x.uid);
     if (x.hp === 0) {
       fainted.push(x.uid);

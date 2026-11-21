@@ -9,7 +9,7 @@ import { COUNTDOWN_MS } from "../lib/engine.ts";
 import type { FeedItem, Game, Player, Question } from "../lib/types.ts";
 import { FAST_MS, STUN_MS } from "./sim.ts";
 import { CLASH_QUESTION_MS, type ClashQ } from "./engine.ts";
-import { STOMP_EVERY_MS, newRaid, raidHit, raidMiss, raidRanking, raidRevive, raidStomp, raiderState, type BossMode, type Raid } from "./boss.ts";
+import { ADAPT, STOMP_EVERY_MS, adaptTitan, newRaid, raidHit, stompNow, raidMiss, raidRanking, raidRevive, raidStomp, raiderState, type BossMode, type Raid } from "./boss.ts";
 
 const RESULT_MS = 1_800;
 /** A counter-stomp lands this long after the hit that set it off (more than one: spaced out). */
@@ -45,6 +45,8 @@ export class BossEngine {
   private game: Game | null = null;
   private r: RaidBoard | null = null;
   private events: RaidEvent[] = [];
+  /** Recent damage to the Titan, [server time, damage], for the adaptive Titan's damage rate (memory only). */
+  private hitLog: [number, number][] = [];
   private evN = 0;
   private stops: (() => void)[] = [];
   private stopTicker: (() => void) | undefined;
@@ -185,16 +187,23 @@ export class BossEngine {
     const updates: Record<string, unknown> = {};
     let changed = false;
     if ((r.counters ?? 0) > 0 && r.counterAt && now >= r.counterAt && !r.winner) {
+      const dmg = stompNow(r);
       const s = raidStomp(r);
-      this.push({ n: 0, at: now, kind: "stomp", dmg: r.stomp, hit: s.hit, fainted: s.fainted, counter: true });
+      this.push({ n: 0, at: now, kind: "stomp", dmg, hit: s.hit, fainted: s.fainted, counter: true });
       r.counters = (r.counters ?? 1) - 1;
       r.counterAt = r.counters > 0 ? now + COUNTER_GAP_MS : null;
       changed = true;
     }
     if (now >= r.nextStomp && !r.winner) {
       r.nextStomp += STOMP_EVERY_MS;
+      // The adaptive Titan: damage rate over the last ADAPT.window seconds (shorter at the start).
+      const since = now - ADAPT.window * 1000;
+      this.hitLog = this.hitLog.filter(([at]) => at >= since);
+      const secs = Math.min(ADAPT.window, Math.max(8, (now - (this.game.goAt ?? now) - (r.pausedMs ?? 0)) / 1000));
+      adaptTitan(r, this.hitLog.reduce((a, [, d]) => a + d, 0) / secs);
+      const dmg = stompNow(r);
       const s = raidStomp(r);
-      this.push({ n: 0, at: now, kind: "stomp", dmg: r.stomp, hit: s.hit, fainted: s.fainted });
+      this.push({ n: 0, at: now, kind: "stomp", dmg, hit: s.hit, fainted: s.fainted });
       changed = true;
     }
     for (const uid of Object.keys(r.raiders)) {
@@ -273,7 +282,8 @@ export class BossEngine {
       const hit = raidHit(r, uid, fast);
       if (!hit) return false;
       this.push({ n: 0, at: now, kind: "atk", uid, dmg: hit.dmg, fast, sup: hit.sup, blk: hit.blocked });
-      if (hit.rage) this.push({ n: 0, at: now + 700, kind: "rage", sh: r.titan.sh, stomp: r.stomp });
+      this.hitLog.push([now, hit.dmg]);
+      if (hit.rage) this.push({ n: 0, at: now + 700, kind: "rage", sh: r.titan.sh, stomp: stompNow(r) });
       if (hit.counter > 0 && !r.winner) {
         r.counters = (r.counters ?? 0) + hit.counter;
         r.counterAt ??= now + COUNTER_DELAY_MS;
@@ -346,6 +356,7 @@ export function fixRaid(x: unknown): RaidBoard | null {
     nextStomp: r.nextStomp ?? 0,
     stun: r.stun ?? {},
     pausedMs: r.pausedMs ?? 0,
+    d: r.d ?? 1,
   };
 }
 export function fixRaidEvents(ev: unknown): RaidEvent[] {
