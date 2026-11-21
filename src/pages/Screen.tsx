@@ -657,6 +657,26 @@ function LobbyView({
 }
 
 /**
+ * Game list: the QR box is as tall as the games and the code fills it (owner: no extra white space). The code's
+ * size (--qr) is the games' height minus the "Scan to join" text; a bigger code makes the game cards narrower and
+ * shorter, so it is settled in a few steps.
+ */
+function balanceQr(inner: HTMLElement) {
+  if (!inner.classList.contains("lobby-list")) return;
+  const main = inner.querySelector<HTMLElement>(".gl-main");
+  const text = inner.querySelector<HTMLElement>(".gl-qr-text");
+  if (!main || !text) return;
+  let q = parseFloat(inner.style.getPropertyValue("--qr")) || 480;
+  for (let i = 0; i < 8; i++) {
+    // At most ~38% of the width, so the game cards keep their size.
+    const want = Math.max(260, Math.min(inner.clientWidth * 0.38 - 36, main.offsetHeight - text.offsetHeight - 52));
+    if (Math.abs(want - q) < 2) break;
+    q = want;
+    inner.style.setProperty("--qr", `${Math.round(q)}px`);
+  }
+}
+
+/**
  * Scales the whole game page (CSS zoom) so it exactly fills the screen: bigger on a big screen, smaller
  * on a small one or with many players, so there is no empty space and no scrolling. Refits when players
  * join or leave and when the window changes size.
@@ -670,6 +690,7 @@ function useFitZoom(key: unknown) {
     let busy = false;
     const fits = (z: number) => {
       inner.style.zoom = String(z);
+      balanceQr(inner);
       // The page's full height (unzoomed, so × z), including anything that would spill out.
       return Math.max(inner.scrollHeight, inner.offsetHeight) * z <= box.clientHeight + 1;
     };

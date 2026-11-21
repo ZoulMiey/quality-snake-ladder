@@ -1405,3 +1405,9 @@ button:disabled { cursor: default; }
 .gl-a .game-card { grid-template-columns: 1fr; align-content: start; gap: 10px; padding: 12px; }
 .gl-a .gc-go { display: none; }
 .gl-a .gc-name { font-size: 30px; }
+/* QR fills its box (owner: no extra white space): the box takes the games' height, the code takes the box's
+   width or height, whichever is smaller, leaving room for "Scan to join" and the address. */
+.gl-a { grid-template-columns: calc(var(--qr, 480px) + 36px) minmax(0, 1fr); }
+.gl-a .gl-qr { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 18px; }
+.gl-a .gl-qr .qr { flex: none; width: var(--qr, 480px); height: var(--qr, 480px); }
+.gl-a .gl-qr .gl-qr-text { text-align: center; display: grid; justify-items: center; gap: 6px; }
