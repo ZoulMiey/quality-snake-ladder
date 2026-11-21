@@ -10,7 +10,7 @@ import { CREATURES, ELEMENTS, creatureById } from "./creatures.ts";
 import CreatureImg from "./CreatureImg.tsx";
 import { CLASH_QUESTION_MS, fixBoard, fixEvents, type ClashBoard, type ClashEvent, type ClashQ } from "./engine.ts";
 import { ArenaCanvas } from "./ClashView.tsx";
-import { SHIELD, SOLO_CREATURES, STUN_MS, SUPER_STREAK, TEAM_SIZE, fightersOf, isAlive, lineUp, type Format, type Side } from "./sim.ts";
+import { SHIELD, SOLO_CREATURES, STUN_MS, SUPER_STREAK, fightersOf, isAlive, lineUp, teamSize, type Format, type Side } from "./sim.ts";
 
 type RawPick = { side: Side; c: string[] | Record<string, string>; at?: number };
 const cList = (c: RawPick["c"] | undefined) => (Array.isArray(c) ? c : Object.values(c ?? {}));
@@ -37,17 +37,20 @@ export function ClashPick({ uid, format }: { uid: string; format: Format }) {
   const [side, setSide] = useState<Side | null>(mine?.side ?? null);
   const [chosen, setChosen] = useState<string[]>(mine?.c ?? []);
   const [msg, setMsg] = useState("");
+  // Follow the saved pick, also when the host moves this player to the other team.
+  const savedC = mine?.c.join(",") ?? "";
   useEffect(() => {
-    if (mine && !side) {
+    if (mine) {
       setSide(mine.side);
       setChosen(mine.c);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mine?.side]);
+  }, [mine?.side, savedC]);
+  const size = teamSize(useDbValue<number>("game/clashSize"));
 
   const need = format === "solo" ? SOLO_CREATURES : 1;
-  const cap = format === "solo" ? 1 : TEAM_SIZE;
-  const { fighters } = lineUp(format, picks);
+  const cap = format === "solo" ? 1 : size;
+  const { fighters } = lineUp(format, picks, size);
   const inBattle = Object.values(fighters).some((f) => f.uid === uid);
   const count = (s: Side) => new Set(Object.values(fighters).filter((f) => f.side === s && f.uid !== uid).map((f) => f.uid)).size;
   const teammateHas = new Set(format === "team" ? Object.values(fighters).filter((f) => f.side === side && f.uid !== uid).map((f) => f.c) : []);
@@ -88,7 +91,7 @@ export function ClashPick({ uid, format }: { uid: string; format: Format }) {
 
   return (
     <div className="clash-pick">
-      <Bi en={format === "solo" ? "1 v 1: pick a side and 3 monsters" : "Team battle: pick a team and a monster"} ms={format === "solo" ? "1 lawan 1: pilih pihak dan 3 raksasa" : "Pertempuran pasukan: pilih pasukan dan raksasa"} className="cp-title" />
+      <Bi en={format === "solo" ? "1 v 1: pick a side and 3 monsters" : `Team ${size} v ${size}: pick a team and a monster`} ms={format === "solo" ? "1 lawan 1: pilih pihak dan 3 raksasa" : `Pasukan ${size} lawan ${size}: pilih pasukan dan raksasa`} className="cp-title" />
       <div className="cp-sides">
         {(["red", "blue"] as Side[]).map((s) => {
           const n = count(s) + (side === s && ready ? 1 : 0);

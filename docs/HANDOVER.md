@@ -115,10 +115,12 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 - Phones show the **full arena from the player's own side** with the question card popping up over the bottom.
 - **No time limit**; ends when one side is out. Host "End game" early: more HP (+ shield) wins.
 
-**Single 1 v 1 and Team 3 v 3** (1 v 1: 2 fight, up to 50 in the room; Team: max 30 players, 3 v 3 fight, the rest watch)
-- 300 HP per monster. A side's attack power is always **60**, shared by its monsters still standing. Every hit goes to a random opponent monster.
+**Single 1 v 1 and Team 3 v 3 / 5 v 5** (1 v 1: 2 fight, up to 50 in the room; Team: max 30 players, 3 v 3 or 5 v 5 fight, the rest watch)
+- **Team size (sixth session):** the host picks **3 v 3 or 5 v 5** under the Team card (`game.clashSize`, default 3; `lineUp(format, picks, size)`, `Battle.size`). Players pick a side + monster on the phone; the first 3/5 on each side fight. **Host arrows (owner: like Pull the Rope):** → / ← on each fighter in the projector roster moves them to the other team; watchers (team full or nothing picked) have ← / → chips to put them on Red / Blue. A moved player keeps their monster (or gets the first free one) and their place in the queue (`moveTo` in `ClashLobby.tsx`); the phone follows the move.
+- 300 HP per monster. A side's attack power is **60** (1 v 1, 3 v 3) or **110 in 5 v 5** (`POWER_5V5`, `powerOf`; owner wanted 5 v 5 to end within 5 min: with 60 the team shield made 5 v 5 last ~12 min; with 110 ~3.6 min, longest ~4.2 min, better team wins ~95%), shared by its monsters still standing. Every hit goes to a random opponent monster.
 - 1 v 1: each player has 3 monsters. Team: one monster per player; works 1 v 1 to 3 v 3. Team only: every 5 right answers = **+50 shield** for the teammate with the lowest HP.
-- Simulated length: Team ~4 min, 1 v 1 ~2.5 min.
+- Simulated length: Team 3 v 3 ~4 min (longest ~5.2), 5 v 5 ~3.6 min, 1 v 1 ~2.5 min.
+- Arena with 4–5 a side: monsters and platforms shrink (`shrink` in `ClashView.tsx`), HP boxes share the row evenly in a compact form (player name, streak dots, HP bar).
 - Files: `src/clash/sim.ts`, `engine.ts`, `ClashView.tsx`, `ClashLobby.tsx`, `ClashPhone.tsx`.
 
 **Boss Raid (Defect Titan / Gergasi Kecacatan)** (max 30 players; raiders still capped at 20 = `MAX_RAIDERS`)
@@ -272,7 +274,7 @@ Scripts (host PIN `2468`; screenshots to `scripts/e2e/shots/` or `$SHOTS`):
 3. **Fishing Derby, tweaks of 20 Nov to re-test on real phones:** catch label, boat in the middle, frenzy countdown, last 10 s countdown. Known small thing: a SNAP!/FRENZY full-screen alert (up to 2.4 s) covers the phone's countdown pill while it shows.
 4. **Fishing Derby Teams mode:** after open play is final. Not designed yet: discuss first (team count, how teams are picked, scoring), then draft.
 5. **Step 1 (50 players, random pieces) and the Snake & Ladder projector moments:** built, not yet checked by the owner on the real projector / with a big group.
-6. **Step 3 (agreed in the fourth session, not started):** check each game with 30–50 players (Snake & Ladder board crowding, projector lists); add **Quality Clash 5 v 5** (Team mode: 3 v 3 or 5 v 5, max 30 in the room, the rest watch; needs a balance simulation); raise **Boss Raid to 30 raiders** (`MAX_RAIDERS` in `src/clash/boss.ts`, re-tune HP/stomp with a simulation; target Titan wins 30–40%).
+6. **Step 3 (sixth session: Clash 5 v 5 built and pushed, not yet tested by the owner; Boss Raid 30 next, draft first; then the 30–50 player check):** check each game with 30–50 players (Snake & Ladder board crowding, projector lists); add **Quality Clash 5 v 5** (Team mode: 3 v 3 or 5 v 5, max 30 in the room, the rest watch; needs a balance simulation); raise **Boss Raid to 30 raiders** (`MAX_RAIDERS` in `src/clash/boss.ts`, re-tune HP/stomp with a simulation; target Titan wins 30–40%).
 7. **Question review (owner: KIV):** if the owner reviews again, read `reviews` from the review pages (docs keyed by question id: `{d: "keep"|"drop"|"edit", q?: [en, ms], o?: [[en, ms] ×4, right first], set}`; unmarked = keep). The live database already holds the questions, so changes must be written **to the database** (e.g. a second one-time migration flag), not only to `moreQuestions.ts`.
 8. **Quality Clash (owner: KIV, "so far all good"):** Boss Raid balance with real groups still unchecked. **Mini Tournament** (bracket style, "coming soon" in the lobby): on hold.
 9. **Possible later:** circuit picker for Quality Cart (9 more circuits in the circuits draft); turning off the remembered name on phones (offered, not requested).

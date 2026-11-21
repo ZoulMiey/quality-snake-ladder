@@ -1,12 +1,13 @@
-// Projector lobby for Quality Clash: choose Single 1 v 1, Team 3 v 3 or Boss Raid, and see who is in.
+// Projector lobby for Quality Clash: choose Single 1 v 1, Team 3 v 3 / 5 v 5 or Boss Raid, and see who is in.
+// The host can move a player to the other team (→ / ←), like Pull the Rope.
 import { useMemo } from "react";
-import { ref, set } from "firebase/database";
+import { ref, set, update } from "firebase/database";
 import { db } from "../lib/firebase.ts";
 import { useDbValue } from "../lib/useDb.ts";
 import type { Player } from "../lib/types.ts";
-import { creatureById } from "./creatures.ts";
+import { CREATURE_IDS, creatureById } from "./creatures.ts";
 import CreatureImg from "./CreatureImg.tsx";
-import { lineUp, type Side } from "./sim.ts";
+import { TEAM_SIZES, lineUp, other, teamSize, type Side, type TeamSize } from "./sim.ts";
 import { MAX_RAIDERS, newRaid, raiderHp, titanHp } from "./boss.ts";
 import type { RaidBest } from "./bossEngine.ts";
 import { clock } from "./raidDraw.ts";
@@ -26,31 +27,52 @@ function usePicks(players: Record<string, Player>) {
   );
 }
 
+/** Team mode size (3 v 3 or 5 v 5), saved as game.clashSize. */
+export function useTeamSize(): TeamSize {
+  return teamSize(useDbValue<number>("game/clashSize"));
+}
+
+type LinePick = { uid: string; side: Side; c: string[]; at: number };
+
+/**
+ * Host: move a player to a team. They keep their monster if nobody on that team has it,
+ * otherwise they get the first free one. They keep their place in the queue (`at`).
+ */
+async function moveTo(uid: string, side: Side, picks: LinePick[]) {
+  const mine = picks.find((p) => p.uid === uid);
+  const taken = new Set(picks.filter((p) => p.side === side && p.uid !== uid).map((p) => p.c[0]));
+  const own = mine?.c[0];
+  const c = own && CREATURE_IDS.includes(own) && !taken.has(own) ? own : CREATURE_IDS.find((id) => !taken.has(id)) ?? CREATURE_IDS[0];
+  await set(ref(db, `clash/pick/${uid}`), { side, c: [c], at: mine?.at || Date.now() });
+}
+
 /** Who is in the battle, whether it can start, and who only watches. */
 export function useLineUp(format: ClashFormat, players: Record<string, Player>) {
   const picks = usePicks(players);
+  const size = useTeamSize();
   return useMemo(() => {
     if (format === "boss") {
       const raid = newRaid("ta", picks);
       const inRaid = new Set(Object.keys(raid.raiders));
       return { ready: inRaid.size > 0, watching: Object.keys(players).filter((u) => !inRaid.has(u)), raiders: Object.values(raid.raiders).sort((a, b) => a.slot - b.slot) };
     }
-    const { fighters } = lineUp(format, picks);
+    const { fighters } = lineUp(format, picks, size);
     const fighting = new Set(Object.values(fighters).map((f) => f.uid));
     const sides = new Set(Object.values(fighters).map((f) => f.side));
-    return { ready: sides.has("red") && sides.has("blue"), watching: Object.keys(players).filter((u) => !fighting.has(u)), fighters };
-  }, [picks, players, format]);
+    return { ready: sides.has("red") && sides.has("blue"), watching: Object.keys(players).filter((u) => !fighting.has(u)), fighters, picks, size };
+  }, [picks, players, format, size]);
 }
 
 export function ClashFormatPick({ format, onFormat, bossMode, onBossMode }: { format: ClashFormat; onFormat: (f: ClashFormat) => void; bossMode: BossMode; onBossMode: (m: BossMode) => void }) {
   const best = useDbValue<RaidBest>("clash/records/best");
+  const size = useTeamSize();
   return (
     <div className="clash-format">
       <div className="cf-btns" role="radiogroup" aria-label="Quality Clash mode">
         {(
           [
             ["solo", "Single 1 v 1", "Single 1 lawan 1"],
-            ["team", "Team 3 v 3", "Pasukan 3 lawan 3"],
+            ["team", "Team 3 v 3 / 5 v 5", "Pasukan 3 lawan 3 / 5 lawan 5"],
             ["boss", "Boss Raid", "Serangan Bos"],
           ] as [ClashFormat, string, string][]
         ).map(([f, en, ms]) => (
@@ -64,6 +86,19 @@ export function ClashFormatPick({ format, onFormat, bossMode, onBossMode }: { fo
           <span className="ms">Coming soon / Akan datang</span>
         </button>
       </div>
+      {format === "team" && (
+        <div className="cf-boss">
+          <div className="cf-btns" role="radiogroup" aria-label="Team size">
+            {TEAM_SIZES.map((n) => (
+              <button key={n} role="radio" aria-checked={size === n} className={`cf-btn small ${size === n ? "on" : ""}`} onClick={() => update(ref(db, "game"), { clashSize: n })}>
+                <span className="en">{n} v {n}</span>
+                <span className="ms">{n} lawan {n}</span>
+              </button>
+            ))}
+          </div>
+          <div className="cf-best">{size === 5 ? "Bigger hits for 5 v 5 (power 110) · about 3–4 min / kira-kira 3–4 minit" : "About 3–4 min / kira-kira 3–4 minit"} · max 30 players, the rest watch</div>
+        </div>
+      )}
       {format === "boss" && (
         <div className="cf-boss">
           <div className="cf-btns" role="radiogroup" aria-label="Boss Raid mode">
@@ -136,7 +171,7 @@ export function ClashRoster({ format, players }: { format: ClashFormat; players:
   const col = (side: Side) => {
     const fs = Object.values(fighters).filter((f) => f.side === side);
     const uids = [...new Set(fs.map((f) => f.uid))];
-    const cap = format === "solo" ? 1 : 3;
+    const cap = format === "solo" ? 1 : lu.size ?? 3;
     return (
       <div className={`cr-col ${side}`}>
         <h3>
@@ -149,13 +184,18 @@ export function ClashRoster({ format, players }: { format: ClashFormat; players:
               {fs
                 .filter((f) => f.uid === u)
                 .map((f) => (
-                  <CreatureImg key={f.id} id={f.c} size={format === "solo" ? 52 : 64} title={creatureById(f.c).en} />
+                  <CreatureImg key={f.id} id={f.c} size={format === "solo" ? 52 : lu.size === 5 ? 44 : 64} title={creatureById(f.c).en} />
                 ))}
             </div>
             <div className="cr-who">
               <div className="cr-name">{players[u]?.name}</div>
               <div className="cr-cn">{fs.filter((f) => f.uid === u).map((f) => creatureById(f.c).en).join(" · ")}</div>
             </div>
+            {format === "team" && (
+              <button type="button" className="cr-move" title={`Move to ${other(side) === "red" ? "Red" : "Blue"}`} aria-label={`Move ${players[u]?.name} to ${other(side) === "red" ? "Red" : "Blue"}`} onClick={() => moveTo(u, other(side), lu.picks ?? [])}>
+                {side === "red" ? "→" : "←"}
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -167,10 +207,33 @@ export function ClashRoster({ format, players }: { format: ClashFormat; players:
         {col("red")}
         {col("blue")}
       </div>
-      {lu.watching.length > 0 && (
+      {lu.watching.length > 0 && format !== "team" && (
         <p className="cr-watch">
           Watching / Menonton: {lu.watching.map((u) => players[u]?.name).join(", ")}
         </p>
+      )}
+      {lu.watching.length > 0 && format === "team" && (
+        <div className="cr-watch rope-unpicked">
+          <span>
+            Watching / Menonton ({lu.watching.length}): teams full, or no team / monster picked yet. Use ← / → to put a player on a team.
+          </span>
+          <div className="rope-chips">
+            {lu.watching.map((u) => {
+              const pk = lu.picks?.find((p) => p.uid === u);
+              return (
+                <span key={u} className={`rope-chip none ${pk?.side ?? ""}`}>
+                  <button type="button" className="red" aria-label={`Put ${players[u]?.name} on Red`} onClick={() => moveTo(u, "red", lu.picks ?? [])}>
+                    ←
+                  </button>
+                  {players[u]?.name}
+                  <button type="button" className="blue" aria-label={`Put ${players[u]?.name} on Blue`} onClick={() => moveTo(u, "blue", lu.picks ?? [])}>
+                    →
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        </div>
       )}
     </div>
   );

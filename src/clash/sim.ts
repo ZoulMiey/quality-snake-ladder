@@ -1,5 +1,5 @@
 // Quality Clash battle rules in one place (no database, no browser), so they can be tested.
-// Team 3 v 3: each player has one creature. Single 1 v 1: each player has three creatures.
+// Team 3 v 3 or 5 v 5: each player has one creature. Single 1 v 1: each player has three creatures.
 import { CREATURE_IDS } from "./creatures.ts";
 
 export type Side = "red" | "blue";
@@ -7,10 +7,14 @@ export type Format = "team" | "solo";
 
 export const HP = 300;
 /**
- * A side's attack power: always 60, shared by its creatures still standing
- * (3 left: 20 each, 2 left: 30 each). The last creature splits its 60 into 3 hits of 20.
+ * A side's attack power, shared by its creatures still standing
+ * (3 left: 20 each, 2 left: 30 each). The last creature splits it into 3 hits.
+ * 60 for 1 v 1 and 3 v 3. 5 v 5 uses 110: with 60 a team of 5 earns its shield so often that
+ * battles took ~12 minutes; with 110 they take ~3.5 min (longest ~4.5 min, simulated).
  */
 export const POWER = 60;
+export const POWER_5V5 = 110;
+export const powerOf = (b: { size?: number }) => (b.size === 5 ? POWER_5V5 : POWER);
 export const LAST_HITS = 3;
 /** An answer within this time is FAST: +25% damage. */
 export const FAST_MS = 3_000;
@@ -23,12 +27,18 @@ export const SHIELD = 50;
 export const SHIELD_EVERY = 5;
 /** Waiting time after a wrong answer or no answer. */
 export const STUN_MS = 3_000;
-export const TEAM_SIZE = 3;
+/** Team mode: the host picks 3 v 3 or 5 v 5. */
+export type TeamSize = 3 | 5;
+export const TEAM_SIZES: TeamSize[] = [3, 5];
+export const TEAM_SIZE: TeamSize = 3;
+export const teamSize = (v: unknown): TeamSize => (v === 5 ? 5 : 3);
 export const SOLO_CREATURES = 3;
 
 export type Fighter = { id: string; uid: string; side: Side; slot: number; c: string; hp: number; sh: number; lv: number };
 export type Battle = {
   format: Format;
+  /** Team mode: fighters per side (3 or 5). */
+  size?: TeamSize;
   fighters: Record<string, Fighter>;
   /** Right answers in a row, per player. */
   streak: Record<string, number>;
@@ -46,11 +56,11 @@ export const other = (s: Side): Side => (s === "red" ? "blue" : "red");
 
 /**
  * Turn the lobby picks into the fighters. Picks are taken in the order they were made.
- * Team: up to 3 players per side, one creature each, no two teammates with the same creature.
+ * Team: up to `size` (3 or 5) players per side, one creature each, no two teammates with the same creature.
  * Single: the first player on each side, with exactly 3 different creatures.
  * Returns the uids that did not get in (they watch).
  */
-export function lineUp(format: Format, picks: Pick[]): { fighters: Record<string, Fighter>; watching: string[] } {
+export function lineUp(format: Format, picks: Pick[], size: TeamSize = TEAM_SIZE): { fighters: Record<string, Fighter>; watching: string[] } {
   const fighters: Record<string, Fighter> = {};
   const watching: string[] = [];
   const count: Record<Side, number> = { red: 0, blue: 0 };
@@ -64,7 +74,7 @@ export function lineUp(format: Format, picks: Pick[]): { fighters: Record<string
     const cs = (p.c ?? []).filter((c) => CREATURE_IDS.includes(c));
     if (format === "team") {
       const c = cs[0];
-      if (!c || count[p.side] >= TEAM_SIZE || usedOnSide[p.side].has(c)) {
+      if (!c || count[p.side] >= size || usedOnSide[p.side].has(c)) {
         watching.push(p.uid);
         continue;
       }
@@ -88,10 +98,10 @@ export function lineUp(format: Format, picks: Pick[]): { fighters: Record<string
   return { fighters, watching };
 }
 
-export function newBattle(format: Format, fighters: Record<string, Fighter>): Battle {
+export function newBattle(format: Format, fighters: Record<string, Fighter>, size: TeamSize = TEAM_SIZE): Battle {
   const streak: Record<string, number> = {};
   for (const f of Object.values(fighters)) streak[f.uid] = 0;
-  return { format, fighters, streak, rights: { red: 0, blue: 0 }, winner: null };
+  return { format, size: format === "team" ? size : 3, fighters, streak, rights: { red: 0, blue: 0 }, winner: null };
 }
 
 const byHp = (a: Fighter, b: Fighter) => a.hp - b.hp || a.slot - b.slot;
@@ -109,7 +119,7 @@ export const targetFor = (b: Battle, side: Side, rand: () => number = Math.rando
 /**
  * A right answer: the player's creature(s) attack at once.
  * 1 v 1: all the player's creatures still standing attack. Team: the player's own creature attacks.
- * Each hit is POWER divided by the side's creatures still standing; the last creature makes LAST_HITS hits instead.
+ * Each hit is the side's power (powerOf) divided by the side's creatures still standing; the last creature makes LAST_HITS hits instead.
  * Every hit goes to a random opponent creature still standing.
  */
 export function right(b: Battle, uid: string, fast: boolean, rand: () => number = Math.random): RightResult {
@@ -122,7 +132,8 @@ export function right(b: Battle, uid: string, fast: boolean, rand: () => number 
   b.streak[uid] = out.sup ? 0 : streak;
   const standing = aliveOf(b, side).length;
   const last = standing === 1;
-  let dmg = last ? POWER / LAST_HITS : POWER / standing;
+  const power = powerOf(b);
+  let dmg = last ? power / LAST_HITS : power / standing;
   if (fast) dmg *= FAST_MULT;
   if (out.sup) dmg *= SUPER_MULT;
   out.dmg = Math.round(dmg);

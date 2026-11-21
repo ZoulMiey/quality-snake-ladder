@@ -1,14 +1,28 @@
-// Full Quality Clash battle on the emulator. MODE=team (default: 6 fighters + 1 watcher) or MODE=solo (2 players).
+// Full Quality Clash battle on the emulator. MODE=team (default: 6 fighters + 1 watcher), MODE=team5 (5 v 5: 5 pick Red,
+// 4 Blue, 1 nobody; the host moves "Wrong Team" from Red to Blue and puts the player who picked nothing on Red) or MODE=solo (2 players).
 const { chromium } = require("playwright");
 const OUT = process.env.SHOTS || require("path").join(__dirname, "shots");
 require("fs").mkdirSync(OUT, { recursive: true });
 const BASE = "http://localhost:5173";
 const DB = "http://127.0.0.1:9000/.json?ns=demo-qsl-default-rtdb";
-const MODE = process.env.MODE === "solo" ? "solo" : "team";
+const MODE = process.env.MODE === "solo" ? "solo" : process.env.MODE === "team5" ? "team5" : "team";
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const get = async () => (await fetch(DB, { headers: { Authorization: "Bearer owner" } })).json();
 const PLAYERS =
-  MODE === "team"
+  MODE === "team5"
+    ? [
+        ["Aina", "red", ["Kaizen Dragon"]],
+        ["Ravi", "blue", ["Audit Owl"]],
+        ["Hafiz", "red", ["Viscosity Turtle"]],
+        ["Siti", "blue", ["Calibration Golem"]],
+        ["Mei Ling", "red", ["Sigma Fox"]],
+        ["Daniel", "blue", ["pH Shark"]],
+        ["Kumar", "red", ["Furnace Bull"]],
+        ["Farah", "blue", ["Gemba Falcon"]],
+        ["Wrong Team", "red", ["Sensor Bee"]],
+        ["Ahmad", null, []],
+      ]
+    : MODE === "team"
     ? [
         ["Aina", "red", ["Kaizen Dragon"]],
         ["Ravi", "blue", ["Audit Owl"]],
@@ -39,6 +53,7 @@ const PLAYERS =
   await proj.getByText("Scan to join").waitFor({ timeout: 15000 });
   await proj.getByRole("button", { name: /Quality Clash/ }).click();
   await proj.getByRole("radio", { name: MODE === "solo" ? /Single 1 v 1/ : /Team 3 v 3/ }).click();
+  if (MODE === "team5") await proj.getByRole("radio", { name: /^5 v 5/ }).click();
   await proj.waitForTimeout(500);
 
   const phones = [];
@@ -57,6 +72,25 @@ const PLAYERS =
     phones.push({ name, p, side });
   }
   log("joined", phones.length, "phones");
+  if (MODE === "team5") {
+    // "Wrong Team" picked Red by mistake: the host moves them to Blue with the fighter's arrow.
+    await proj.screenshot({ path: `${OUT}/clash-${MODE}-lobby-before.png` });
+    await proj.getByRole("button", { name: "Move Wrong Team to Blue" }).click();
+    await proj.getByRole("button", { name: "Move Wrong Team to Red" }).waitFor({ timeout: 5000 });
+    const moved = phones.find((x) => x.name === "Wrong Team");
+    moved.side = "blue";
+    await moved.p.locator("button.cp-side.blue.on").waitFor({ timeout: 5000 });
+    await moved.p.locator(".cp-ready").waitFor({ timeout: 5000 });
+    await moved.p.screenshot({ path: `${OUT}/clash-${MODE}-phone-moved.png`, fullPage: true });
+    // Ahmad picked nothing (watching): the host puts him on Red; he gets a free monster.
+    await proj.getByRole("button", { name: "Put Ahmad on Red" }).click();
+    await proj.getByRole("button", { name: "Move Ahmad to Blue" }).waitFor({ timeout: 5000 });
+    const ahmad = phones.find((x) => x.name === "Ahmad");
+    ahmad.side = "red";
+    await ahmad.p.locator("button.cp-side.red.on").waitFor({ timeout: 5000 });
+    await ahmad.p.locator(".cp-ready").waitFor({ timeout: 5000 });
+    log("host moves ok");
+  }
   await phones[0].p.locator(".clash-pick").scrollIntoViewIfNeeded();
   await phones[0].p.screenshot({ path: `${OUT}/clash-${MODE}-phone-pick.png`, fullPage: true });
   await proj.screenshot({ path: `${OUT}/clash-${MODE}-lobby.png` });
@@ -94,7 +128,8 @@ const PLAYERS =
     if (shots === 1 && t > 30) {
       await proj.screenshot({ path: `${OUT}/clash-${MODE}-battle2.png` });
       for (const ph of phones.slice(0, 2)) await ph.p.screenshot({ path: `${OUT}/clash-${MODE}-phone-${ph.name}.png` });
-      if (phones[6]) await phones[6].p.screenshot({ path: `${OUT}/clash-${MODE}-phone-watcher.png` });
+      if (MODE === "team5") await phones.find((x) => x.name === "Wrong Team").p.screenshot({ path: `${OUT}/clash-${MODE}-phone-moved-battle.png` });
+      if (phones[6] && MODE !== "team5") await phones[6].p.screenshot({ path: `${OUT}/clash-${MODE}-phone-watcher.png` });
       shots++;
     }
     await proj.waitForTimeout(300);

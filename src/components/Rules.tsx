@@ -16,7 +16,7 @@ const CLASH_TILES = [
   { icon: "⚡", en: `Answer within ${FAST_MS / 1000} s\n= +25% damage`, ms: `Jawab dalam ${FAST_MS / 1000} saat = +25%` },
   { icon: "🔥", en: `${SUPER_STREAK} right in a row\n= super move ×2`, ms: `${SUPER_STREAK} betul berturut = gerakan super` },
   { icon: "🛡️", en: `Team: every ${SHIELD_EVERY} rights\n= +${SHIELD} shield`, ms: `Pasukan: setiap ${SHIELD_EVERY} betul = perisai +${SHIELD}` },
-  { icon: "🏆", en: "Faint all 3 opponents\nto win!", ms: "Pengsankan semua lawan untuk menang" },
+  { icon: "🏆", en: "Faint all the other\nteam's monsters to win!", ms: "Pengsankan semua lawan untuk menang" },
 ];
 import { MAX_WINNERS } from "../lib/engine.ts";
 

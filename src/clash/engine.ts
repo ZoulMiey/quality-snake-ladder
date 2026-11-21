@@ -14,6 +14,7 @@ import {
   fightersOf,
   isAlive,
   lineUp,
+  teamSize,
   newBattle,
   other,
   players as battlePlayers,
@@ -86,21 +87,22 @@ export class ClashEngine {
     this.pool = poolFor(qSnap.val(), this.qset);
     if (!this.pool.length) throw new Error(noQuestionsMessage(this.qset));
     const format: Format = (gameSnap.val() as Game | null)?.clashFormat === "solo" ? "solo" : "team";
+    const size = teamSize((gameSnap.val() as Game | null)?.clashSize);
     const picks = Object.entries((pickSnap.val() ?? {}) as Record<string, Omit<Pick, "uid">>)
       .filter(([uid]) => this.players[uid])
       .map(([uid, p]) => ({ uid, side: p.side, c: Object.values(p.c ?? {}), at: p.at }));
-    const { fighters } = lineUp(format, picks);
+    const { fighters } = lineUp(format, picks, size);
     const sides = new Set(Object.values(fighters).map((f) => f.side));
     if (!sides.has("red") || !sides.has("blue"))
       throw new Error(format === "solo" ? "1 v 1 needs one player on Red and one on Blue, each with 3 monsters." : "Each team needs at least one player with a monster.");
     const now = serverNow();
-    this.b = { ...newBattle(format, fighters), stun: {} };
+    this.b = { ...newBattle(format, fighters, size), stun: {} };
     this.used = {};
     this.qs = Object.fromEntries(battlePlayers(this.b).map((u) => [u, { open: false, qid: "", correctIdx: 0, askedAt: 0, deadline: 0, nextAt: 0, seq: 0 }]));
     this.events = [];
     this.evN = 0;
     const feed: FeedItem[] = [{ at: now, uid: "", text: "⚔️ The battle has started!", tone: "info" }];
-    this.game = { status: "playing", qset: this.qset, mode: "clash", clashFormat: format, engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt: now + COUNTDOWN_MS, endedAt: null, winners: [] };
+    this.game = { status: "playing", qset: this.qset, mode: "clash", clashFormat: format, clashSize: size, engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt: now + COUNTDOWN_MS, endedAt: null, winners: [] };
     await update(ref(db), {
       game: this.game,
       feed,
@@ -320,6 +322,7 @@ export function fixBoard(b: unknown): ClashBoard | null {
   const x = b as Partial<ClashBoard>;
   return {
     format: x.format === "solo" ? "solo" : "team",
+    size: x.format === "solo" ? 3 : teamSize(x.size),
     fighters: x.fighters ?? {},
     streak: x.streak ?? {},
     rights: { red: x.rights?.red ?? 0, blue: x.rights?.blue ?? 0 },

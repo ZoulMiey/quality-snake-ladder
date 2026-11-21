@@ -17,18 +17,18 @@ const HIT = 0.75;
 const SHIELD_AT = HIT + 1.1;
 
 /** Where everything goes: "wide" for the projector (16:9), "tall" for phones (9:16). */
-type Row = { y: number; s: number; plat: [number, number]; box: { y: number; w: number }; xs: number[][] };
+type Row = { y: number; s: number; plat: [number, number]; box: { y: number; w: number; x0: number; x1: number }; xs: number[][] };
 type Layout = { VW: number; VH: number; wall: number; dash: number; top: Row; bot: Row; msg: { y: number; w: number; h: number }; banner: number; meters: { top: [number, number]; bot: [number, number] }; clock: [number, number]; fz: number };
 const WIDE: Layout = {
   VW: 960, VH: 540, wall: 150, dash: 335,
-  top: { y: 226, s: 2.6, plat: [72, 17], box: { y: 8, w: 170 }, xs: [[480], [390, 570], [300, 480, 660]] },
-  bot: { y: 452, s: 4.4, plat: [112, 27], box: { y: 470, w: 200 }, xs: [[480], [330, 630], [190, 480, 770]] },
+  top: { y: 226, s: 2.6, plat: [72, 17], box: { y: 8, w: 170, x0: 118, x1: 800 }, xs: [[480], [390, 570], [300, 480, 660], [300, 420, 540, 660], [240, 360, 480, 600, 720]] },
+  bot: { y: 452, s: 4.4, plat: [112, 27], box: { y: 470, w: 200, x0: 4, x1: 956 }, xs: [[480], [330, 630], [190, 480, 770], [140, 366, 594, 820], [100, 290, 480, 670, 860]] },
   msg: { y: 64, w: 600, h: 54 }, banner: 270, meters: { top: [16, 22], bot: [808, 62] }, clock: [848, 10], fz: 1,
 };
 const TALL: Layout = {
   VW: 540, VH: 960, wall: 180, dash: 380,
-  top: { y: 290, s: 2.2, plat: [60, 14], box: { y: 64, w: 168 }, xs: [[270], [180, 360], [92, 270, 448]] },
-  bot: { y: 470, s: 3.2, plat: [78, 20], box: { y: 490, w: 168 }, xs: [[270], [180, 360], [92, 270, 448]] },
+  top: { y: 290, s: 2.2, plat: [60, 14], box: { y: 64, w: 168, x0: 4, x1: 536 }, xs: [[270], [180, 360], [92, 270, 448], [72, 204, 336, 468], [58, 164, 270, 376, 482]] },
+  bot: { y: 470, s: 3.2, plat: [78, 20], box: { y: 490, w: 168, x0: 4, x1: 536 }, xs: [[270], [180, 360], [92, 270, 448], [72, 204, 336, 468], [58, 164, 270, 376, 482]] },
   msg: { y: 120, w: 520, h: 54 }, banner: 360, meters: { top: [12, 22], bot: [392, 22] }, clock: [221, 8], fz: 1.2,
 };
 // The layout and the side shown at the bottom for the frame being drawn.
@@ -38,13 +38,16 @@ let VH = 540;
 let BOTTOM: Side = "red";
 let ME = "";
 
-type Slot = { x: number; y: number; s: number; back: boolean; top: boolean };
+/** k: size of the monsters and platforms (smaller when a side has 4–5, in 5 v 5). */
+type Slot = { x: number; y: number; s: number; k: number; back: boolean; top: boolean };
+const shrink = (count: number) => (count >= 5 ? 0.78 : count === 4 ? 0.88 : 1);
 function slotOf(f: Fighter, count: number): Slot {
   const top = f.side !== BOTTOM;
   const row = top ? Lay.top : Lay.bot;
-  const xs = row.xs[Math.max(0, Math.min(2, count - 1))];
+  const xs = row.xs[Math.max(0, Math.min(row.xs.length - 1, count - 1))];
   const x = xs[Math.min(f.slot, xs.length - 1)];
-  return { x, y: row.y, s: row.s, back: !top, top };
+  const k = shrink(count);
+  return { x, y: row.y, s: row.s * k, k, back: !top, top };
 }
 
 /** The battle drawn on a canvas, kept in step with the database. */
@@ -263,7 +266,9 @@ function drawBg(c: Ctx) {
 }
 
 function platform(c: Ctx, s: Slot, side: Side) {
-  const [rx, ry] = (s.top ? Lay.top : Lay.bot).plat;
+  const [rx0, ry0] = (s.top ? Lay.top : Lay.bot).plat;
+  const rx = rx0 * s.k;
+  const ry = ry0 * s.k;
   c.fillStyle = "#1d2340";
   c.beginPath();
   c.ellipse(s.x, s.y + 4, rx + 6, ry + 6, 0, 0, 7);
@@ -358,8 +363,33 @@ function box(c: Ctx, f: Fighter, L: Look, x: number, y: number, w: number, playe
   c.stroke();
   c.fillStyle = f.side === "red" ? "#ff5a5f" : "#4aa8ff";
   c.fillRect(x + 3, y + 3, 7, 46);
-  const name = cr.en.toUpperCase();
   const fz = Lay.fz;
+  if (w < 150) {
+    // compact (5 v 5): player name, streak dots and the HP bar; the monster shows above
+    const pn = players[f.uid]?.name ?? "Player";
+    txt(c, pn, x + 14, y + 17, fit(c, pn, w - 20, 13 * fz, 8, `700 ${BODY}`), "#1b1530", "left", `700 ${BODY}`);
+    for (let i = 0; i < SUPER_STREAK; i++) {
+      c.fillStyle = i < streak ? "#e0a000" : "#d6cfba";
+      c.fillRect(x + 14 + i * 9, y + 24, 7, 7);
+    }
+    const bx = x + 14;
+    const bw = w - 20;
+    c.fillStyle = "#1b1530";
+    c.fillRect(bx - 2, y + 37, bw + 4, 10);
+    c.fillStyle = "#3a3560";
+    c.fillRect(bx, y + 39, bw, 6);
+    const fr = L.hp / HP;
+    c.fillStyle = hpColor(fr);
+    c.fillRect(bx, y + 39, bw * fr, 6);
+    if (L.sh > 0.5) {
+      c.fillStyle = "#7ae0ff";
+      c.fillRect(bx, y + 39, bw * Math.min(1, L.sh / HP), 3);
+    }
+    if (showNums) txt(c, `${Math.ceil(L.hp)}${L.sh > 0.5 ? ` +${Math.ceil(L.sh)}` : ""}`, x + w - 6, y + 64, 9 * Lay.fz, "#f4efe4", "right");
+    c.globalAlpha = 1;
+    return;
+  }
+  const name = cr.en.toUpperCase();
   txt(c, name, x + 16, y + 17, fit(c, name, w - 66, 8 * fz, 5), "#1b1530");
   txt(c, `Lv${f.lv}`, x + w - 8, y + 17, 8, "#1b1530", "right");
   const pn = players[f.uid]?.name ?? "Player";
@@ -611,6 +641,13 @@ function draw(c: Ctx, b: ClashBoard | null, events: ClashEvent[], game: Game, pl
   // HP boxes
   for (const f of all) {
     const row = slots[f.id].top ? Lay.top : Lay.bot;
+    const n = count[f.side];
+    if (n > 3) {
+      // 4–5 a side: boxes share the row evenly
+      const cell = (row.box.x1 - row.box.x0) / n;
+      box(c, f, L[f.id], row.box.x0 + cell * f.slot + 3, row.box.y, cell - 6, players, b.streak[f.uid] ?? 0, !slots[f.id].top);
+      continue;
+    }
     const w = row.box.w;
     const x = Math.max(4, Math.min(VW - w - 4, slots[f.id].x - w / 2));
     box(c, f, L[f.id], x, row.box.y, w, players, b.streak[f.uid] ?? 0, !slots[f.id].top);

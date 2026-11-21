@@ -382,7 +382,7 @@ function HostScreen() {
 const GAMES: { m: GameMode; desc: string; ms: string }[] = [
   { m: "snake", desc: "Answer to roll the dice. Climb ladders, dodge snakes, reach box 100.", ms: "Jawab untuk baling dadu. Panjat tangga, elak ular, sampai petak 100." },
   { m: "kart", desc: "Tilt your phone to steer. Right answers give turbo. 3 laps.", ms: "Condongkan telefon untuk memandu. Jawapan betul beri turbo. 3 pusingan." },
-  { m: "clash", desc: "Monster battles: Single 1 v 1, Team 3 v 3 or Boss Raid.", ms: "Pertarungan raksasa: 1 lawan 1, 3 lawan 3 atau Serangan Bos." },
+  { m: "clash", desc: "Monster battles: Single 1 v 1, Team 3 v 3 / 5 v 5 or Boss Raid.", ms: "Pertarungan raksasa: 1 lawan 1, 3 lawan 3 / 5 lawan 5 atau Serangan Bos." },
   { m: "fish", desc: "Answer to catch fish. 3 in a row = BIG FISH, 5 = GOLDEN. Heaviest catch in 5 minutes wins.", ms: "Jawab untuk tangkap ikan. Tangkapan paling berat dalam 5 minit menang." },
   { m: "rope", desc: "Red vs Blue across a river. Right answers pull the rope. Best of 3: the losers get a splash!", ms: "Merah lawan Biru merentasi sungai. Jawapan betul menarik tali. Terbaik 3 pusingan!" },
 ];

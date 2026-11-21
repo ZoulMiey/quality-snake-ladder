@@ -1,7 +1,7 @@
 // Checks the Quality Clash battle rules. Run: npm test
 import assert from "node:assert/strict";
 import { CREATURES } from "../src/clash/creatures.ts";
-import { HP, SHIELD, lineUp, newBattle, right, wrong, aliveOf, isAlive, type Format, type Pick } from "../src/clash/sim.ts";
+import { HP, POWER_5V5, SHIELD, lineUp, newBattle, right, wrong, aliveOf, isAlive, type Format, type Pick, type TeamSize } from "../src/clash/sim.ts";
 
 let n = 0;
 const t = (name: string, fn: () => void) => {
@@ -151,24 +151,39 @@ t("the last hit ends the battle: the other side is eliminated", () => {
   assert.equal(right(b, "a", false).hits.length, 0, "no attacks after the end");
 });
 
-// Average battle length: each player answers every few seconds, about 70% right.
-function battleSeconds(format: Format, seed: number) {
+t("5 v 5: 5 per side, the 6th watches; hits use power 110 shared by the monsters standing", () => {
+  const picks: Pick[] = Array.from({ length: 12 }, (_, i) => ({ uid: "p" + i, side: i < 6 ? "red" : "blue", c: [CREATURES[i % 6].id], at: i }));
+  const { fighters, watching } = lineUp("team", picks, 5);
+  assert.equal(Object.values(fighters).filter((f) => f.side === "red").length, 5);
+  assert.equal(Object.values(fighters).filter((f) => f.side === "blue").length, 5);
+  assert.deepEqual(watching, ["p5", "p11"]);
+  const b = newBattle("team", fighters, 5);
+  assert.equal(b.size, 5);
+  const r = right(b, "p0", false, () => 0);
+  assert.equal(r.dmg, POWER_5V5 / 5);
+  assert.equal(right(b, "p1", true, () => 0).dmg, Math.round((POWER_5V5 / 5) * 1.25));
+  // 3 v 3 is unchanged: 60 shared by 3
+  assert.equal(right(team(picks.slice(0, 3).concat(picks.slice(6, 9))), "p0", false).dmg, 20);
+});
+
+// Average battle length: each player answers every few seconds, about 70% right (or accR / accB).
+function battleSeconds(format: Format, seed: number, size: TeamSize = 3, accR = 0.7, accB = 0.7) {
   let s = seed;
   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
   const picks: Pick[] =
     format === "team"
-      ? ["a", "b", "c", "x", "y", "z"].map((u, i) => ({ uid: u, side: i < 3 ? "red" : "blue", c: [CREATURES[i].id], at: i }))
+      ? Array.from({ length: size * 2 }, (_, i) => ({ uid: "u" + i, side: i < size ? "red" : "blue", c: [CREATURES[i].id], at: i }))
       : [
           { uid: "a", side: "red", c: ["dragon", "fox", "owl"], at: 1 },
           { uid: "x", side: "blue", c: ["bee", "mole", "golem"], at: 2 },
         ];
-  const b = newBattle(format, lineUp(format, picks).fighters);
+  const b = newBattle(format, lineUp(format, picks, size).fighters, size);
   const next: Record<string, number> = Object.fromEntries(picks.map((p) => [p.uid, 2 + rnd() * 3]));
   for (let time = 0; time < 1800; time += 0.1) {
     for (const p of picks) {
       if (time < next[p.uid] || !isAlive(b, p.uid)) continue;
       const took = 2 + rnd() * 8;
-      if (rnd() < 0.7) {
+      if (rnd() < (p.side === "red" ? accR : accB)) {
         right(b, p.uid, took < 3);
         next[p.uid] = time + took + 1.8;
       } else {
@@ -189,5 +204,13 @@ for (const f of ["team", "solo"] as Format[]) {
     assert.ok(median > 2 && median < 8, `median ${median}`);
   });
 }
+
+t("5 v 5 battles end within 5 minutes (even teams and 70% v 80%)", () => {
+  for (const [a, c] of [[0.7, 0.7], [0.7, 0.8]]) {
+    const times = Array.from({ length: 201 }, (_, i) => battleSeconds("team", (i + 1) * 7919, 5, a, c)).sort((x, y) => x - y);
+    console.log(`   5 v 5 ${a * 100}% v ${c * 100}%: median ${(times[100] / 60).toFixed(1)} min, longest ${(times[200] / 60).toFixed(1)} min`);
+    assert.ok(times[200] <= 300, `longest ${times[200]} s`);
+  }
+});
 
 console.log(`\n${n} clash checks passed`);
