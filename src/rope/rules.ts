@@ -12,7 +12,7 @@
 //     presses "Start round now"), a 5-second countdown, then "ROUND 2", then play. MVP = most right answers.
 // Simulation (scripts/rope.test.ts, 3,000 rounds each): even teams reach a bank in ~35% of rounds (~2:00),
 // 70% v 80% right in ~80% of rounds (~1:30, the better team wins 95%); 4 v 2 and 20 v 10 are 50/50.
-import type { PublicQuestion } from "../lib/types.ts";
+import type { FeedItem, PublicQuestion } from "../lib/types.ts";
 
 export type Side = "red" | "blue";
 export const SIDES: Side[] = ["red", "blue"];
@@ -234,4 +234,15 @@ export function simulateRound(teams: Record<Side, SimTeam>, rand: () => number =
   }
   const r = roundWinner(x, right, "time");
   return { win: r.win, bank: false, ms: ROUND_MS, x };
+}
+
+/**
+ * Projector live feed (owner, Nov 2026): POWER PULL lines filled the list in a big game.
+ * Show only the newest POWER PULL and keep every other line, newest first.
+ */
+export const FEED_SHOW = 10;
+export function ropeFeedLines(seen: FeedItem[]): FeedItem[] {
+  const sorted = [...seen].sort((a, b) => a.at - b.at);
+  const lastPower = sorted.filter((f) => f.k === "power").pop();
+  return sorted.filter((f) => f.k !== "power" || f === lastPower).slice(-FEED_SHOW).reverse();
 }

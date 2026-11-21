@@ -184,7 +184,8 @@ export default function FishPhone({ uid, me, game, onExit }: { uid: string; me: 
       <div className="slp-view">
         <canvas ref={cv} className="fp-canvas" aria-label="Your boat on the pond, seen from the side" />
         <StreakDots streak={st.streak} />
-        <div className="fp-msgs" aria-live="polite">
+        {/* Over a full-screen SNAP!/FRENZY alert too, so the countdowns stay visible (owner, Nov 2026). */}
+        <div className={`fp-msgs ${showAlert && showAlert.kind !== "big" && showAlert.kind !== "gold" ? "over" : ""}`} aria-live="polite">
           {toastNow && (
             <div className={`fp-toast ${toastNow.frenzy ? "fr" : ""}`} key={toastNow.key}>
               🐟 {toastNow.name} <b>+{toastNow.kg} kg</b>

@@ -10,7 +10,7 @@ import { sfx } from "../lib/sound.ts";
 import Countdown from "../components/Countdown.tsx";
 import type { FeedItem, Game, Player, RopeGame } from "../lib/types.ts";
 import { fixRope } from "./engine.ts";
-import { HEAVE_MS, ROUND_BANNER_MS, HEAVE_WARN_MS, ROUND_MS, SIDES, SIDE_NAME, fixRopeState, heaveAt, mvpOrder, other, shoutOuts, type RopeState, type Side } from "./rules.ts";
+import { HEAVE_MS, ropeFeedLines, ROUND_BANNER_MS, HEAVE_WARN_MS, ROUND_MS, SIDES, SIDE_NAME, fixRopeState, heaveAt, mvpOrder, other, shoutOuts, type RopeState, type Side } from "./rules.ts";
 import {
   CX,
   DISP,
@@ -82,6 +82,7 @@ export default function RopeView({ game, players, feed, onAgain, onStartRound }:
   const clock = ropeClock(game, rope);
   const playing = game.status === "playing" && clock.started && rope?.phase === "play";
   const h = heaveAt(clock.elapsed);
+  const shownFeed = useRopeFeed(feed);
 
   // Sounds: HEAVE!, round results, power pulls (not too many).
   const lastHeave = useRef(-1);
@@ -375,7 +376,7 @@ export default function RopeView({ game, players, feed, onAgain, onStartRound }:
         <div className="panel feed-panel">
           <h3>Live · {n} players</h3>
           <ul className="feed">
-            {[...feed].reverse().map((f) => (
+            {shownFeed.map((f) => (
               <li key={`${f.at}-${f.uid}-${f.text}`} className={`tone-${f.tone}`}>
                 {f.text}
               </li>
@@ -385,6 +386,22 @@ export default function RopeView({ game, players, feed, onAgain, onStartRound }:
       </aside>
     </main>
   );
+}
+
+// Live feed (owner, Nov 2026): in a big game the POWER PULL lines filled the list. The projector keeps
+// every other line it has seen (the database keeps only the last 12, so power pulls used to push out
+// HEAVE! and round lines) and shows only the newest POWER PULL. Phones still get every power line.
+
+function useRopeFeed(feed: FeedItem[]): FeedItem[] {
+  const seen = useRef(new Map<string, FeedItem>());
+  return useMemo(() => {
+    for (const f of feed) seen.current.set(`${f.at}-${f.uid}-${f.text}`, f);
+    // Forget old power lines so the memory stays small.
+    const all = [...seen.current.entries()];
+    const power = all.filter(([, f]) => f.k === "power").sort((a, b) => a[1].at - b[1].at);
+    for (const [k] of power.slice(0, -1)) seen.current.delete(k);
+    return ropeFeedLines([...seen.current.values()]);
+  }, [feed]);
 }
 
 function heaveBanner(c: CanvasRenderingContext2D, endsIn: number, t: number) {

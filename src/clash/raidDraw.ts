@@ -447,7 +447,7 @@ export const clock = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.fl
  * a pulsing red ring at the feet, a red outline around the monster and a "WRONG / SALAH" or "TIME'S UP" tag.
  * Fades out over the last half second of the 3 s stun.
  */
-function stunMark(c: Ctx, p: { x: number; feet: number; scale: number }, left: number, timeout: boolean, t: number) {
+function stunMark(c: Ctx, p: { x: number; feet: number; scale: number }, left: number, timeout: boolean, t: number, low = false) {
   const a = Math.min(1, left / 500);
   const pulse = 1 + 0.08 * Math.sin(t * 10);
   const w = 40 * p.scale;
@@ -465,7 +465,8 @@ function stunMark(c: Ctx, p: { x: number; feet: number; scale: number }, left: n
   c.stroke();
   c.setLineDash([]);
   const [en, ms] = timeout ? ["TIME'S UP", "Masa tamat"] : ["WRONG", "Salah"];
-  const ty = p.feet - w * 1.2 - 14;
+  // With 3 rows the tag sits on the monster itself, so it does not cover the name of the raider above.
+  const ty = low ? p.feet - w * 0.5 - 6 : p.feet - w * 1.2 - 14;
   c.font = `8px ${PX}`;
   const tw = Math.max(c.measureText(en).width, 40) + 12;
   rr(c, p.x - tw / 2, ty - 9, tw, 24, 4);
@@ -544,7 +545,7 @@ export function drawRaidWide(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
   for (const x of list) {
     const until = stun[x.uid] ?? 0;
     if (until <= now || x.hp <= 0) continue;
-    stunMark(c, at[x.uid], until - now, V.wrongTimeout[x.uid] ?? false, t);
+    stunMark(c, at[x.uid], until - now, V.wrongTimeout[x.uid] ?? false, t, list.length > ROOMY);
   }
   for (const p of V.pops) {
     const pos = p.at === "titan" ? [TX + 60, 150] : at[p.at] ? [at[p.at].x, at[p.at].feet - 48 * at[p.at].scale] : null;

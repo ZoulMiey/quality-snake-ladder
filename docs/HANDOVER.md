@@ -46,6 +46,8 @@ Last updated **21 Nov 2026, start of the seventh session**. It covers this repos
 
 7. **Seventh session (21 Nov 2026):**
    - Status check: owner tested Quality Clash 5 v 5 ("all good"), Boss Raid with 30 raiders ("all good") and the Exit / join again fix ("all good").
+   - Owner: Step 3 part 2 (30–50 players) already tested on their side: "not so crowded, we having fun" → closed.
+   - **Three small fixes** (owner: fix, then push live): (1) Fishing Derby: the FRENZY IN / last-10-s countdown pills now show **on top of** a full-screen SNAP!/FRENZY alert (`.fp-msgs.over`, z-index 9; the catch toast is hidden then). (2) Pull the Rope projector feed: only the **newest POWER PULL** line shows, and the projector remembers every other line it has seen (the database keeps only 12, so power pulls used to push out HEAVE! and round lines): `ropeFeedLines` in `src/rope/rules.ts`, `useRopeFeed` in `RopeView.tsx`; phones still get every power line. (3) Boss Raid with 3 rows: the WRONG / TIME'S UP tag sits **on the stunned monster** instead of above it, so it no longer covers the name of the raider behind (`low` in `stunMark`). Checked on the emulator: `boss.cjs N=30`, `rope.cjs N=50`, `fish.cjs` (new shot `fish-phone-over.png`).
    - Closed by the owner: Boss Raid "Players" box in the lobby ("good for now"), game list page ("so far all good"), question review ("agreed and kept all the questions"). KIV: Fishing Derby Teams, Quality Clash Mini Tournament.
 
 ## What this is
@@ -250,7 +252,7 @@ npm install
 npm test
 ```
 
-Runs 7 suites: Snake & Ladder rules (22, including phone timings, event boxes, winners, projector moments, 50 unique pieces and per-game limits), Quality Cart (11), Quality Clash (13, including 5 v 5 line-up, power and a battle-length simulation), Boss Raid (12, including the adaptive Titan at 1–30 players and 50%/90% groups), questions (4), Fishing Derby (9: catch rules, frenzy windows, ranking, shout-outs, result times vs the side-view catch, simulation), Pull the Rope (14: timings, pull sharing, bonuses, HEAVE! windows, round and match winners, team filling, MVP, simulations).
+Runs 7 suites: Snake & Ladder rules (22, including phone timings, event boxes, winners, projector moments, 50 unique pieces and per-game limits), Quality Cart (11), Quality Clash (13, including 5 v 5 line-up, power and a battle-length simulation), Boss Raid (12, including the adaptive Titan at 1–30 players and 50%/90% groups), questions (4), Fishing Derby (9: catch rules, frenzy windows, ranking, shout-outs, result times vs the side-view catch, simulation), Pull the Rope (15: timings, pull sharing, bonuses, HEAVE! windows, round and match winners, team filling, MVP, projector feed, simulations).
 
 End-to-end tests use the Firebase emulator (needs Java) and Playwright. In this cloud sandbox: download the emulator once with the proxy, then run it with the proxy variables unset:
 
@@ -293,11 +295,9 @@ Scripts (host PIN `2468`; screenshots to `scripts/e2e/shots/` or `$SHOTS`):
 
 ## Open items
 
-1. **Step 3 part 2 (agreed, next):** check every game with 30–50 players (Snake & Ladder board crowding, projector lists, phone views, the lobby players strip with 50 players, data cost). The emulator scripts already support big groups (`snake-50-players.cjs`, `rope.cjs N=50`, `boss.cjs N=30`, `fish.cjs N=…`).
-2. **Fishing Derby Teams mode (owner: KIV):** not designed yet: discuss first (team count, how teams are picked, scoring), then draft.
-3. **Quality Clash Mini Tournament (owner: KIV):** bracket style, "coming soon" in the lobby.
-4. **Known small things:** Fishing Derby: a SNAP!/FRENZY full-screen alert (up to 2.4 s) covers the phone's countdown pill while it shows. Pull the Rope: the live feed fills with POWER PULL lines in a big game (offered: show fewer). Boss Raid: with 3 rows, a stun tag can cover the name of the raider above for its 3 s.
-5. **Possible later (KIV):** circuit picker for Quality Cart (9 more circuits in the circuits draft); turning off the remembered name on phones (offered, not requested).
-6. **Ideas discussed, not built:** cheer meter for watchers, revive in Team mode, MVP screen, Hall of Fame across the day, chiptune music and per-type attack sounds, host settings (e.g. HP 200/300/500), random snake/ladder layout, other games (Dragon Boat Race, Capture the Factory, Spot the Defect, Quality Bingo, Horse Race; Tug of War became Pull the Rope).
+1. **Fishing Derby Teams mode (owner: KIV):** not designed yet: discuss first (team count, how teams are picked, scoring), then draft.
+2. **Quality Clash Mini Tournament (owner: KIV):** bracket style, "coming soon" in the lobby.
+3. **Possible later (KIV):** circuit picker for Quality Cart (9 more circuits in the circuits draft); turning off the remembered name on phones (offered, not requested).
+4. **Ideas discussed, not built:** cheer meter for watchers, revive in Team mode, MVP screen, Hall of Fame across the day, chiptune music and per-type attack sounds, host settings (e.g. HP 200/300/500), random snake/ladder layout, other games (Dragon Boat Race, Capture the Factory, Spot the Defect, Quality Bingo, Horse Race; Tug of War became Pull the Rope).
 
-**Closed by the owner (seventh session):** real-phone tests of 5 v 5, Boss Raid 30 raiders and the Exit fix (all good); Boss Raid lobby "Players" box (good for now); game list page (all good); question review (all 406 questions kept, nothing to apply).
+**Closed by the owner (seventh session):** Step 3 part 2 (tested with big groups: fine); the three known small things (fixed); real-phone tests of 5 v 5, Boss Raid 30 raiders and the Exit fix (all good); Boss Raid lobby "Players" box (good for now); game list page (all good); question review (all 406 questions kept, nothing to apply).

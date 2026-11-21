@@ -1001,6 +1001,8 @@ button:disabled { cursor: default; }
 .fp-kg { animation: fp-kg .9s ease-out; }
 @keyframes fp-kg { 0% { color: #16a34a; transform: scale(1.35); } 100% { color: inherit; transform: none; } }
 .fp-msgs { position: absolute; top: 34px; left: 8px; right: 8px; z-index: 4; display: grid; justify-items: center; gap: 6px; pointer-events: none; }
+.fp-msgs.over { z-index: 9; }
+.fp-msgs.over .fp-toast { display: none; }
 .fp-toast { background: #fff; color: var(--ink); border: 3px solid #0369a1; border-radius: 999px; padding: 6px 16px; font-weight: 700; font-size: 18px; box-shadow: 0 6px 16px rgba(0,0,0,.25); animation: fp-pop .35s cubic-bezier(.3,1.6,.5,1), fp-out .4s ease-in 2.2s forwards; white-space: nowrap; }
 .fp-toast b { font-family: var(--display); font-weight: 800; font-size: 24px; color: #0369a1; margin-left: 4px; }
 .fp-toast small { font-weight: 800; color: #7c3aed; margin-left: 6px; }

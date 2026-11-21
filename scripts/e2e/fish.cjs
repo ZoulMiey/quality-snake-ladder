@@ -49,9 +49,10 @@ const dbGet = async () => (await fetch(DB, { headers: { Authorization: "Bearer o
   await phones[0].p.screenshot({ path: `${OUT}/fish-phone-countdown.png` });
   log("countdown:", (await phones[0].p.locator(".cd-you").innerText().catch(() => "-")).replace(/\n/g, " "));
 
-  const want = new Set(["question", "big", "gold", "snap", "frenzy", "leap", "toast", "soon", "final"]);
+  const want = new Set(["question", "big", "gold", "snap", "frenzy", "leap", "toast", "soon", "final", "over"]);
   const projWant = new Set([N <= 8 ? "zoom" : "cards", "frenzy", "game", "soon", "final"]);
-  const domShots = { toast: ".fp-toast", soon: ".fp-soon", final: ".fp-final" };
+  // "over": a SNAP! alert with the countdown pill still on top (phone 1 answers wrong during a countdown).
+  const domShots = { toast: ".fp-toast", soon: ".fp-soon", final: ".fp-final", over: ".fp-msgs.over .fp-soon, .fp-msgs.over .fp-final" };
   const seen = {};
   const t0 = Date.now();
   let ended = false;
@@ -102,8 +103,9 @@ const dbGet = async () => (await fetch(DB, { headers: { Authorization: "Bearer o
           log("phone shot question");
         }
         const right = all.private?.[uid]?.correctIdx ?? 0;
+        const miss = idx === 0 && want.has("over") && (await ph.p.locator(".fp-soon, .fp-final").count()) > 0;
         await btns
-          .nth(Math.random() < ACC ? right : (right + 1) % n)
+          .nth(!miss && Math.random() < ACC ? right : (right + 1) % n)
           .click({ timeout: 8000 })
           .then(() => answers++)
           .catch((e) => {

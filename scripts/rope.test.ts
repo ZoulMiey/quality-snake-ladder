@@ -14,6 +14,7 @@ import {
   matchWinner,
   mvpOrder,
   pullFor,
+  ropeFeedLines,
   roundWinner,
   shoutOuts,
   simulateRound,
@@ -192,6 +193,12 @@ t("simulation: small games don't end too fast (1 v 1 still ~2 minutes)", () => {
   const s = stats({ n: 1, acc: 0.7 }, { n: 1, acc: 0.8 });
   show("1 v 1, 70% v 80%", s);
   assert.ok(isNaN(s.med) || s.med > 80_000);
+});
+
+t("projector feed: only the newest POWER PULL, HEAVE! and round lines kept", () => {
+  const f = (at: number, k: string | undefined, text: string) => ({ at, uid: "", text, tone: "good", ...(k ? { k } : {}) }) as never;
+  const lines = ropeFeedLines([f(1, "round", "Round 1"), ...Array.from({ length: 20 }, (_, i) => f(10 + i, "power", `power ${i}`)), f(15, "heave", "HEAVE!")]);
+  assert.deepEqual(lines.map((x: { text: string }) => x.text), ["power 19", "HEAVE!", "Round 1"]);
 });
 
 console.log(`\n${n} pull-the-rope checks passed`);
