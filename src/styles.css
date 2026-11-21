@@ -1157,17 +1157,19 @@ button:disabled { cursor: default; }
 
 /* Game page in the lobby, one projector screen (owner's tweak of B2):
    top: QR | preview, name, Start | questions, mode, how to play; bottom, full width: Red | Blue, or the players. */
-.screen:has(.lobby-game) { height: 100%; min-height: 0; }
-.lobby-game { min-height: 0; grid-template-columns: minmax(0, 27fr) minmax(0, 40fr) minmax(0, 33fr); grid-template-rows: minmax(0, 1fr) auto; align-items: stretch; gap: 16px 22px; padding: 14px 24px 18px; }
-.qr-side.plain { container-type: size; background: none; box-shadow: none; color: #fff; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px; min-height: 0; }
-/* As big as the column allows: the smaller of its width and its height minus the text underneath. */
-.qr-side.plain .qr { flex: none; width: min(100cqw, calc(100cqh - 118px)); height: min(100cqw, calc(100cqh - 118px)); min-width: 0; min-height: 0; background: #fff; padding: 10px; border-radius: 18px; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+.screen:has(.lobby-fitbox) { height: 100%; min-height: 0; }
+/* The page is laid out at its natural size, then scaled (zoom, useFitZoom) to fill the screen exactly. */
+.lobby-fitbox { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
+.lobby-fitbox > .lobby-game { flex: none; }
+.lobby-game { min-height: 0; grid-template-columns: minmax(0, 27fr) minmax(0, 40fr) minmax(0, 33fr); grid-template-rows: auto auto; align-items: stretch; gap: 16px 22px; padding: 14px 24px 18px; }
+.qr-side.plain { background: none; box-shadow: none; color: #fff; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px; min-height: 0; }
+.qr-side.plain .qr { flex: none; width: 100%; height: auto; aspect-ratio: 1; min-width: 0; min-height: 0; background: #fff; padding: 10px; border-radius: 18px; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
 .qr-side.plain .scan .en { font-size: 34px; }
 .qr-side.plain .scan .ms { color: rgba(255,255,255,.8); font-size: 16px; }
 .qr-side.plain .url { background: rgba(255,255,255,.14); font-size: 17px; }
-.gd-mid { display: grid; grid-template-rows: minmax(0, max-content) auto auto 1fr; gap: 10px; min-height: 0; min-width: 0; background: rgba(0,0,0,.18); border-radius: 18px; padding: 14px; overflow: hidden; }
+.gd-mid { display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; background: rgba(0,0,0,.18); border-radius: 18px; padding: 14px; overflow: hidden; }
 .gd-prev { min-height: 0; display: flex; justify-content: center; align-items: flex-start; }
-.gd-mid .game-preview.big { width: auto; height: auto; max-width: 100%; max-height: 100%; }
+.gd-mid .game-preview.big { width: 100%; height: auto; max-height: none; }
 .gd-mid .gd-info { gap: 3px; flex: none; }
 .gd-mid .gd-name .en { font-size: clamp(26px, 2.2vw, 40px); }
 .gd-mid .gd-desc { font-size: 16px; }
@@ -1176,7 +1178,7 @@ button:disabled { cursor: default; }
 .gd-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
 .gd-actions .gd-change { margin: 0; }
 .gd-actions .start { width: auto; padding: 10px 32px; font-size: 24px; }
-.gd-right { min-height: 0; min-width: 0; overflow-y: auto; background: rgba(0,0,0,.18); border-radius: 18px; padding: 14px 18px; }
+.gd-right { min-height: 0; min-width: 0; background: rgba(0,0,0,.18); border-radius: 18px; padding: 14px 18px; }
 .gd-fit { display: flex; flex-direction: column; gap: 12px; }
 .gd-block { display: flex; flex-direction: column; gap: 8px; }
 .gd-block + .gd-block { border-top: 2px solid rgba(255,255,255,.12); padding-top: 12px; }
@@ -1196,7 +1198,7 @@ button:disabled { cursor: default; }
 .gd-right .rt-en { font-size: 12.5px; }
 .gd-right .rt-ms { font-size: 10px; }
 /* bottom: players */
-.gd-players { grid-column: 1 / -1; display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; align-items: start; background: rgba(0,0,0,.18); border-radius: 18px; padding: 12px 16px; max-height: 34vh; overflow-y: auto; }
+.gd-players { grid-column: 1 / -1; display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; align-items: start; background: rgba(0,0,0,.18); border-radius: 18px; padding: 12px 16px; }
 .gd-players .lobby-head { flex-direction: column; align-items: flex-start; gap: 6px; }
 .gd-players .lobby-head h2 { font-size: 28px; display: grid; line-height: 1; }
 .gd-players .lobby-head h2 .ms { font-family: var(--body); font-size: 14px; font-weight: 600; opacity: .7; }
@@ -1225,4 +1227,4 @@ button:disabled { cursor: default; }
 .gd-players .lp-name { font-size: 16px; }
 .gd-players .lobby-players .x { font-size: 20px; padding: 0 2px; }
 .gd-players .more-players { margin: 0; font-size: 15px; }
-@media (max-width: 1100px) { .lobby-game { grid-template-columns: 1fr; grid-template-rows: auto; } .screen:has(.lobby-game) { height: auto; min-height: 100%; } .gd-right, .gd-players { overflow: visible; max-height: none; } .qr-side.plain .qr { height: auto; width: min(100%, 420px); } }
+@media (max-width: 1100px) { .lobby-game { grid-template-columns: 1fr; } .screen:has(.lobby-fitbox) { height: auto; min-height: 100%; } .lobby-fitbox { overflow: visible; } .qr-side.plain .qr { width: min(100%, 420px); } }

@@ -464,7 +464,8 @@ function LobbyView({
   // The game's page fits one projector screen (owner's tweak of B2): top QR | preview, name, Start | questions, mode, how to play;
   // bottom, across the screen: Red team | Blue team, or the list of players.
   return (
-    <main className="lobby lobby-game">
+    <main className="lobby-fitbox" ref={fitRef}>
+    <div className="lobby lobby-game">
       <section className={`qr-side ${mode ? "plain" : ""}`}>
         <Qr text={url} />
         <div className="scan">
@@ -509,7 +510,7 @@ function LobbyView({
           </p>
         )}
       </section>
-      <section className="gd-right" ref={fitRef}>
+      <section className="gd-right">
         <div className="gd-fit">
         <div className="gd-block">
         <div className="qset-pick">
@@ -605,13 +606,15 @@ function LobbyView({
         )}
         </div>
       </section>
+    </div>
     </main>
   );
 }
 
 /**
- * Shrinks the right column (settings, how to play, players) until it fits its box, so the game page
- * never scrolls, also on smaller projector screens or with many players. Grows back when there is room.
+ * Scales the whole game page (CSS zoom) so it exactly fills the screen: bigger on a big screen, smaller
+ * on a small one or with many players, so there is no empty space and no scrolling. Refits when players
+ * join or leave and when the window changes size.
  */
 function useFitZoom(key: unknown) {
   const el = useRef<HTMLElement>(null);
@@ -620,14 +623,25 @@ function useFitZoom(key: unknown) {
     const inner = box?.firstElementChild as HTMLElement | null;
     if (!box || !inner) return;
     let busy = false;
+    const fits = (z: number) => {
+      inner.style.zoom = String(z);
+      // The page's full height (unzoomed, so × z), including anything that would spill out.
+      return Math.max(inner.scrollHeight, inner.offsetHeight) * z <= box.clientHeight + 1;
+    };
     const fit = () => {
       if (busy) return;
       busy = true;
-      let z = 1;
-      inner.style.zoom = "1";
-      while (box.scrollHeight > box.clientHeight + 1 && z > 0.55) {
-        z -= 0.03;
-        inner.style.zoom = String(z);
+      if (window.innerWidth < 1100) {
+        inner.style.zoom = "1";
+      } else {
+        let lo = 0.5;
+        let hi = 1.8;
+        for (let i = 0; i < 12; i++) {
+          const mid = (lo + hi) / 2;
+          if (fits(mid)) lo = mid;
+          else hi = mid;
+        }
+        fits(lo);
       }
       busy = false;
     };
@@ -639,15 +653,12 @@ function useFitZoom(key: unknown) {
     };
     const mo = new MutationObserver(later);
     mo.observe(inner, { childList: true, subtree: true, characterData: true });
-    // The box also changes height when the players strip below it grows.
     const ro = new ResizeObserver(later);
     ro.observe(box);
-    window.addEventListener("resize", later);
     return () => {
       cancelAnimationFrame(raf);
       mo.disconnect();
       ro.disconnect();
-      window.removeEventListener("resize", later);
     };
   }, [key]);
   return el;
