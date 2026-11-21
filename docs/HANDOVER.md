@@ -1,6 +1,6 @@
 # Handover: Quality Month Games
 
-Last updated **21 Nov 2026, end of the sixth session**. It covers this repository only. Read it fully before changing anything.
+Last updated **21 Nov 2026, start of the seventh session**. It covers this repository only. Read it fully before changing anything.
 
 ## Starting a new session
 
@@ -43,6 +43,10 @@ Last updated **21 Nov 2026, end of the sixth session**. It covers this repositor
    - **Bug fixed:** after "Play again", a player who tapped Exit and joined again appeared twice ("Zoul" ×2). Exit no longer signs out (see "How it works").
    - Owner put the Boss Raid "Players" box in the lobby on **KIV** (they sent a screenshot of the raiders strip; no change asked yet).
    - Everything is pushed live; the owner has not yet tested 5 v 5, the Boss Raid changes or the Exit fix on real phones.
+
+7. **Seventh session (21 Nov 2026):**
+   - Status check: owner tested Quality Clash 5 v 5 ("all good"), Boss Raid with 30 raiders ("all good") and the Exit / join again fix ("all good").
+   - Closed by the owner: Boss Raid "Players" box in the lobby ("good for now"), game list page ("so far all good"), question review ("agreed and kept all the questions"). KIV: Fishing Derby Teams, Quality Clash Mini Tournament.
 
 ## What this is
 
@@ -289,13 +293,11 @@ Scripts (host PIN `2468`; screenshots to `scripts/e2e/shots/` or `$SHOTS`):
 
 ## Open items
 
-1. **Owner to test on real phones / projector (built and pushed in the sixth session):** Quality Clash **5 v 5** and the host arrows; **Boss Raid with up to 30 raiders** (layout A, stun circles, grey fainted raiders, phones with nearest neighbours, adaptive Titan: watch real groups' results against the simulation); the **Exit / join again** fix (phones with the old page open must reload once).
-2. **Step 3 part 2 (agreed, next):** check every game with 30–50 players (Snake & Ladder board crowding, projector lists, phone views, the lobby players strip with 50 players, data cost). The emulator scripts already support big groups (`snake-50-players.cjs`, `rope.cjs N=50`, `boss.cjs N=30`, `fish.cjs N=…`).
-3. **Boss Raid "Players" box in the lobby (owner: KIV):** owner sent a screenshot of the raiders strip (Titan HP / monster HP line, raider chips, "Not picked yet"); no change asked yet. Ask what they want when they come back to it.
-4. **Fishing Derby Teams mode:** after Quality Clash (owner). Not designed yet: discuss first (team count, how teams are picked, scoring), then draft.
-5. **Game list page (lobby before a game is picked):** owner: "all good for now"; it is not yet on the one-screen layout (offered a draft).
-6. **Question review (owner: KIV):** if the owner reviews again, read `reviews` from the review pages (docs keyed by question id: `{d: "keep"|"drop"|"edit", q?: [en, ms], o?: [[en, ms] ×4, right first], set}`; unmarked = keep). The live database already holds the questions, so changes must be written **to the database** (e.g. a second one-time migration flag), not only to `moreQuestions.ts`.
-7. **Quality Clash:** **Mini Tournament** (bracket style, "coming soon" in the lobby): on hold.
-8. **Known small things:** Fishing Derby: a SNAP!/FRENZY full-screen alert (up to 2.4 s) covers the phone's countdown pill while it shows. Pull the Rope: the live feed fills with POWER PULL lines in a big game (offered: show fewer). Boss Raid: with 3 rows, a stun tag can cover the name of the raider above for its 3 s.
-9. **Possible later (KIV):** circuit picker for Quality Cart (9 more circuits in the circuits draft); turning off the remembered name on phones (offered, not requested).
-10. **Ideas discussed, not built:** cheer meter for watchers, revive in Team mode, MVP screen, Hall of Fame across the day, chiptune music and per-type attack sounds, host settings (e.g. HP 200/300/500), random snake/ladder layout, other games (Dragon Boat Race, Capture the Factory, Spot the Defect, Quality Bingo, Horse Race; Tug of War became Pull the Rope).
+1. **Step 3 part 2 (agreed, next):** check every game with 30–50 players (Snake & Ladder board crowding, projector lists, phone views, the lobby players strip with 50 players, data cost). The emulator scripts already support big groups (`snake-50-players.cjs`, `rope.cjs N=50`, `boss.cjs N=30`, `fish.cjs N=…`).
+2. **Fishing Derby Teams mode (owner: KIV):** not designed yet: discuss first (team count, how teams are picked, scoring), then draft.
+3. **Quality Clash Mini Tournament (owner: KIV):** bracket style, "coming soon" in the lobby.
+4. **Known small things:** Fishing Derby: a SNAP!/FRENZY full-screen alert (up to 2.4 s) covers the phone's countdown pill while it shows. Pull the Rope: the live feed fills with POWER PULL lines in a big game (offered: show fewer). Boss Raid: with 3 rows, a stun tag can cover the name of the raider above for its 3 s.
+5. **Possible later (KIV):** circuit picker for Quality Cart (9 more circuits in the circuits draft); turning off the remembered name on phones (offered, not requested).
+6. **Ideas discussed, not built:** cheer meter for watchers, revive in Team mode, MVP screen, Hall of Fame across the day, chiptune music and per-type attack sounds, host settings (e.g. HP 200/300/500), random snake/ladder layout, other games (Dragon Boat Race, Capture the Factory, Spot the Defect, Quality Bingo, Horse Race; Tug of War became Pull the Rope).
+
+**Closed by the owner (seventh session):** real-phone tests of 5 v 5, Boss Raid 30 raiders and the Exit fix (all good); Boss Raid lobby "Players" box (good for now); game list page (all good); question review (all 406 questions kept, nothing to apply).
