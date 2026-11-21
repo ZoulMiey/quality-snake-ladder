@@ -45,6 +45,7 @@ import {
   type Verdict,
 } from "../lib/moments.ts";
 import QuestionManager, { seedQuestionsIfEmpty } from "../components/QuestionManager.tsx";
+import { publishQuestions } from "../lib/pubQuestions.ts";
 import { fixStates, type FeedItem, type Game, type GameMode, type Player, type PlayerState, type Question } from "../lib/types.ts";
 
 /** The referee for the chosen game, with sounds on the projector for the race. */
@@ -154,6 +155,10 @@ function HostScreen() {
   const feedRaw = useDbValue<FeedItem[] | Record<string, FeedItem>>("feed");
   const questions = useDbValue<Record<string, Question>>("questions");
   const engine = useRef<AnyEngine | null>(null);
+  // Keep the Quality Games app's question bank (pub/qs) up to date with the host's questions.
+  useEffect(() => {
+    if (questions) publishQuestions(questions).catch(() => {});
+  }, [questions]);
   const [showQs, setShowQs] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
   const [confirm, setConfirm] = useState<null | "reset" | "end">(null);

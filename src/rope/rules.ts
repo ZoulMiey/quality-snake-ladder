@@ -246,3 +246,14 @@ export function ropeFeedLines(seen: FeedItem[]): FeedItem[] {
   const lastPower = sorted.filter((f) => f.k === "power").pop();
   return sorted.filter((f) => f.k !== "power" || f === lastPower).slice(-FEED_SHOW).reverse();
 }
+
+/**
+ * App solo "Beat the current" (owner, Nov 2026): one player pulls against the river. The current pulls the flag
+ * towards the river (+1) at this speed (flag units a second), a little harder each minute; right answers pull it
+ * back. Reaching your bank (−1) wins; the score is the time it took. (Tuned in scripts/rope.test.ts.)
+ */
+export const CURRENT_BASE = 0.004;
+export const CURRENT_STEP = 0.003;
+export function currentAt(elapsed: number): number {
+  return CURRENT_BASE + CURRENT_STEP * Math.floor(Math.max(0, elapsed) / 60_000);
+}

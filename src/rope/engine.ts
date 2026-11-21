@@ -22,6 +22,7 @@ import {
   SIGN,
   WRONG_MS,
   fixRopeState,
+  currentAt,
   heaveAt,
   judgeAnswer,
   lineOrder,
@@ -93,6 +94,8 @@ export class RopeEngine {
   private stops: (() => void)[] = [];
   private stopTicker: (() => void) | undefined;
   private heaveShown = -1;
+  private solo = false;
+  private lastTick = 0;
   private ending = false;
   onEvent?: (e: { type: "pull"; uid: string; result: RopeResult } | { type: "heave" } | { type: "round"; win: Side | "draw" } | { type: "end" }) => void;
 
@@ -107,9 +110,11 @@ export class RopeEngine {
     if (!this.pool.length) throw new Error(noQuestionsMessage(this.qset));
     if (!Object.keys(this.players).length) throw new Error("Nobody has joined yet.");
     const picks = sidesFrom(pickSnap.val());
-    const teams = teamsFor(this.players, picks.side);
+    // App solo ("Beat the current"): one player on Red against the river.
+    this.solo = !!g0.ropeSolo;
+    const teams = this.solo ? Object.fromEntries(Object.keys(this.players).map((u) => [u, "red" as Side])) : teamsFor(this.players, picks.side);
     const vals = Object.values(teams);
-    if (!vals.includes("red") || !vals.includes("blue")) throw new Error("Pull the Rope needs at least 1 player on each side. / Perlu sekurang-kurangnya 1 pemain di setiap pihak.");
+    if (!this.solo && (!vals.includes("red") || !vals.includes("blue"))) throw new Error("Pull the Rope needs at least 1 player on each side. / Perlu sekurang-kurangnya 1 pemain di setiap pihak.");
 
     const now = serverNow();
     this.states = {};
@@ -152,6 +157,7 @@ export class RopeEngine {
       winners: [],
       rope: this.rope,
       ropeX: 0,
+      ...(this.solo ? { ropeSolo: true } : {}),
     };
     for (const [u, s] of Object.entries(teams)) this.states[u] = newRopeState(s);
     await update(ref(db), { answers: null, private: {}, used: {}, state: this.states, feed: null, game: this.game, ...pickUpdates });
@@ -175,6 +181,7 @@ export class RopeEngine {
     this.pool = poolFor(all.questions, this.qset);
     this.rope = fixRope(all.game?.rope);
     this.x = all.game?.ropeX ?? 0;
+    this.solo = !!all.game?.ropeSolo;
     this.xWritten = this.x;
     this.game = { ...(all.game as Game), winners: all.game?.winners ?? [], engine: this.tabId, rope: this.rope };
     const h = heaveAt(this.elapsed(serverNow()));
@@ -357,6 +364,17 @@ export class RopeEngine {
       void this.endRound("time");
       return;
     }
+    // Solo: the river current pulls the flag towards the river, a little harder each minute.
+    if (this.solo) {
+      const dt = this.lastTick ? Math.min(1, (now - this.lastTick) / 1000) : 0;
+      this.x = Math.min(1, this.x + currentAt(this.elapsed(now)) * dt);
+      if (this.x >= 1) {
+        this.lastTick = now;
+        void this.endRound("bank");
+        return;
+      }
+    }
+    this.lastTick = now;
     const h = heaveAt(this.elapsed(now));
     if (h.on && h.index !== this.heaveShown) {
       this.heaveShown = h.index;
@@ -434,10 +452,11 @@ export class RopeEngine {
     this.ending = true;
     try {
       const now = serverNow();
-      const end = roundWinner(this.x, r.right, how);
+      // Solo: reaching your bank wins; the river or the clock wins otherwise. One round only.
+      const end = this.solo ? (how === "bank" && this.x <= -1 ? roundWinner(this.x, r.right, how) : { win: "blue" as const, how, x: this.x }) : roundWinner(this.x, r.right, how);
       if (end.win !== "draw") r.wins[end.win] += 1;
       r.last = { ...end, at: now };
-      const champion = matchWinner(r.wins, r.round);
+      const champion = this.solo ? end.win : matchWinner(r.wins, r.round);
       const text =
         end.win === "draw"
           ? `🤝 Round ${r.round} is a draw!`

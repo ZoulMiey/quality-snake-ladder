@@ -91,8 +91,12 @@ export class SpinEngine {
     this.players = playersSnap.val() ?? {};
     this.pool = poolFor(qSnap.val(), this.qset);
     if (!this.pool.length) throw new Error(noQuestionsMessage(this.qset));
-    const teams = teamsFrom(spinPicksFrom(pickSnap.val()), (u) => !!this.players[u]);
-    if (!teams.red.members.length || !teams.blue.members.length) throw new Error("Quality Spin needs at least 1 player on Red and 1 on Blue. / Perlu sekurang-kurangnya 1 pemain Merah dan 1 Biru.");
+    // App solo: the one player is Red's captain; there is no Blue team.
+    const solo = !!g0.spinSolo;
+    const teams = solo
+      ? { red: { members: Object.keys(this.players).slice(0, 1), extra: [], captain: Object.keys(this.players)[0] ?? "" }, blue: { members: [] as string[], extra: [], captain: "" } }
+      : teamsFrom(spinPicksFrom(pickSnap.val()), (u) => !!this.players[u]);
+    if (!solo && (!teams.red.members.length || !teams.blue.members.length)) throw new Error("Quality Spin needs at least 1 player on Red and 1 on Blue. / Perlu sekurang-kurangnya 1 pemain Merah dan 1 Biru.");
 
     const now = serverNow();
     const goAt = now + COUNTDOWN_MS;
@@ -111,6 +115,10 @@ export class SpinEngine {
     };
     for (const s of SIDES) {
       const t = this.spin[s];
+      if (!t.members.length) {
+        t.phase = "done";
+        continue;
+      }
       this.newPhrase(s);
       this.ask(s, goAt);
       // The spin starts with the wheel at rest.
@@ -129,13 +137,14 @@ export class SpinEngine {
       winners: [],
       endsAt: goAt + mins * 60_000,
       spinMins: mins,
+      ...(solo ? { spinSolo: true } : {}),
       spin: this.spin,
     };
     // Captains chosen at Start (nobody tapped) are written back, so "Play again" keeps them.
     const pickUpdates: Record<string, unknown> = {};
     for (const s of SIDES) {
       const cap = this.spin[s].captain;
-      if (cap) pickUpdates[`clash/pick/${cap}/c`] = ["spin", "cap"];
+      if (cap && !solo) pickUpdates[`clash/pick/${cap}/c`] = ["spin", "cap"];
     }
     await update(ref(db), { answers: null, state: null, feed: null, used: null, game: this.game, "private/spin": this.secret, ...pickUpdates });
     this.run();

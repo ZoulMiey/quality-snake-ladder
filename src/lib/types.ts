@@ -100,6 +100,10 @@ export type Game = {
   rope?: RopeGame | null;
   /** Pull the Rope: the centre flag, −1 (Red bank) … 0 … +1 (Blue bank). Written a few times a second. */
   ropeX?: number | null;
+  /** Pull the Rope in the app: solo "Beat the current". */
+  ropeSolo?: boolean;
+  /** Quality Spin in the app: solo (one team, no Blue). */
+  spinSolo?: boolean;
   /** Quality Spin: 3 or 5 minutes (host's pick in the lobby). */
   spinMins?: 3 | 5;
   /** Quality Spin: both teams (see src/spin/rules.ts). */
