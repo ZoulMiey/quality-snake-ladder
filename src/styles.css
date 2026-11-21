@@ -1384,3 +1384,37 @@ button:disabled { cursor: default; }
 .sp-end-scores .sp-card span { font-family: "Orbitron", var(--display); font-weight: 900; font-size: 24px; display: block; }
 @media (prefers-reduced-motion: reduce) { .sp-flick-arrow, .sp-toast, .sp-stun { animation: none; } }
 .spin-podium { background: rgba(4,19,58,.86); }
+
+/* ---------- Game list on one screen (owner, Nov 2026); scaled to fit by useFitZoom ---------- */
+.lobby-fitbox > .lobby-list { flex: none; }
+.lobby-list { display: grid; gap: 26px; padding: 14px 26px; align-items: start; }
+.lobby-list .gl-qr .qr { width: 100%; height: auto; aspect-ratio: 1; min-width: 0; min-height: 0; }
+.lobby-list .gl-main { display: grid; gap: 12px; min-width: 0; }
+.lobby-list .gl-title { margin: 0; }
+.lobby-list .gl-grid { display: grid; gap: 14px; }
+.lobby-list .game-card { height: 100%; }
+.lobby-list .gc-desc { font-size: 16px; }
+.lobby-list .gc-desc.ms { font-size: 13px; }
+/* A: QR left, 3 × 2 cards with the preview on top */
+.gl-a { grid-template-columns: 420px minmax(0, 1fr); }
+.gl-a .gl-grid, .gl-c .gl-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.gl-a .game-card, .gl-c .game-card { grid-template-columns: 1fr; align-content: start; gap: 10px; padding: 12px; }
+.gl-a .gc-go, .gl-c .gc-go, .gl-b .gc-go { display: none; }
+/* B: QR left, 2 × 3 cards with the preview on the left */
+.gl-b { grid-template-columns: 380px minmax(0, 1fr); }
+.gl-b .gl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.gl-b .game-card { grid-template-columns: 44% minmax(0, 1fr); gap: 14px; padding: 12px; }
+.gl-b .gc-name { font-size: 28px; }
+/* C: QR in a strip on top, 3 × 2 big cards */
+.gl-c { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.gl-c .gl-qr { display: flex; flex-direction: row; align-items: center; gap: 22px; padding: 12px 22px; justify-self: start; }
+.gl-c .gl-qr .qr { width: 150px; }
+.gl-c .gl-qr .scan { text-align: left; }
+.gl-c .gl-qr .scan .en { font-size: 34px; }
+.gl-c { position: relative; }
+.gl-c .gl-main { gap: 10px; }
+.gl-c .gl-title { position: absolute; right: 26px; top: 26px; text-align: right; }
+.gl-c .gl-qr .qr { width: 230px; }
+.gl-c .gl-qr .scan .en { font-size: 44px; } .gl-c .gl-qr .url { font-size: 20px; }
+.gl-c .game-preview { width: auto; height: 250px; max-width: 100%; justify-self: center; }
+.gl-c .gl-title { font-size: 46px; }

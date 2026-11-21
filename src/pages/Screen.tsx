@@ -441,42 +441,52 @@ function LobbyView({
   const list = all.slice(0, LIST_MAX);
   const info = GAMES.find((g) => g.m === mode);
   const fitRef = useFitZoom(mode);
-  if (!mode)
+  if (!mode) {
+    // Game list on one screen, no scrolling (owner, Nov 2026). DRAFT: ?gl=a|b|c shows the three layouts to pick from.
+    const gl = (() => {
+      const v = new URLSearchParams(location.search).get("gl");
+      return v === "b" || v === "c" ? v : "a";
+    })();
     return (
-      <main className="lobby">
-      <section className={`qr-side ${mode ? "plain" : ""}`}>
-        <Qr text={url} />
-        <div className="scan">
-          <div className="en">Scan to join</div>
-          <div className="ms">Imbas untuk menyertai</div>
-        </div>
-        <div className="url">{url.replace(/^https?:\/\//, "")}</div>
-      </section>
-        <section className="lobby-side">
-          <div className="game-list">
+      <main className="lobby-fitbox" ref={fitRef}>
+        <div className={`lobby lobby-list gl-${gl}`}>
+          <section className="qr-side gl-qr">
+            <Qr text={url} />
+            <div className="gl-qr-text">
+              <div className="scan">
+                <div className="en">Scan to join</div>
+                <div className="ms">Imbas untuk menyertai</div>
+              </div>
+              <div className="url">{url.replace(/^https?:\/\//, "")}</div>
+            </div>
+          </section>
+          <section className="gl-main">
             <h2 className="gl-title">
               Choose a game <span>Pilih permainan</span>
             </h2>
-            {GAMES.map((g) => (
-              <button key={g.m} className="game-card" onClick={() => onMode(g.m)}>
-                <GamePreview mode={g.m} />
-                <span className="gc-text">
-                  <span className="gc-name">
-                    {GAME_NAMES[g.m].icon} {GAME_NAMES[g.m].en}
+            <div className="gl-grid">
+              {GAMES.map((g) => (
+                <button key={g.m} className="game-card" onClick={() => onMode(g.m)}>
+                  <GamePreview mode={g.m} />
+                  <span className="gc-text">
+                    <span className="gc-name">
+                      {GAME_NAMES[g.m].icon} {GAME_NAMES[g.m].en}
+                    </span>
+                    <span className="gc-ms">{GAME_NAMES[g.m].ms}</span>
+                    <span className="gc-desc">{g.desc}</span>
+                    <span className="gc-desc ms">{g.ms}</span>
                   </span>
-                  <span className="gc-ms">{GAME_NAMES[g.m].ms}</span>
-                  <span className="gc-desc">{g.desc}</span>
-                  <span className="gc-desc ms">{g.ms}</span>
-                </span>
-                <span className="gc-go" aria-hidden="true">
-                  ›
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
+                  <span className="gc-go" aria-hidden="true">
+                    ›
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
       </main>
     );
+  }
   // The game's page fits one projector screen (owner's tweak of B2): top QR | preview, name, Start | questions, mode, how to play;
   // bottom, across the screen: Red team | Blue team, or the list of players.
   return (
