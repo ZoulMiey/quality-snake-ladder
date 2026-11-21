@@ -1159,23 +1159,28 @@ button:disabled { cursor: default; }
    QR | preview, name, Start | question set, mode, how to play, players (Red on top, Blue below). */
 .screen:has(.lobby-game) { height: 100%; min-height: 0; }
 .lobby-game { min-height: 0; grid-template-columns: minmax(0, 27fr) minmax(0, 40fr) minmax(0, 33fr); align-items: stretch; gap: 22px; padding: 14px 24px 18px; }
-.qr-side.plain { background: none; box-shadow: none; color: #fff; padding: 0; align-content: center; gap: 8px; min-height: 0; }
+.qr-side.plain { background: none; box-shadow: none; color: #fff; padding: 16px 0 0; align-content: start; gap: 8px; min-height: 0; }
 .qr-side.plain .qr { width: min(100%, calc(100vh - 250px)); height: auto; aspect-ratio: 1; min-width: 0; min-height: 0; background: #fff; padding: 10px; border-radius: 18px; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
 .qr-side.plain .scan .ms { color: rgba(255,255,255,.8); }
 .qr-side.plain .url { background: rgba(255,255,255,.14); font-size: 18px; }
-.gd-mid { display: flex; flex-direction: column; justify-content: center; gap: 12px; min-height: 0; min-width: 0; background: rgba(0,0,0,.18); border-radius: 18px; padding: 16px; overflow: hidden; }
+.gd-mid { display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; min-height: 0; min-width: 0; background: rgba(0,0,0,.18); border-radius: 18px; padding: 16px; overflow: hidden; }
 .gd-mid .game-preview.big { flex: 0 1 auto; min-height: 0; width: 100%; height: auto; max-height: calc(100vh - 380px); object-fit: contain; }
 .gd-mid .gd-info { gap: 4px; }
 .gd-mid .waiting { font-size: 17px; margin: 0; }
 .gd-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
 .gd-actions .gd-change { margin: 0; }
 .gd-actions .start { width: auto; padding: 12px 34px; font-size: 26px; }
-.gd-right { min-height: 0; min-width: 0; overflow-y: auto; background: rgba(0,0,0,.18); border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.gd-right { min-height: 0; min-width: 0; overflow-y: auto; background: rgba(0,0,0,.18); border-radius: 18px; padding: 16px 18px; }
+.gd-fit { display: flex; flex-direction: column; gap: 14px; }
+.gd-block { display: flex; flex-direction: column; gap: 8px; }
+.gd-block + .gd-block { border-top: 2px solid rgba(255,255,255,.12); padding-top: 14px; }
 .gd-right .qset-pick, .gd-right .clash-format { flex-direction: column; align-items: flex-start; gap: 5px; margin: 0; }
-.gd-right .qset-pick .lbl, .gd-sec { display: flex; align-items: baseline; gap: 8px; font-family: var(--display); font-weight: 800; font-size: 17px; line-height: 1.1; }
-.gd-right .qset-pick .lbl .en { font-size: 17px; }
+.gd-right .qset-pick .lbl, .gd-sec { display: flex; align-items: baseline; gap: 8px; font-family: var(--display); font-weight: 800; font-size: 19px; line-height: 1.1; }
+.gd-right .qset-pick { gap: 8px; }
+.gd-right .qset-pick .lbl .en { font-size: 19px; }
 .gd-sec span, .gd-right .qset-pick .lbl .ms { font-family: var(--body); font-weight: 600; font-size: 12px; opacity: .7; }
-.gd-right .qset-btns, .gd-right .cf-btns { gap: 5px; }
+.gd-right .qset-btns, .gd-right .cf-btns { gap: 6px; }
+.gd-right .clash-format { gap: 8px; }
 .gd-right .qset-btn, .gd-right .cf-btn { padding: 3px 9px; border-width: 2px; border-radius: 9px; }
 .gd-right .qset-btn .en, .gd-right .cf-btn .en, .gd-right .cf-btn.small .en { font-size: 14px; }
 .gd-right .qset-btn .ms, .gd-right .cf-btn .ms { font-size: 10.5px; }
@@ -1186,7 +1191,7 @@ button:disabled { cursor: default; }
 .gd-right .rt-icon { font-size: 20px; }
 .gd-right .rt-en { font-size: 12.5px; }
 .gd-right .rt-ms { font-size: 10px; }
-.gd-right .lobby-head { margin-top: 4px; gap: 10px; }
+.gd-right .lobby-head { gap: 10px; }
 .gd-right .lobby-head h2 { font-size: 24px; display: flex; align-items: baseline; gap: 8px; }
 .gd-right .lobby-head h2 .ms { font-family: var(--body); font-size: 13px; font-weight: 600; opacity: .7; }
 .gd-right .lobby-head .count { margin-left: auto; font-size: 20px; font-weight: 800; }

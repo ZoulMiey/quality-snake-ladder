@@ -508,6 +508,7 @@ function LobbyView({
       </section>
       <section className="gd-right" ref={fitRef}>
         <div className="gd-fit">
+        <div className="gd-block">
         <div className="qset-pick">
           <div className="lbl">
             <span className="en">Questions</span>
@@ -530,12 +531,20 @@ function LobbyView({
             ))}
           </div>
         </div>
-        {mode === "clash" && <ClashFormatPick format={clashFormat} onFormat={onClashFormat} bossMode={bossMode} onBossMode={onBossMode} />}
+        </div>
+        {mode === "clash" && (
+          <div className="gd-block">
+            <div className="gd-sec">
+              Game mode <span>Mod permainan</span>
+            </div>
+            <ClashFormatPick format={clashFormat} onFormat={onClashFormat} bossMode={bossMode} onBossMode={onBossMode} />
+          </div>
+        )}
         {mode === "fish" && (
-          <div className="qset-pick">
+          <div className="qset-pick gd-block">
             <div className="lbl">
-              <span className="en">Mode</span>
-              <span className="ms">Mod</span>
+              <span className="en">Game mode</span>
+              <span className="ms">Mod permainan</span>
             </div>
             <div className="qset-btns" role="radiogroup" aria-label="Fishing mode">
               <button role="radio" aria-checked="true" className="qset-btn on">
@@ -549,10 +558,13 @@ function LobbyView({
             </div>
           </div>
         )}
-        <div className="gd-sec">
-          How to play <span>Cara bermain</span>
+        <div className="gd-block">
+          <div className="gd-sec">
+            How to play <span>Cara bermain</span>
+          </div>
+          <Rules mode={mode} variant={mode === "clash" ? clashFormat : undefined} />
         </div>
-        <Rules mode={mode} variant={mode === "clash" ? clashFormat : undefined} />
+        <div className="gd-block">
         <div className="lobby-head">
           <h2>
             Players <span className="ms">Pemain</span>
@@ -585,6 +597,7 @@ function LobbyView({
             + {all.length - list.length} more / lagi
           </p>
         )}
+        </div>
         </div>
       </section>
     </main>
