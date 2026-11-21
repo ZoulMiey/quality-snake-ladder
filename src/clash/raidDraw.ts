@@ -66,6 +66,8 @@ type View = {
   pops: { at: "titan" | string; text: string; age: number; col: string; big: boolean }[];
   shots: { uid: string; age: number; sup: boolean }[];
   msg: [string, string];
+  /** Stunned raiders: true = ran out of time, false = answered wrong (from the latest "wrong" event). */
+  wrongTimeout: Record<string, boolean>;
 };
 
 function view(r: RaidBoard, events: RaidEvent[], players: Record<string, Player>, game: Game, now: number): View {
@@ -85,6 +87,7 @@ function view(r: RaidBoard, events: RaidEvent[], players: Record<string, Player>
     revived: {},
     pops: [],
     shots: [],
+    wrongTimeout: {},
     msg: r.mode === "hs" ? ["Answer fast! Every right answer hits the Titan.", "Jawab cepat! Setiap jawapan betul menyerang Titan."] : ["Beat the Titan as fast as you can!", "Kalahkan Titan secepat mungkin!"],
   };
   for (const x of Object.values(r.raiders)) {
@@ -125,6 +128,7 @@ function view(r: RaidBoard, events: RaidEvent[], players: Record<string, Player>
         if (age < 3) say(e.at, `ENRAGED! The Titan raises a ${e.sh} shield and stomps harder!`, `MENGAMUK! Titan dapat perisai ${e.sh} dan menghentak lebih kuat!`);
       }
     } else if (e.kind === "wrong") {
+      V.wrongTimeout[e.uid] = e.timeout;
       if (age < 1.6) say(e.at, `${name(players, e.uid)} ${e.timeout ? "ran out of time" : "answered wrong"}. Stunned!`, `${name(players, e.uid)} ${e.timeout ? "kehabisan masa" : "salah"}. Pening!`);
     } else if (e.kind === "stomp") {
       if (age < 1.5) V.stompAge = age;
@@ -437,10 +441,63 @@ export const raidElapsed = (r: RaidBoard, game: Game, now: number) => {
 };
 export const clock = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor((ms / 1000) % 60)).padStart(2, "0")}`;
 
-/** Where each raider stands on the projector: one row for up to 8, two rows above that. */
+/**
+ * A stunned raider on the projector (owner: like Fishing Derby, the room sees who answered wrong):
+ * a pulsing red ring at the feet, a red outline around the monster and a "WRONG / SALAH" or "TIME'S UP" tag.
+ * Fades out over the last half second of the 3 s stun.
+ */
+function stunMark(c: Ctx, p: { x: number; feet: number; scale: number }, left: number, timeout: boolean, t: number) {
+  const a = Math.min(1, left / 500);
+  const pulse = 1 + 0.08 * Math.sin(t * 10);
+  const w = 40 * p.scale;
+  c.save();
+  c.globalAlpha = a;
+  c.strokeStyle = "#ff3b4e";
+  c.lineWidth = 3;
+  c.beginPath();
+  c.ellipse(p.x, p.feet - 2, w * 0.62 * pulse, w * 0.2 * pulse, 0, 0, 7);
+  c.stroke();
+  c.setLineDash([5, 4]);
+  c.lineWidth = 2;
+  c.beginPath();
+  c.ellipse(p.x, p.feet - w * 0.48, w * 0.66 * pulse, w * 0.66 * pulse, 0, 0, 7);
+  c.stroke();
+  c.setLineDash([]);
+  const [en, ms] = timeout ? ["TIME'S UP", "Masa tamat"] : ["WRONG", "Salah"];
+  const ty = p.feet - w * 1.2 - 14;
+  c.font = `8px ${PX}`;
+  const tw = Math.max(c.measureText(en).width, 40) + 12;
+  rr(c, p.x - tw / 2, ty - 9, tw, 24, 4);
+  c.fillStyle = "#ff3b4e";
+  c.fill();
+  txt(c, en, p.x, ty + 1, 8, "#fff", "center", PX);
+  txt(c, ms, p.x, ty + 12, 9, "#ffe1e4", "center", `700 ${BODY}`);
+  c.restore();
+}
+
+/** Phones show this many other raiders around you (the rest are counted, not drawn). */
+const PHONE_NEIGHBOURS = 8;
+
+/** Big raids (more than 20) use 3 rows; the Titan is drawn a little smaller and the message box moves up. */
+const ROOMY = 20;
+/**
+ * Where each raider stands on the projector: one row for up to 8, two rows up to 20,
+ * three rows of up to 10 above that (owner's pick A for 30 raiders), back rows a little smaller.
+ */
 function wideSpots(n: number): { x: number; feet: number; scale: number }[] {
   const left = 30;
   const width = 660;
+  if (n > ROOMY) {
+    const per = Math.ceil(n / 3);
+    const gap = width / per;
+    return Array.from({ length: n }, (_, i) => {
+      const row = Math.floor(i / per);
+      const k = i % per;
+      const count = Math.min(per, n - row * per);
+      const start = left + (width - gap * count) / 2 + gap / 2 + (row === 1 ? gap / 4 : 0);
+      return { x: start + k * gap, feet: [380, 445, 510][row], scale: [0.92, 1.0, 1.08][row] };
+    });
+  }
   if (n <= 8) {
     const gap = Math.min(110, width / Math.max(1, n));
     const start = left + (width - gap * n) / 2 + gap / 2;
@@ -468,9 +525,10 @@ export function drawRaidWide(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
   if (V.shake) c.translate((Math.random() - 0.5) * V.shake * 2, (Math.random() - 0.5) * V.shake * 2);
   floor(c, W, H, 170);
   const TX = 360;
-  const TF = 300;
-  drawTitan(c, V, r, TX, TF, 3.4, t, endAge);
   const list = Object.values(r.raiders).sort((a, b) => a.slot - b.slot);
+  const roomy = list.length > ROOMY;
+  const TF = roomy ? 262 : 300;
+  drawTitan(c, V, r, TX, TF, roomy ? 2.85 : 3.4, t, endAge);
   const spots = wideSpots(list.length);
   const at: Record<string, { x: number; feet: number; scale: number }> = {};
   list.forEach((x, i) => (at[x.uid] = spots[i]));
@@ -479,7 +537,14 @@ export function drawRaidWide(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
     if (p) shot(c, [p.x, p.feet - 20 * p.scale], [TX, 190], creatureById(r.raiders[s.uid]?.c).type, s.age, s.sup ? 2 : 1, t);
   }
   const stun = r.stun ?? {};
-  for (const x of list) raider(c, V, x, at[x.uid].x, at[x.uid].feet, at[x.uid].scale, t, (stun[x.uid] ?? 0) > now, players, { label: true });
+  // Front rows last, so they overlap the rows behind them.
+  for (const x of [...list].sort((a, b) => at[a.uid].feet - at[b.uid].feet)) raider(c, V, x, at[x.uid].x, at[x.uid].feet, at[x.uid].scale, t, (stun[x.uid] ?? 0) > now, players, { label: true });
+  // Owner: like Fishing Derby, show the room who answered wrong: a red circle and a tag on every stunned raider.
+  for (const x of list) {
+    const until = stun[x.uid] ?? 0;
+    if (until <= now || x.hp <= 0) continue;
+    stunMark(c, at[x.uid], until - now, V.wrongTimeout[x.uid] ?? false, t);
+  }
   for (const p of V.pops) {
     const pos = p.at === "titan" ? [TX + 60, 150] : at[p.at] ? [at[p.at].x, at[p.at].feet - 48 * at[p.at].scale] : null;
     if (!pos) continue;
@@ -489,7 +554,7 @@ export function drawRaidWide(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
   }
   titanBar(c, V, r, 16, 10, 680, 1);
   warnText(c, V, TX, 140, 22);
-  messageBox(c, V, TX, 312, 600, 1);
+  messageBox(c, V, TX, roomy ? 280 : 312, 600, 1);
   rageBanner(c, V, 700, 200, 1);
   // leaderboard
   rr(c, 712, 10, 236, 520, 10);
@@ -499,7 +564,7 @@ export function drawRaidWide(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
   txt(c, clock(raidElapsed(r, game, now)), 934, 36, 13, "#fff", "right");
   txt(c, r.mode === "hs" ? "Points / Mata" : "Damage / Kerosakan", 726, 60, 13, "#cfc8f0", "left", `600 ${BODY}`);
   const order = [...list].sort((a, b) => b.pts - a.pts || b.rights - a.rights);
-  const rows = Math.min(order.length, 12);
+  const rows = Math.min(order.length, 15);
   const rowH = Math.min(36, 440 / Math.max(1, rows));
   order.slice(0, rows).forEach((x, i) => {
     const y = 72 + i * rowH;
@@ -533,9 +598,19 @@ export function drawRaidTall(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
   const TF = 288;
   drawTitan(c, V, r, TX, TF, 2.4, t, endAge);
   const mine = r.raiders[me];
-  const others = Object.values(r.raiders)
-    .filter((x) => x.uid !== me)
-    .sort((a, b) => a.slot - b.slot);
+  const all = Object.values(r.raiders).sort((a, b) => a.slot - b.slot);
+  // Owner: with up to 30 raiders the phone shows only you and your nearest neighbours (the raiders who
+  // joined just before and after you, up to PHONE_NEIGHBOURS), plus "+ N raiders" for everyone else.
+  const meAt = Math.max(0, all.findIndex((x) => x.uid === me));
+  const near = new Set<string>();
+  for (let d = 1; near.size < Math.min(PHONE_NEIGHBOURS, all.length - 1) && d < all.length; d++) {
+    for (const j of [meAt - d, meAt + d]) {
+      const x = all[((j % all.length) + all.length) % all.length];
+      if (x && x.uid !== me && near.size < PHONE_NEIGHBOURS) near.add(x.uid);
+    }
+  }
+  const others = all.filter((x) => near.has(x.uid));
+  const hidden = all.length - 1 - others.length;
   // Other players stand on both sides of yours, in two rows.
   const cols = Math.max(1, Math.ceil(others.length / 4));
   const scale = others.length <= 4 ? 1.15 : others.length <= 8 ? 0.95 : 0.78;
@@ -559,6 +634,15 @@ export function drawRaidTall(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
   const stun = r.stun ?? {};
   for (const x of others) raider(c, V, x, pos[x.uid][0], pos[x.uid][1], pos[x.uid][2], t, (stun[x.uid] ?? 0) > now, players, {});
   if (mine) raider(c, V, mine, myX, myFeet, 2.3, t, (stun[me] ?? 0) > now, players, { me: true });
+  if (hidden > 0) {
+    const tag = `+ ${hidden} raiders · penyerang`;
+    c.font = `700 12px ${BODY}`;
+    const tw = c.measureText(tag).width + 16;
+    rr(c, W - tw - 10, 300, tw, 20, 10);
+    c.fillStyle = "rgba(16,14,40,.75)";
+    c.fill();
+    txt(c, tag, W - tw / 2 - 10, 314, 12, "#cfc8f0", "center", `700 ${BODY}`);
+  }
   for (const p of V.pops) {
     if (p.at !== "titan" && p.at !== me) continue;
     const [x, y] = p.at === "titan" ? [TX + 70, 170] : [myX + 70, 330];

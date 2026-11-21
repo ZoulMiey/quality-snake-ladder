@@ -19,10 +19,10 @@ t("HP grows with the group: Titan 700 + 600, players 300 + 200, stomp 11 + 9.8 p
   assert.ok(Object.values(r.raiders).every((x) => x.hp === 1100));
 });
 
-t("anyone with a monster joins (duplicates allowed), up to 20, in the order they picked", () => {
-  const r = newRaid("ta", [...picks(22), { uid: "bad", c: ["nothing"], at: -1 }]);
-  assert.equal(Object.keys(r.raiders).length, 20);
-  assert.ok(!r.raiders.bad && !r.raiders.u21);
+t("anyone with a monster joins (duplicates allowed), up to 30, in the order they picked", () => {
+  const r = newRaid("ta", [...picks(32), { uid: "bad", c: ["nothing"], at: -1 }]);
+  assert.equal(Object.keys(r.raiders).length, 30);
+  assert.ok(!r.raiders.bad && !r.raiders.u31);
   assert.equal(r.raiders.u0.slot, 0);
 });
 

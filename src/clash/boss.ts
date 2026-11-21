@@ -22,7 +22,7 @@ export const RAGE_SHIELD = 0.1;
 export const RAGE_STOMP = 1.3;
 export const STOMP_EVERY_MS = 8_000;
 export const STOMP_WARN_MS = 3_000;
-export const MAX_RAIDERS = 20;
+export const MAX_RAIDERS = 30;
 
 export const titanHp = (n: number) => TITAN_BASE + TITAN_PER_PLAYER * (Math.max(1, n) - 1);
 export const raiderHp = (n: number) => RAIDER_BASE + RAIDER_PER_PLAYER * (Math.max(1, n) - 1);
