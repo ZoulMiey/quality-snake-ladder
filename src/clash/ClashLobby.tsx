@@ -96,7 +96,7 @@ export function ClashFormatPick({ format, onFormat, bossMode, onBossMode }: { fo
               </button>
             ))}
           </div>
-          <div className="cf-best">{size === 5 ? "Bigger hits for 5 v 5 (power 110) · about 3–4 min / kira-kira 3–4 minit" : "About 3–4 min / kira-kira 3–4 minit"} · max 30 players, the rest watch</div>
+          <div className="cf-best">{size} players a team, the rest watch · Battles about 3–4 min / {size} pemain sepasukan, yang lain menonton · kira-kira 3–4 minit</div>
         </div>
       )}
       {format === "boss" && (
