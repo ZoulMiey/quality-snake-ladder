@@ -19,6 +19,9 @@ import FishView from "../fish/FishView.tsx";
 import { RopeEngine } from "../rope/engine.ts";
 import RopeView from "../rope/RopeView.tsx";
 import { RopeRoster, useRopeSides } from "../rope/RopeLobby.tsx";
+import { SpinEngine } from "../spin/engine.ts";
+import SpinView from "../spin/SpinView.tsx";
+import { SpinRoster, useSpinTeams } from "../spin/SpinLobby.tsx";
 import ClashView from "../clash/ClashView.tsx";
 import { ClashFormatPick, ClashRoster, useLineUp } from "../clash/ClashLobby.tsx";
 import Qr from "../components/Qr.tsx";
@@ -45,11 +48,12 @@ import QuestionManager, { seedQuestionsIfEmpty } from "../components/QuestionMan
 import { fixStates, type FeedItem, type Game, type GameMode, type Player, type PlayerState, type Question } from "../lib/types.ts";
 
 /** The referee for the chosen game, with sounds on the projector for the race. */
-type AnyEngine = Engine | KartEngine | ClashEngine | BossEngine | FishEngine | RopeEngine;
+type AnyEngine = Engine | KartEngine | ClashEngine | BossEngine | FishEngine | RopeEngine | SpinEngine;
 function makeEngine(mode: GameMode | undefined, tab: string, format?: string): AnyEngine {
   if (mode === "clash") return format === "boss" ? new BossEngine(tab) : new ClashEngine(tab);
   if (mode === "fish") return new FishEngine(tab);
   if (mode === "rope") return new RopeEngine(tab);
+  if (mode === "spin") return new SpinEngine(tab);
   if (mode !== "kart") return new Engine(tab);
   const e = new KartEngine(tab);
   e.onEvent = (ev) => {
@@ -166,7 +170,10 @@ function HostScreen() {
     if (iRun && !engine.current) {
       const e = makeEngine(game?.mode, tabId, game?.clashFormat);
       engine.current = e;
-      e.resume().catch(() => (engine.current = null));
+      e.resume().catch((err) => {
+        console.error("Could not resume the game", err);
+        engine.current = null;
+      });
     }
     if (!iRun && engine.current) {
       engine.current.stop();
@@ -361,6 +368,8 @@ function HostScreen() {
           onQset={(q) => update(ref(db, "game"), { qset: q, status: game?.status ?? "lobby" })}
           bossMode={game?.bossMode ?? "ta"}
           onBossMode={(m) => update(ref(db, "game"), { bossMode: m, status: game?.status ?? "lobby" })}
+          spinMins={game?.spinMins === 3 ? 3 : 5}
+          onSpinMins={(m) => update(ref(db, "game"), { spinMins: m, status: game?.status ?? "lobby" })}
         />
       )}
       {status !== "lobby" && game?.mode === "kart" && <KartView game={game} players={players ?? {}} feed={feed} onAgain={() => playAgain()} />}
@@ -370,7 +379,8 @@ function HostScreen() {
       {status !== "lobby" && game?.mode === "rope" && (
         <RopeView game={game} players={players ?? {}} feed={feed} onAgain={() => playAgain()} onStartRound={iRun && engine.current instanceof RopeEngine ? () => void (engine.current as RopeEngine).startRoundNow() : undefined} />
       )}
-      {status !== "lobby" && game?.mode !== "kart" && game?.mode !== "clash" && game?.mode !== "fish" && game?.mode !== "rope" && (
+      {status !== "lobby" && game?.mode === "spin" && <SpinView game={game} players={players ?? {}} onAgain={() => playAgain()} />}
+      {status !== "lobby" && game?.mode !== "kart" && game?.mode !== "clash" && game?.mode !== "fish" && game?.mode !== "rope" && game?.mode !== "spin" && (
         <GameView game={game!} players={players ?? {}} states={states ?? {}} feed={feed} highlight={highlight} lastRoll={lastRoll} hop={hop} onAgain={() => playAgain()} />
       )}
       {showQs && <QuestionManager onClose={() => setShowQs(false)} />}
@@ -385,6 +395,7 @@ const GAMES: { m: GameMode; desc: string; ms: string }[] = [
   { m: "clash", desc: "Monster battles: Single 1 v 1, Team 3 v 3 / 5 v 5 or Boss Raid.", ms: "Pertarungan raksasa: 1 lawan 1, 3 lawan 3 / 5 lawan 5 atau Serangan Bos." },
   { m: "fish", desc: "Answer to catch fish. 3 in a row = BIG FISH, 5 = GOLDEN. Heaviest catch in 5 minutes wins.", ms: "Jawab untuk tangkap ikan. Tangkapan paling berat dalam 5 minit menang." },
   { m: "rope", desc: "Red vs Blue across a river. Right answers pull the rope. Best of 3: the losers get a splash!", ms: "Merah lawan Biru merentasi sungai. Jawapan betul menarik tali. Terbaik 3 pusingan!" },
+  { m: "spin", desc: "Red vs Blue, 3 a team. Answer, flick your phone to spin the wheel, guess the letters and solve the quality phrase!", ms: "Merah lawan Biru, 3 setiap pasukan. Jawab, lontar telefon untuk memutar roda, teka huruf dan selesaikan frasa!" },
 ];
 
 function LobbyView({
@@ -397,6 +408,8 @@ function LobbyView({
   onClashFormat,
   bossMode,
   onBossMode,
+  spinMins,
+  onSpinMins,
   qset,
   qsetCounts,
   onQset,
@@ -410,6 +423,8 @@ function LobbyView({
   onClashFormat: (f: "team" | "solo" | "boss") => void;
   bossMode: "ta" | "hs";
   onBossMode: (m: "ta" | "hs") => void;
+  spinMins: 3 | 5;
+  onSpinMins: (m: 3 | 5) => void;
   qset: QChoice;
   qsetCounts: Record<QChoice, number>;
   onQset: (q: QChoice) => void;
@@ -417,9 +432,10 @@ function LobbyView({
   const url = `${location.origin}/join`;
   const clash = useLineUp(clashFormat, players);
   const ropeSides = useRopeSides(players);
+  const spinTeams = useSpinTeams(players);
   const cap = mode ? gameMaxPlayers(mode, clashFormat) : MAX_PLAYERS;
   const tooMany = list0(players).length > cap;
-  const canStart = !!mode && !!list0(players).length && !tooMany && !!enabledQs && (qsetCounts[qset] ?? 0) > 0 && (mode !== "clash" || clash.ready) && (mode !== "rope" || ropeSides.ready);
+  const canStart = !!mode && !!list0(players).length && !tooMany && !!enabledQs && (qsetCounts[qset] ?? 0) > 0 && (mode !== "clash" || clash.ready) && (mode !== "rope" || ropeSides.ready) && (mode !== "spin" || spinTeams.ready);
   // Only the 15 players who joined last are listed; the counter shows everyone.
   const all = Object.entries(players).sort((a, b) => (b[1].joinedAt ?? 0) - (a[1].joinedAt ?? 0));
   const list = all.slice(0, LIST_MAX);
@@ -503,6 +519,7 @@ function LobbyView({
             {mode === "clash" ? ` (${clashFormat === "boss" ? "Boss Raid" : "Team"})` : ""}: max {cap} players ({all.length} joined). Remove players or pick another game. / Maksimum {cap} pemain.
           </p>
         )}
+        {mode === "spin" && list.length > 0 && !spinTeams.ready && <p className="waiting">Quality Spin needs at least 1 player on Red and 1 on Blue (3 a team). Players pick on their phones; you can move them here. / Perlu sekurang-kurangnya 1 pemain Merah dan 1 Biru.</p>}
         {mode === "rope" && list.length > 0 && !ropeSides.ready && <p className="waiting">Pull the Rope needs at least 1 player on each side. Players pick on their phones; you can move them here. / Perlu sekurang-kurangnya 1 pemain di setiap pihak.</p>}
         {mode === "clash" && list.length > 0 && !clash.ready && (
           <p className="waiting">
@@ -562,6 +579,26 @@ function LobbyView({
             </div>
           </div>
         )}
+        {mode === "spin" && (
+          <div className="qset-pick gd-block">
+            <div className="lbl">
+              <span className="en">Game time</span>
+              <span className="ms">Masa permainan</span>
+            </div>
+            <div className="qset-btns" role="radiogroup" aria-label="Game time">
+              {([3, 5] as const).map((m) => (
+                <button key={m} role="radio" aria-checked={spinMins === m} className={`qset-btn ${spinMins === m ? "on" : ""}`} onClick={() => onSpinMins(m)}>
+                  <span className="en">⏱ {m} minutes</span>
+                  <span className="ms">{m} minit · most points wins / mata tertinggi menang</span>
+                </button>
+              ))}
+              <button role="radio" aria-checked="false" className="qset-btn empty" disabled>
+                <span className="en">👤 Solo high score</span>
+                <span className="ms">Coming soon / Akan datang</span>
+              </button>
+            </div>
+          </div>
+        )}
         <div className="gd-block">
           <div className="gd-sec">
             How to play <span>Cara bermain</span>
@@ -583,7 +620,8 @@ function LobbyView({
         {!list.length && <p className="waiting">Waiting for players to scan the QR code… / Menunggu pemain…</p>}
         {mode === "clash" && list.length > 0 && <ClashRoster format={clashFormat} players={players} />}
         {mode === "rope" && list.length > 0 && <RopeRoster players={players} />}
-        {mode !== "rope" && mode !== "clash" && (
+        {mode === "spin" && list.length > 0 && <SpinRoster players={players} />}
+        {mode !== "rope" && mode !== "clash" && mode !== "spin" && (
           <ul className="lobby-players">
             {list.map(([uid, p]) => {
               const t = tokenById(p.token);
@@ -599,7 +637,7 @@ function LobbyView({
             })}
           </ul>
         )}
-        {mode !== "rope" && mode !== "clash" && all.length > list.length && (
+        {mode !== "rope" && mode !== "clash" && mode !== "spin" && all.length > list.length && (
           <p className="more-players">
             + {all.length - list.length} more / lagi
           </p>

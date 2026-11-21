@@ -66,7 +66,7 @@ export type PlayerState = {
 
 export type Player = { name: string; token: string; joinedAt: number };
 
-export type GameMode = "snake" | "kart" | "clash" | "fish" | "rope";
+export type GameMode = "snake" | "kart" | "clash" | "fish" | "rope" | "spin";
 
 export type Game = {
   status: "lobby" | "playing" | "ended";
@@ -100,6 +100,10 @@ export type Game = {
   rope?: RopeGame | null;
   /** Pull the Rope: the centre flag, −1 (Red bank) … 0 … +1 (Blue bank). Written a few times a second. */
   ropeX?: number | null;
+  /** Quality Spin: 3 or 5 minutes (host's pick in the lobby). */
+  spinMins?: 3 | 5;
+  /** Quality Spin: both teams (see src/spin/rules.ts). */
+  spin?: import("../spin/rules.ts").SpinGame | null;
 };
 
 export type RopeGame = {

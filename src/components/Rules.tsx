@@ -37,6 +37,15 @@ const ROPE_TILES = [
   { icon: "💦", en: "Flag to your bank wins\nthe round. Best of 3!", ms: "Bendera ke tebing anda menang. Terbaik 3!" },
 ];
 
+const SPIN_TILES = [
+  { icon: "🔴🔵", en: "Red vs Blue, 3 a team.\nPick a captain 👑", ms: "Merah lawan Biru, 3 setiap pasukan. Pilih kapten" },
+  { icon: "❓🎡", en: "Right answer = flick\nyour phone to spin", ms: "Betul = lontar telefon untuk memutar" },
+  { icon: "🔤", en: "Guess letters for points.\nVowel = 300 · Solve = +1,000", ms: "Teka huruf · Vokal 300 · Selesai +1,000" },
+  { icon: "🌟", en: "KAIZEN = next result ×2\nDEFECT = 5 s stun", ms: "KAIZEN ×2 · KECACATAN = kaku 5 saat" },
+  { icon: "💥", en: "Wrong answer, letter or\nphrase = 5 s stun", ms: "Salah jawapan, huruf atau frasa = kaku 5 saat" },
+  { icon: "🏆", en: "3 or 5 minutes.\nMost points wins!", ms: "3 atau 5 minit. Mata tertinggi menang!" },
+];
+
 /** The rules in four short tiles, used on the projector lobby and on phones. */
 const BOSS_TILES = [
   { icon: "👹", en: "Everyone vs the\nDefect Titan", ms: "Semua lawan Gergasi Kecacatan" },
@@ -49,7 +58,7 @@ const BOSS_TILES = [
 ];
 
 export default function Rules({ compact, mode, variant }: { compact?: boolean; mode?: GameMode; variant?: string }) {
-  const tiles = mode === "rope" ? ROPE_TILES : mode === "fish" ? FISH_TILES : mode === "kart" ? CART_TILES : mode === "clash" ? (variant === "boss" ? BOSS_TILES : CLASH_TILES) : [
+  const tiles = mode === "spin" ? SPIN_TILES : mode === "rope" ? ROPE_TILES : mode === "fish" ? FISH_TILES : mode === "kart" ? CART_TILES : mode === "clash" ? (variant === "boss" ? BOSS_TILES : CLASH_TILES) : [
     { icon: "🎲", en: "Right = roll 1 dice\nWrong = wait 5 sec", ms: "Betul = baling 1 dadu · Salah = tunggu 5 saat" },
     { icon: "🔥", en: `${BONUS_STREAK} right in a row\n= 2 dice`, ms: `${BONUS_STREAK} betul berturut = 2 dadu` },
     { icon: "🐍🪜", en: "Answer right to\nstay safe or climb", ms: "Jawab betul untuk selamat atau naik" },

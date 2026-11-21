@@ -1,6 +1,6 @@
 # Handover: Quality Month Games
 
-Last updated **21 Nov 2026, end of the seventh session**. It covers this repository only. Read it fully before changing anything.
+Last updated **21 Nov 2026, seventh session (Quality Spin built)**. It covers this repository only. Read it fully before changing anything.
 
 ## Starting a new session
 
@@ -50,6 +50,9 @@ Last updated **21 Nov 2026, end of the seventh session**. It covers this reposit
    - **Three small fixes** (owner: fix, then push live): (1) Fishing Derby: the FRENZY IN / last-10-s countdown pills now show **on top of** a full-screen SNAP!/FRENZY alert (`.fp-msgs.over`, z-index 9; the catch toast is hidden then). (2) Pull the Rope projector feed: only the **newest POWER PULL** line shows, and the projector remembers every other line it has seen (the database keeps only 12, so power pulls used to push out HEAVE! and round lines): `ropeFeedLines` in `src/rope/rules.ts`, `useRopeFeed` in `RopeView.tsx`; phones still get every power line. (3) Boss Raid with 3 rows: the WRONG / TIME'S UP tag sits **on the stunned monster** instead of above it, so it no longer covers the name of the raider behind (`low` in `stunMark`). Checked on the emulator: `boss.cjs N=30`, `rope.cjs N=50`, `fish.cjs` (new shot `fish-phone-over.png`).
    - **Site renamed** to `https://quality-month.vercel.app` (owner, in Vercel; no code change).
    - **Event poster made** (owner: "all good for now"). See "Event poster" below. Built from the owner's Quality Month poster theme (blue and gold, chrome title, gold banners). Drafts in order: emoji icons → **two styles side by side: A real game screenshots, B 3D badges → owner picked B** → title "QUALITY GAMES" (not "Virtual"), PIC **Nor Dalila** with e-mail, closing line under the PIC → gift boxes + an animated GIF → "Top Players" trophy removed (no prize for top players), "PRIZES TO WIN!" gift piles on both sides → soft fireworks and confetti in the background.
+   - **Physical + virtual ideas** discussed (shake to roll, flick to spin, cast and reel…): owner chose to use the flick in a new game.
+   - **New game: Quality Spin** (spin-the-wheel word game, our own version of the TV format; name, look and rules are ours). Discussed over many rounds, two drafts (`https://claude.ai/artifact/Pp6Leae82mRQ5Xa34mXrN8`, draft 2 = the owner's split-screen layout), simulations for the points, then built, tested on the emulator and pushed live. See "Quality Spin" below. **Solo High Score mode: agreed, after Team mode** (see Open items).
+   - **Bug fixed in all games:** a reloaded projector could not resume Snake & Ladder, Quality Cart, Fishing Derby or Pull the Rope (and Quality Spin): `get(ref(db))` reads the whole database, which the security rules refuse. Now `readAll()` in `src/lib/readAll.ts` reads each part on its own. Checked on the emulator: all five games carry on after a reload (Quality Clash already read per path).
    - Closed by the owner: Boss Raid "Players" box in the lobby ("good for now"), game list page ("so far all good"), question review ("agreed and kept all the questions"). KIV: Fishing Derby Teams, Quality Clash Mini Tournament.
 
 ## What this is
@@ -62,6 +65,7 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 | **Quality Cart** (Kart Kualiti) | Held sideways, full screen: smooth driver's view, tilt to steer, items, questions at the thumbs | Top-down "Factory Block" circuit with all carts, top 15 positions, live feed |
 | **Quality Clash** (Pertempuran Kualiti) | Pick a side and monster(s), answer to attack; full 16-bit arena from the player's own side | 16-bit battle arena: **Single 1 v 1**, **Team 3 v 3**, or **Boss Raid** against the Defect Titan |
 | **Fishing Derby** (Pertandingan Memancing) | Side view: your boat on the surface, fish under the water; a fish bites and is reeled into your boat; question card at the bottom | Cartoon pond with every boat, catches, zoom or notice cards, clock, frenzy, top 15 |
+| **Quality Spin** (Putaran Kualiti) | Captain: question → flick the phone (or swipe up) to spin → letters → spin again / buy vowel / solve. Teammates see the same screen; others watch | Split screen: Red left, Blue right; each with phrase boxes on top and its own wheel underneath; clock in the middle |
 | **Pull the Rope** (Tarik Tali) | Camera behind and above you, moved to one side so you see past your team to the other team; question card at the bottom; PULL! / WRONG / HEAVE! / round result | Side view of a river crossing: Red and Blue peg dolls pulling, players slip into the river with a SPLASH, score, MVP list, feed |
 
 ## Where things are
@@ -80,6 +84,7 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 
 | Draft | Link | Owner's pick |
 |---|---|---|
+| Quality Spin (draft 1 single screen, draft 2 split screen; playable) | `https://claude.ai/artifact/Pp6Leae82mRQ5Xa34mXrN8` | **draft 2 split screen** (built) |
 | Quality Clash | `https://claude.ai/artifact/MsKWky43BaatKzXceNy7Uh` | built |
 | Boss Raid | `https://claude.ai/artifact/RBEvDFjp5RZJQURPZzyMFC` | built |
 | Snake & Ladder phone board | `https://claude.ai/artifact/N45T6TBJXmJvBo6uCkg6Ho` | built |
@@ -228,6 +233,27 @@ The Quality Games event: **Thursday 26 Nov 2026, 4.00 PM, Training Room KJ**. PI
 - **Sides are stored in `clash/pick/{uid}` = `{side, c: ["rope"], at}`**, the same place as Quality Clash teams, so **no rules change was needed** (Clash ignores the "rope" monster). "New game" clears them, "Play again" keeps them; players auto-assigned at Start are written there too.
 - Phones read only their own state, the game and the feed (not everyone's state), to keep downloads small with 50 phones. Other players' power pulls reach phones through the feed (`k: "power"`).
 
+### Quality Spin (Putaran Kualiti): Team mode, built 21 Nov 2026
+**Rules** (`src/spin/rules.ts`; owner's answers in the seventh session)
+- **Red v Blue, 3 players a team** (`TEAM_MAX`); everyone else watches. Players pick a side on the phone (a full team's button is disabled); **the team picks its captain: first tap on "I'm the captain"** (owner OK'd); the host can make someone captain with the crown (♔/👑), move players (→/←) or send them back to watching (×). Nobody tapped = the first member is captain at Start. Host picks **3 or 5 minutes** (`game.spinMins`). Max 50 in the room.
+- Both teams play **at the same time**, each on its **own phrase** (owner: different phrases), from the **50 English phrases** in `src/spin/phrases.ts` (hint in English + Malay), never repeated in a game. New phrase right after solving.
+- Only the **captain's phone** plays: **answer a question (20 s)** → right = **flick the phone up** (or swipe up on the pad; 15 s, then it spins by itself) → wheel turns 4.2 s → **pick a consonant** (20 s): each time in the phrase = the wheel's points → then **spin again** (new question first), **buy a vowel** (300 pts, only with ≥ 300; owner) or **solve** (type the phrase). 20 s to choose, then spin again by itself.
+- **Wheel (12):** points 200–500 (9 sections), **1 KAIZEN**, **2 DEFECT** (owner: points 200–500 only).
+- **5-second stun** (owner's list): DEFECT, wrong answer / time out, wrong letter, wrong full phrase (also a vowel that is not there).
+- **Solve +1,000**, **wrong full phrase −1,000** (owner picked +1,000 after the simulation; −1,000 their choice). **Points never below 0** (owner).
+- **KAIZEN** (owner): a ×2 power-up, **flick again right away**; the next result counts double: right letter ×2, **wrong letter costs the wheel's points ×2** (normally a wrong letter only stuns), solve +2,000, wrong solve −2,000. **DEFECT or a wrong answer loses it**; buying a vowel keeps it; KAIZEN again = **×4**.
+- Winner: **most points**; tie = more phrases solved; still tied = draw. End screen: winner, both scores, phrases solved, right answers, KAIZEN/DEFECT counts, the last phrase, then the end buttons. Before the next game the host picks 2 new teams (owner).
+- Simulation (`scripts/spin.test.ts`, real rule functions; a team discusses ~8 s per answer): **5 min**: good team ~1.3 phrases / ~4,300 pts, average ~0.9 / ~3,500, weak ~0.5 / ~2,500; even teams 50/50, good beats average ~64%, good beats weak ~77%. **3 min**: average teams solve ~0.4 phrases (most points come from letters). Told the owner; options if they want more solves in 3 min: shorter phrases for 3 min, or shorter question time.
+
+**Projector** (`src/spin/SpinView.tsx`, wheel drawing `src/spin/wheel.ts`): owner's split screen (draft 2). Each side: team name, 👑 captain and teammates, score, a glowing **KAIZEN ×2/×4** badge, the hint, the phrase boxes (tiles flip when a letter shows), the used letters (green = in the phrase, crossed out = not), the team's wheel (spins with ticks; the referee picks the section, the wheel lands on it). While the captain answers, **the question shows over the wheel** (only after GO). Pop-ups: +points, NO X!, DEFECT!, KAIZEN ×2, SOLVED!, WRONG PHRASE!; stun = red tint + big countdown. Middle: clock (red in the last 10 s, big 10…1). Sounds: tick, ding, buzz, fanfare.
+
+**Phone** (`src/spin/SpinPhone.tsx`): top bar (team, points, ×2, clock). Captain: question card; **FLICK pad** (phone motion: a jerk over ~14 m/s²; iPhone needs a one-time "Turn on flick" tap; swipe up always works); the wheel spinning; keyboard (consonants, then vowels when buying); choice buttons; solve box (shows +/− for this solve). Teammates: the same screens with the buttons off ("Your captain taps. Help them choose!"). Watchers: both teams' boards and scores. Stun: full red screen with the reason (right answer shown for a wrong answer) and a 5…1. Vibration on Android. Lobby: `SpinPick` (side n/3, I'm the captain / Stop being captain / Just watch).
+
+**How it is built**
+- Referee `src/spin/engine.ts` (`SpinEngine`, ticks through the Web Worker). Everything phones need is in **`game.spin`** (`{mins, red, blue, champion}`, two small team objects with the **masked board**, e.g. `C_N__N____`). The phrases and right answers stay in **`private/spin/{side}`** (host only). Clock: `game.endsAt`; pause moves it.
+- **No rules change:** sides and captains are in `clash/pick/{uid}` = `{side, c: ["spin"] or ["spin","cap"], at}` (Pull the Rope ignores them, and they ignore Rope's); phone actions go through `answers/{captain}` = `{qid, choice}` encoded by `encodeAction` (`!F7` flick, `!L8:T` letter, `!V9:E` vowel, `!S10:TEXT` solve, `!A11` spin again; plain qid = an answer). Each action carries the team's `seq`, so an old tap is ignored.
+- Lobby preview: split screen with both wheels and tiles (`spinPrev` in `GamePreview.tsx`). Rules tiles: `SPIN_TILES` in `Rules.tsx`. Lobby option: **Game time 3/5 min** and a disabled "Solo high score · Coming soon".
+
 ## Questions
 
 - Stored in the database (`questions`), managed with the **Questions** button in the lobby: set tabs, switch on/off, edit (with a **Set** field), add, delete, "Switch all on" per set, "Restore original questions" (all 406 defaults).
@@ -268,7 +294,8 @@ npm install
 npm test
 ```
 
-Runs 7 suites: Snake & Ladder rules (22, including phone timings, event boxes, winners, projector moments, 50 unique pieces and per-game limits), Quality Cart (11), Quality Clash (13, including 5 v 5 line-up, power and a battle-length simulation), Boss Raid (12, including the adaptive Titan at 1–30 players and 50%/90% groups), questions (4), Fishing Derby (9: catch rules, frenzy windows, ranking, shout-outs, result times vs the side-view catch, simulation), Pull the Rope (15: timings, pull sharing, bonuses, HEAVE! windows, round and match winners, team filling, MVP, projector feed, simulations).
+Runs 8 suites (Quality Spin: 13 checks: phrases fit the board, wheel, landing, letters, KAIZEN ×2/×4, vowels, solve, winner, teams/captain, phone actions, simulation).
+Earlier suites: Snake & Ladder rules (22, including phone timings, event boxes, winners, projector moments, 50 unique pieces and per-game limits), Quality Cart (11), Quality Clash (13, including 5 v 5 line-up, power and a battle-length simulation), Boss Raid (12, including the adaptive Titan at 1–30 players and 50%/90% groups), questions (4), Fishing Derby (9: catch rules, frenzy windows, ranking, shout-outs, result times vs the side-view catch, simulation), Pull the Rope (15: timings, pull sharing, bonuses, HEAVE! windows, round and match winners, team filling, MVP, projector feed, simulations).
 
 End-to-end tests use the Firebase emulator (needs Java) and Playwright. In this cloud sandbox: download the emulator once with the proxy, then run it with the proxy variables unset:
 
@@ -290,6 +317,7 @@ Scripts (host PIN `2468`; screenshots to `scripts/e2e/shots/` or `$SHOTS`):
 - `N=3 node scripts/e2e/snake-moments.cjs` (spotlight) and `N=12 …` (glow + cards). Clears the database first.
 - `N=4 node scripts/e2e/fish.cjs` (zoom mode) and `N=12 ACC=0.75 node scripts/e2e/fish.cjs` (notice cards): a full 5-minute Fishing Derby, screenshots of every moment (question, catch label, BIG, leap, GOLDEN, snap, frenzy countdown, frenzy, last 10 s, podium, end screen). Clears the database first. Last runs passed with no errors.
 - `node scripts/e2e/rope.cjs` (default 8 phones; `N=50 R1_SECS=20 …` for 50): side picking, the host moving a player, countdown, a full 3-round match (round 1 even until HEAVE!, round 2 won by the round-1 loser, round 3 by Blue), READY presses between rounds (after round 2 one phone does not press and the host uses "Start round now"), screenshots of every moment (question, PULL!, WRONG, HEAVE countdown and pill, river view, splash, round banner, READY, countdown, ROUND 2, podium, end screen). Clears the database first. Last runs passed with no errors.
+- `node scripts/e2e/spin.cjs` (default 8 phones: 3 Red, 3 Blue, 2 watchers; `MINS=3|5`, `ACC`, `SMART`): Red's captain taps, the host crowns Blue's captain, a 7th player can't join a full team, a full game with swipe-to-spin, letters, vowels, solves and one wrong solve, a 3 s host pause, and a **projector reload mid-game**; screenshots of every phone and projector moment (incl. KAIZEN when it comes up). Clears the database first. Last runs passed with no errors.
 - `node scripts/e2e/cart.cjs`; `node scripts/e2e/clash.cjs` and `MODE=solo …`, `MODE=team5 …` (5 v 5: host moves "Wrong Team" Red→Blue and puts an unpicked player on Red, full battle); `MODE=ta N=12 node scripts/e2e/boss.cjs`, `MODE=ta N=30 …` (30 raiders), `MODE=hs N=1 ACC=0.3 …`.
 - Sandbox notes: background servers stop after their time limit; restart when needed. To reset the emulator, stop it (`pkill -f "firebase-tools@14.27.0 emulators"`, `pkill -f firebase-database-emulator`) and start again; don't use a broad `pkill -f emulator` (it also stops `vite --mode emulator`). The first page load after installing/removing packages can be slow (Vite re-optimises): if a script times out waiting for the PIN field, run it again. Headless browsers report "AudioContext" errors (no sound card): the scripts ignore them.
 - The sandbox cannot reach `vercel.app`, so a deploy can't be checked from here; ask the owner to open the live site.
@@ -312,10 +340,12 @@ Scripts (host PIN `2468`; screenshots to `scripts/e2e/shots/` or `$SHOTS`):
 
 ## Open items
 
-1. **Poster:** owner "all good for now". Swap in a sharp logo if the owner sends one (`poster/logo.png`, then rebuild).
-2. **Fishing Derby Teams mode (owner: KIV):** not designed yet: discuss first (team count, how teams are picked, scoring), then draft.
-3. **Quality Clash Mini Tournament (owner: KIV):** bracket style, "coming soon" in the lobby.
-4. **Possible later (KIV):** circuit picker for Quality Cart (9 more circuits in the circuits draft); turning off the remembered name on phones (offered, not requested).
-5. **Ideas discussed, not built:** cheer meter for watchers, revive in Team mode, MVP screen, Hall of Fame across the day, chiptune music and per-type attack sounds, host settings (e.g. HP 200/300/500), random snake/ladder layout, other games (Dragon Boat Race, Capture the Factory, Spot the Defect, Quality Bingo, Horse Race; Tug of War became Pull the Rope).
+1. **Owner to test Quality Spin on real phones** (flick on Android and iPhone, the lobby captain flow, 3 v 3 on the projector). Also the reload fix (all games).
+2. **Quality Spin Solo High Score (agreed, next):** (A) host picks "Solo": everyone plays on their own phone at the same time (own board and wheel on the phone), projector shows a live leaderboard and the day's high scores; (B) "like a phone game": anyone can open and play solo any time, even during a Team game. Same rules as Team; 3 or 5 min. Discuss the details (start together or any time, who picks 3/5, high score lists per time, best score per player) and draft first.
+3. **Poster:** owner "all good for now". Swap in a sharp logo if the owner sends one (`poster/logo.png`, then rebuild).
+4. **Fishing Derby Teams mode (owner: KIV):** not designed yet: discuss first (team count, how teams are picked, scoring), then draft.
+5. **Quality Clash Mini Tournament (owner: KIV):** bracket style, "coming soon" in the lobby.
+6. **Possible later (KIV):** circuit picker for Quality Cart (9 more circuits in the circuits draft); turning off the remembered name on phones (offered, not requested).
+7. **Ideas discussed, not built:** cheer meter for watchers, revive in Team mode, MVP screen, Hall of Fame across the day, chiptune music and per-type attack sounds, host settings (e.g. HP 200/300/500), random snake/ladder layout, other games (Dragon Boat Race, Capture the Factory, Spot the Defect, Quality Bingo, Horse Race; Tug of War became Pull the Rope).
 
 **Closed by the owner (seventh session):** Step 3 part 2 (tested with big groups: fine); the three known small things (fixed); real-phone tests of 5 v 5, Boss Raid 30 raiders and the Exit fix (all good); Boss Raid lobby "Players" box (good for now); game list page (all good); question review (all 406 questions kept, nothing to apply).

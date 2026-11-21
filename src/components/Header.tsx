@@ -6,6 +6,7 @@ export const GAME_NAMES: Record<GameMode, { en: string; ms: string; icon: string
   clash: { en: "Quality Clash", ms: "Pertempuran Kualiti", icon: "⚔️" },
   fish: { en: "Fishing Derby", ms: "Pertandingan Memancing", icon: "🎣" },
   rope: { en: "Pull the Rope", ms: "Tarik Tali", icon: "💪" },
+  spin: { en: "Quality Spin", ms: "Putaran Kualiti", icon: "🎡" },
 };
 
 export default function Header({ small, children, mode }: { small?: boolean; children?: React.ReactNode; mode?: GameMode }) {

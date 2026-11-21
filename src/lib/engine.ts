@@ -4,6 +4,7 @@ import { startTicker } from "./ticker.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "./questionSets.ts";
 import { ref, get, onValue, update, set } from "firebase/database";
 import { db, serverNow } from "./firebase.ts";
+import { readAll } from "./readAll.ts";
 import { resolve, pickQuestion, shuffleOptions, winnersNeeded, MAX_WINNERS } from "./rules.ts";
 import { LAST_BOX } from "./board.ts";
 import { tokenById } from "./tokens.ts";
@@ -95,8 +96,7 @@ export class Engine {
 
   /** Take over a game already running (for example after the projector page was reloaded). */
   async resume() {
-    const snap = await get(ref(db));
-    const all = snap.val() ?? {};
+    const all = await readAll();
     this.players = all.players ?? {};
     this.states = fixStates(all.state);
     this.priv = all.private ?? {};
@@ -336,7 +336,7 @@ function describe(icon: string, name: string, r: Result): string {
   }
 }
 
-const LOBBY_GAME = { "game/status": "lobby", "game/engine": null, "game/paused": false, "game/pausedAt": null, "game/startedAt": null, "game/goAt": null, "game/endedAt": null, "game/winners": null, "game/specials": null, "game/endsAt": null, "game/ranks": null, "game/rope": null, "game/ropeX": null };
+const LOBBY_GAME = { "game/status": "lobby", "game/engine": null, "game/paused": false, "game/pausedAt": null, "game/startedAt": null, "game/goAt": null, "game/endedAt": null, "game/winners": null, "game/specials": null, "game/endsAt": null, "game/ranks": null, "game/rope": null, "game/ropeX": null, "game/spin": null };
 
 /** Remove everything from the last game. Players will need to join again. The chosen game (mode) is kept. */
 export async function resetGame() {

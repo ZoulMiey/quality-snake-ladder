@@ -4,6 +4,7 @@ import { startTicker } from "../lib/ticker.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";
 import { get, onValue, ref, set, update } from "firebase/database";
 import { db, serverNow } from "../lib/firebase.ts";
+import { readAll } from "../lib/readAll.ts";
 import { pickQuestion, shuffleOptions } from "../lib/rules.ts";
 import { tokenById } from "../lib/tokens.ts";
 import type { FeedItem, Game, Player, Question } from "../lib/types.ts";
@@ -88,7 +89,7 @@ export class KartEngine {
 
   /** Carry on a race after the projector page was reloaded. */
   async resume() {
-    const all = (await get(ref(db))).val() ?? {};
+    const all = await readAll();
     this.players = all.players ?? {};
     this.qset = (all.game?.qset as QChoice) || "quality";
     this.pool = poolFor(all.questions, this.qset);

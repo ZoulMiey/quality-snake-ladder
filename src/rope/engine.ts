@@ -6,6 +6,7 @@
 import { startTicker } from "../lib/ticker.ts";
 import { ref, get, onValue, update, set } from "firebase/database";
 import { db, serverNow } from "../lib/firebase.ts";
+import { readAll } from "../lib/readAll.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";
 import { pickQuestion, shuffleOptions } from "../lib/rules.ts";
 import { tokenById } from "../lib/tokens.ts";
@@ -159,7 +160,7 @@ export class RopeEngine {
   }
 
   async resume() {
-    const all = (await get(ref(db))).val() ?? {};
+    const all = await readAll();
     this.players = all.players ?? {};
     this.states = {};
     for (const [u, s] of Object.entries(all.state ?? {})) {

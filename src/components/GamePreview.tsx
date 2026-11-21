@@ -10,6 +10,7 @@ import { sprite } from "../clash/sprites.ts";
 import { titan } from "../clash/titan.ts";
 import { PW, PH, drawPond, drawBoat, layoutBoats, leapingFish, splash as fishSplash } from "../fish/pond2d.ts";
 import { SW, SH, CX, ROPE_Y, RIVER_L, RIVER_R, WATER_Y, FLAG_TRAVEL, drawBackground, drawFlag, drawFrontWater, drawRope, layoutSide, pegDoll, type Pose } from "../rope/scene.ts";
+import { drawWheel as drawSpinWheel } from "../spin/wheel.ts";
 
 const W = 320;
 const H = 180;
@@ -283,7 +284,53 @@ function rope(c: CanvasRenderingContext2D, t: number) {
   c.restore();
 }
 
-const DRAW: Record<GameMode, (c: CanvasRenderingContext2D, t: number) => void> = { snake, kart, clash, fish, rope };
+// Quality Spin: the split screen, both wheels spinning in turn and letters lighting up on the boards.
+const SPIN_PREV = { red: "ZERO DEFECT", blue: "GEMBA WALK" };
+function spinPrev(c: CanvasRenderingContext2D, t: number) {
+  (["red", "blue"] as const).forEach((side, i) => {
+    const x0 = i * (W / 2);
+    const g = c.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, side === "red" ? "#3a0b1c" : "#0b2f80");
+    g.addColorStop(1, side === "red" ? "#120414" : "#04133a");
+    c.fillStyle = g;
+    c.fillRect(x0, 0, W / 2, H);
+    c.fillStyle = side === "red" ? "#ff6b7a" : "#6fb4ff";
+    c.font = "900 10px Orbitron, Arial Black, sans-serif";
+    c.textAlign = "left";
+    c.textBaseline = "middle";
+    c.fillText(side.toUpperCase(), x0 + 8, 11);
+    // Tiles: one more letter shows every 0.8 s (each side on its own beat), then the loop starts again.
+    const phrase = SPIN_PREV[side];
+    const order = [...new Set(phrase.replace(/ /g, ""))];
+    const shownN = Math.floor(((t + i * 1.7) % 9) / 0.8);
+    const shown = new Set(order.slice(0, shownN));
+    const tw = 11;
+    const total = phrase.length * (tw + 1.5);
+    let x = x0 + W / 4 - total / 2;
+    for (const ch of phrase) {
+      if (ch !== " ") {
+        c.fillStyle = shown.has(ch) ? "#ffffff" : "#c9daf5";
+        c.fillRect(x, 24, tw, 15);
+        if (shown.has(ch)) {
+          c.fillStyle = "#0b2a66";
+          c.font = "900 9px Orbitron, Arial Black, sans-serif";
+          c.textAlign = "center";
+          c.fillText(ch, x + tw / 2, 32);
+        }
+      }
+      x += tw + 1.5;
+    }
+    // The wheel spins for 3 s, then rests, in turn.
+    const cyc = (t + i * 2.5) % 5;
+    const u = Math.min(1, cyc / 3);
+    const rot = (Math.floor((t + i * 2.5) / 5) * 2.3 + (1 - Math.pow(1 - u, 4)) * 14) % (Math.PI * 2);
+    drawSpinWheel(c, x0 + W / 4, 112, 56, rot, cyc < 3 ? t : 0, cyc < 3 ? 1 : 0);
+  });
+  c.fillStyle = "#f5c542";
+  c.fillRect(W / 2 - 1, 0, 2, H);
+}
+
+const DRAW: Record<GameMode, (c: CanvasRenderingContext2D, t: number) => void> = { snake, kart, clash, fish, rope, spin: spinPrev };
 
 /** A game's preview. `big` = the large one on the game's lobby page (more pixels). */
 export default function GamePreview({ mode, className, big }: { mode: GameMode; className?: string; big?: boolean }) {
