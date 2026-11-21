@@ -1,6 +1,6 @@
 # Handover: Quality Month Games
 
-Last updated **20 Nov 2026, fifth session**. It covers this repository only. Read it fully before changing anything.
+Last updated **21 Nov 2026, end of the fifth session**. It covers this repository only. Read it fully before changing anything.
 
 ## Starting a new session
 
@@ -30,7 +30,10 @@ Last updated **20 Nov 2026, fifth session**. It covers this repository only. Rea
    - Simulation shown to the owner before building (pull strength scaled by players; table in "Pull the Rope" below). Owner: "yes. build".
    - Built, tested on the emulator with 8 and 50 phones, pushed live.
    - Owner's first test → tweaks (done, pushed): **READY button between rounds** (everyone ready → 5-second countdown → "ROUND 2!"; host "Start round now" for missing phones), **HEAVE! every minute for 30 s** (was 10 s). Owner asked for new **phone camera drafts** ("from behind, from shoulder"): draft `https://claude.ai/artifact/Lgum79xpfXb8EKWPccE3d9` (A right behind you, B over your shoulder, C behind a little higher, D low wide). Owner picked **C, moved a little to the side** "so the player can see the opponent (splash into river)" → built and pushed (replaces P2).
-   - Owner's 1 v 1 test (projector and two "phones" as windows on one computer) → 2 bugs, fixed and pushed: (1) "it hang, no question appear… until HEAVE time": not reproducible with the projector on screen (4 min of 1 v 1, no stall); most likely Chrome slowing the hidden projector page's timers to once a minute. **All six engines now tick through a Web Worker** (`src/lib/ticker.ts`, `startTicker`), which hidden pages do not slow down. (2) Blue player saw no river: with the side camera the river's far corners were behind the camera and the whole shape was skipped; ground shapes are now cut at the camera (`quad` in `phone3d.ts`).
+   - Owner's 1 v 1 test (projector and two "phones" as browser windows on one computer) → 2 bugs, fixed and pushed: (1) "it hang, no question appear… until HEAVE time": not reproducible with the projector on screen (4 min of 1 v 1, no stall); most likely Chrome slowing the hidden projector page's timers to once a minute. **All six engines now tick through a Web Worker** (`src/lib/ticker.ts`, `startTicker`), which hidden pages do not slow down. (2) Blue player saw no river: with the side camera the river's far corners were behind the camera and the whole shape was skipped; ground shapes are now cut at the camera (`quad` in `phone3d.ts`). **Not yet re-tested by the owner**; Claude asked whether the projector window was hidden during the test (no answer yet).
+   - **All games, end screen:** three buttons **Play again / New game / Change game** (Change game asks "same players / new players"); the header's "New game" is hidden on the end screen. See "End of every game".
+   - **Lobby previews:** every game's preview now plays a short gameplay loop; the chosen game's page shows a **big** preview with a description; **phones** show the preview in their lobby card (cycling through all games before the host picks).
+   - Everything above is pushed live; the owner has not re-tested the last four changes yet (READY/HEAVE already tested once, then camera, bug fixes, end buttons, previews).
 
 ## What this is
 
@@ -50,7 +53,7 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 |---|---|
 | Code | GitHub `ZoulMiey/quality-snake-ladder` |
 | Live branch | `claude/eloquent-allen-cekztv` (default branch; **every push deploys to Vercel**) |
-| Work branch | Fourth session: `claude/determined-franklin-aibcmp`, pushed to the live branch after each tested change (owner's standing instruction: live after testing). Both are on the same commit at the end of the session. Older: `claude/new-session-r5myv3` (second session, behind). |
+| Work branch | Fifth session: `claude/sleepy-edison-q31w24`, pushed to the live branch after each tested change (owner's standing instruction: live after testing). Both are on the same commit at the end of the session. Older: `claude/determined-franklin-aibcmp` (fourth), `claude/new-session-r5myv3` (second, behind). A new session gets its own work branch name: push it, then push the same commit to the live branch (fast-forward). |
 | Live site | `https://quality-snake-ladder.vercel.app` (`/` = projector, `/join` = phones) |
 | Database and login | Firebase project `quality-snake-ladder` (Realtime Database, Singapore, Anonymous sign-in). **Blaze plan, but the owner wants to spend nothing** (hence the 50-player limit). Separate from the FG Tracker on purpose. Web settings in `src/lib/firebase.ts` (not secret; the security rules protect the data). |
 | Question review pages | New sets: `https://claude.ai/artifact/8tjZ3iFsHVqQ7GYNjWUcWb`; original 63: `https://claude.ai/artifact/NeXwos6p8Q56VtvzrQRVsN`. Both hold no choices to apply (checked 19 Nov). |
@@ -68,7 +71,7 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 | Fishing Derby (rules, projector, first phone) | `https://claude.ai/artifact/ULUpjtsYfFVsYN2chpj1Ah` | projector as drawn |
 | Fishing Derby 3D phone (3 cameras) | `https://claude.ai/artifact/BemgFLNobDesu7PfzxprQq` | camera A (later replaced) |
 | Fishing Derby side view (A cartoon / B 3D aquarium) | `https://claude.ai/artifact/VUt4haXB4DsLVBd9Av9G3t` | **A cartoon cutaway** (live) |
-| Pull the Rope views (now shows the picks: B2 wider river + P2) | `https://claude.ai/artifact/RLvgyFjDMdjX5ZmychENwp` | projector **B2 river**, phone **P2** (built) |
+| Pull the Rope first draft (4 projector views, 3 phones; now shows the picks B2 wider river + P2) | `https://claude.ai/artifact/RLvgyFjDMdjX5ZmychENwp` | projector **B2 river**, phone **P2** (built) |
 | Pull the Rope phone cameras (A–D) | `https://claude.ai/artifact/Lgum79xpfXb8EKWPccE3d9` | **C**, moved to the side (built) |
 | Pull the Rope characters (5 styles) | `https://claude.ai/artifact/CN6FXNQsQbSJseefWpXHeQ` | **5 wooden peg dolls** (built) |
 
@@ -80,7 +83,7 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 - **Players and pieces (fourth session):** up to **50 players** (`MAX_PLAYERS` = 50 pieces in `src/lib/tokens.ts`, all emoji from 2018 or earlier). Phones join with a **name only** (`token: ""`); the 51st phone sees "The game is full (50 players)". When the host presses **Start**, `start()` in `Screen.tsx` gives every player a **different random piece** (`assignPieces`; players who already have one keep it, so **"Play again" keeps the pieces**), then starts the engine. The phone countdown shows "You are / Anda ialah 🦊 Fox" (`you` prop of `Countdown`). Before Start, the phone lobby shows a ❔ and "Your piece is given at random when the game starts". The `tokens/` database node is no longer used (rules unchanged).
 - **Per-game limits** (`gameMaxPlayers` in `tokens.ts`): Snake & Ladder 50, Fishing Derby 50, Pull the Rope 50, Clash 1 v 1 50 (2 fight, the rest watch), **Quality Cart 30**, **Clash Team 30**, **Boss Raid 30** (but `MAX_RAIDERS` is still 20 until Step 3). Too many players: Start is blocked with "Quality Cart: max 30 players (45 joined). Remove players or pick another game."
 - **Top 15 on the projector:** the lobby lists the 15 players who joined last, with "+ 35 more" and a "50/50" counter; in-game lists show the top 15 (Snake & Ladder, Quality Cart, Fishing Derby) with "+ N more".
-- **Lobby (projector):** big QR code on the left; on the right, game cards with **moving preview loops** (`src/components/GamePreview.tsx`, owner's tweak: pieces hop and take ladders/snakes, carts race, monsters hit the Titan, fish leap into boats, the rope swings and a player splashes in). Picking a game shows a **big** preview (`big` prop, 4× pixels) next to the name, a one-line description and "Change game". **Phones** show the chosen game's preview in their lobby card too (`LobbyPreview` in `Join.tsx`); before the host picks, they cycle through all games every 4 s ("Games today"). Picking one shows the game name with "← Change game", the **question set** picker, the game's options (Clash modes; Fishing mode: **Open play**, Teams "coming soon"), the players, the rules tiles and **Start game**. "New game" keeps the picked game and set.
+- **Lobby (projector):** big QR code on the left; on the right, game cards with **moving preview loops** (`src/components/GamePreview.tsx`, owner's tweak: pieces hop and take ladders/snakes, carts race, monsters hit the Titan, fish leap into boats, the rope swings and a player splashes in). Picking a game shows a **big** preview (`big` prop, 4× pixels) next to the name, a one-line description and "Change game". **Phones** show the chosen game's preview in their lobby card too (`LobbyPreview` in `Join.tsx`; for Pull the Rope and Clash it sits under the side/monster picker); before the host picks, they cycle through all games every 4 s ("Games today"). The game's page also has the **question set** picker, the game's options (Clash modes; Fishing mode: **Open play**, Teams "coming soon"), the players, the rules tiles and **Start game**. "New game" keeps the picked game and set.
 - **Question sets:** each question has a `set`: `quality`, `world`, `logo`, `malaysia` or `general` (missing = quality). The host picks Quality · World · Logo · Malaysia · General Knowledge · **Mix** (= all except Quality); saved as `game.qset`; engines ask only switched-on questions from that set (`poolFor` in `src/lib/questionSets.ts`). Start is blocked if the set has none switched on.
 - **Names on phones:** the join form is pre-filled from the phone's own browser storage (`qsl-name`), not from Firebase. Firebase keeps names only for the current game (`players/`), cleared by "New game".
 
@@ -134,7 +137,7 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 - Wrong or time out = **line snaps**: right answer shown, wait 5 s, row count 0.
 - **Fishing Frenzy** at 1:00, 2:00, 3:00, 4:00 for **30 s**: every fish weighs ×2. A **5-second "FRENZY IN 5…1" countdown** comes before each one.
 - **Last 10 seconds count down** (phones and projector, with ticks).
-- Winner = heaviest **total** catch (tie: more right answers). Podium top 3 + shout-outs **Biggest single fish** and **Most golden fish**. "Fish again with the same players".
+- Winner = heaviest **total** catch (tie: more right answers). Podium top 3 + shout-outs **Biggest single fish** and **Most golden fish**, then the end buttons.
 - Result times (`RESULT_MS`): fish 2.6 s, BIG 4.0 s, GOLDEN 4.2 s, snap 5 s.
 - Simulation (5 min): weak 50% right ≈ 95 kg, average 70% ≈ 210 kg, strong 90% ≈ 520 kg, expert ≈ 925 kg.
 
@@ -166,13 +169,13 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 - **Pull** = 0.3 × √(total players ÷ 24) ÷ (players in your team). Shared by team size, so **4 v 2 is fair** (owner's question); scaled by players so rounds last about as long with 2 or 50 players. **FAST** (right within 3 s, +0.3 s network allowance) ×1.25 · **POWER PULL** (every 3rd right answer in a row) ×2 · **HEAVE!** every minute (1:00 and 2:00) for **30 s** ×2 (owner's tweak; 5 s "HEAVE IN 5…1" countdown first).
 - The centre flag goes from 0 to ±1. **Flag reaches your bank = you win the round**; otherwise the flag's side at **3:00** (tie: more right answers this round; still tied = draw, which adds a round, max 5). **Best of 3** (same teams, same sides).
 - **Between rounds (owner's tweak):** the result shows and every phone gets a **READY** button. When everyone still in the game is ready → **5-second countdown, then "ROUND 2!" (1.5 s)**, then play (`READY_COUNT_MS`, `ROUND_BANNER_MS`). The projector shows "11 / 12 ready", who it is waiting for, and a host button **"▶ Start round now"** (only in the window running the game). A phone says ready by writing `answers/{uid} = {qid: "ready", choice: round}` (`READY_QID`), so no rules change; the engine keeps `game.rope.ready` and sets `breakUntil` when the countdown starts.
-- End: winning team, **MVP = most right answers** (tie: faster fastest answer), best player on each team, fastest answer, longest streak. "Play again with the same teams".
+- End: winning team, **MVP = most right answers** (tie: faster fastest answer), best player on each team, fastest answer, longest streak, then the end buttons ("Play again" keeps the teams).
 - Simulation (`npm test`, 1,500 rounds each) with the 30 s HEAVE!: even 12 v 12 → ~52% of rounds reach a bank (~1:53), 50/50; 70% v 80% right → ~85% reach a bank (~1:19), better team wins 94%; 25 v 25 70% v 80% → 96% (~1:10), 99%; 4 v 2 and 20 v 10 at the same skill → ~50/50; 1 v 1 ~1:48. (With the first 10 s HEAVE! it was ~35% / ~2:00 for even teams.)
 
 **Projector** (`src/rope/RopeView.tsx`, drawing in `src/rope/scene.ts`)
 - Side view (owner's B2, river ~⅓ of the width). Peg dolls (owner's pick 5) in team colour with their piece on the belly; 1 row up to 8 per side, 2 rows up to 16, 3 rows above (25 a side). Names hidden above 24 players.
 - As the flag moves, the losing side's front players slide into the river (**SPLASH!** + drops + sound), waist-deep, still holding on; they climb out if the rope swings back. The winning side only steps back 30% of the way so it stays in view.
-- Round end: the whole losing team is **dragged into the river one after another**, winners cheer; banner "BLUE WINS ROUND 1! · BIRU MENANG PUSINGAN 1!" with the score and "Round 2 starts in 8".
+- Round end: the whole losing team is **dragged into the river one after another**, winners cheer; banner "BLUE WINS ROUND 1! · BIRU MENANG PUSINGAN 1!" with the score, "11 / 12 ready", who it is waiting for and "▶ Start round now"; then a big 5…1 and "ROUND 2!".
 - HUD: clock, round, "HEAVE! in 0:42"; big orange "HEAVE IN 5" and red "Round almost over! 10"; orange sky + banner during HEAVE!. Side panel: best-of-3 score with players and right answers per team, top 15 by right answers (MVP list), live feed (power pulls, HEAVE!, rounds).
 
 **Phone** (`src/rope/RopePhone.tsx`, 3D view in `src/rope/phone3d.ts`)
@@ -207,8 +210,8 @@ The header's "New game" button is hidden on the end screen (it is in the screen 
 ## Important when changing things
 
 - **The projector page is the referee.** Engines tick through a Web Worker (`startTicker` in `src/lib/ticker.ts`) so a hidden or covered projector window does not freeze the game; keep using it for new engines. Sounds and animations still pause while the page is hidden.
-- **Security rules** (`database.rules.json`) are **not deployed automatically**. After any change, the owner must paste the whole file into Firebase console → Realtime Database → Rules → Publish. The current file is already published. **The fourth session changed no rules** (random pieces use the host's existing right to write `players/*`; Fishing reuses existing paths).
-- Firebase drops empty lists/objects; `fixState` / `fixFishState` / `fixBoard` / `fixRaid` fill them back in. Keep this in mind for new fields.
+- **Security rules** (`database.rules.json`) are **not deployed automatically**. After any change, the owner must paste the whole file into Firebase console → Realtime Database → Rules → Publish. The current file is already published. **The fourth and fifth sessions changed no rules** (random pieces use the host's existing right to write `players/*`; Fishing and Pull the Rope reuse existing paths: sides in `clash/pick`, READY in `answers`).
+- Firebase drops empty lists/objects; `fixState` / `fixFishState` / `fixRopeState` / `fixRope` / `fixBoard` / `fixRaid` fill them back in. Keep this in mind for new fields.
 - A Firebase multi-path update cannot contain a path and its own child; the engines avoid this.
 - Engines write the whole `game` object on start: include new `game.*` fields there, or they get wiped. `LOBBY_GAME` in `src/lib/engine.ts` clears game fields on "New game" / "Play again".
 - `resetGame` clears Clash paths one by one so `clash/records` survives "New game".
@@ -256,6 +259,7 @@ Scripts (host PIN `2468`; screenshots to `scripts/e2e/shots/` or `$SHOTS`):
 - Wants to **discuss and align before building**; answers in short numbered lists. For bigger features, show a **draft artifact first**, preferably with **several options side by side** (they pick one), unless they say "just build it".
 - When they say "build" / "start": build, test on the emulator, then **push to the live branch** (standing instruction: live after testing).
 - Likes **simulations with numbers** to justify game balance; tests on real phones afterwards and sends screenshots with numbered tweaks.
+- Often tests with the projector and "phones" as browser windows on one computer (hence the Web Worker clock).
 - Prefers simple, bold, readable screens; bright cartoon for Snake & Ladder and Fishing Derby; 16-bit pixel style for Clash; "32-bit smooth" for Quality Cart; bilingual English/Malay everywhere.
 - Dislikes waiting: shorten animations that delay play (e.g. BIG/GOLDEN alert and catch together, SNAP straight away). Dislikes the camera zooming/moving on the phone.
 - Wants max **50 players** and **no Firebase cost**.
@@ -263,12 +267,13 @@ Scripts (host PIN `2468`; screenshots to `scripts/e2e/shots/` or `$SHOTS`):
 
 ## Open items
 
-0. **Pull the Rope (new, 20 Nov):** owner to re-test on real phones: READY between rounds, 30 s HEAVE!, the new side camera (C moved to the side). Things to watch: the phone camera when you stand at the very front or back of a big team; the feed fills with POWER PULL lines in a big game; balance with real groups (simulation numbers above).
-1. **Fishing Derby, latest tweaks (20 Nov) to re-test on real phones:** catch label, boat in the middle, frenzy countdown, last 10 s countdown. Known small thing: a SNAP!/FRENZY full-screen alert (up to 2.4 s) covers the phone's countdown pill while it shows.
-2. **Fishing Derby Teams mode:** after open play is final. Not designed yet: discuss first (team count, how teams are picked, scoring), then draft.
-3. **Step 1 (50 players, random pieces) and the Snake & Ladder projector moments:** built, not yet checked by the owner on the real projector / with a big group.
-4. **Step 3 (agreed):** check each game with 30–50 players (Snake & Ladder board crowding, projector lists); add **Quality Clash 5 v 5** (Team mode: 3 v 3 or 5 v 5, max 30 in the room, the rest watch; needs a balance simulation); raise **Boss Raid to 30 raiders** (`MAX_RAIDERS` in `src/clash/boss.ts`, re-tune HP/stomp with a simulation; target Titan wins 30–40%).
-5. **Question review (owner: KIV):** if the owner reviews again, read `reviews` from the review pages (docs keyed by question id: `{d: "keep"|"drop"|"edit", q?: [en, ms], o?: [[en, ms] ×4, right first], set}`; unmarked = keep). The live database already holds the questions, so changes must be written **to the database** (e.g. a second one-time migration flag), not only to `moreQuestions.ts`.
-6. **Quality Clash (owner: KIV, "so far all good"):** Boss Raid balance with real groups still unchecked. **Mini Tournament** (bracket style, "coming soon" in the lobby): on hold.
-7. **Possible later:** circuit picker for Quality Cart (9 more circuits in the circuits draft); turning off the remembered name on phones (offered, not requested).
-8. **Ideas discussed, not built:** cheer meter for watchers, revive in Team mode, MVP screen, Hall of Fame across the day, chiptune music and per-type attack sounds, host settings (e.g. HP 200/300/500), random snake/ladder layout, other games (Tug of War, Dragon Boat Race, Capture the Factory, Spot the Defect, Quality Bingo, Horse Race).
+1. **Pull the Rope, re-test on real phones** (all built and pushed, 20–21 Nov): READY between rounds, 30 s HEAVE!, the side camera (C moved to the side), the two fixes (no-river bug; questions stopping, worker clock), end buttons. Things to watch: whether questions still stop (if so: when, and was the projector window on screen?); the phone camera at the very front or back of a big team; the live feed fills with POWER PULL lines in a big game (offer: show fewer); balance with real groups (simulation numbers above).
+2. **Lobby previews and end buttons (all games):** owner to check on the projector and phones. Offered: preview above the side/monster picker on phones for Pull the Rope / Clash; a bigger preview or a different moment per game.
+3. **Fishing Derby, tweaks of 20 Nov to re-test on real phones:** catch label, boat in the middle, frenzy countdown, last 10 s countdown. Known small thing: a SNAP!/FRENZY full-screen alert (up to 2.4 s) covers the phone's countdown pill while it shows.
+4. **Fishing Derby Teams mode:** after open play is final. Not designed yet: discuss first (team count, how teams are picked, scoring), then draft.
+5. **Step 1 (50 players, random pieces) and the Snake & Ladder projector moments:** built, not yet checked by the owner on the real projector / with a big group.
+6. **Step 3 (agreed in the fourth session, not started):** check each game with 30–50 players (Snake & Ladder board crowding, projector lists); add **Quality Clash 5 v 5** (Team mode: 3 v 3 or 5 v 5, max 30 in the room, the rest watch; needs a balance simulation); raise **Boss Raid to 30 raiders** (`MAX_RAIDERS` in `src/clash/boss.ts`, re-tune HP/stomp with a simulation; target Titan wins 30–40%).
+7. **Question review (owner: KIV):** if the owner reviews again, read `reviews` from the review pages (docs keyed by question id: `{d: "keep"|"drop"|"edit", q?: [en, ms], o?: [[en, ms] ×4, right first], set}`; unmarked = keep). The live database already holds the questions, so changes must be written **to the database** (e.g. a second one-time migration flag), not only to `moreQuestions.ts`.
+8. **Quality Clash (owner: KIV, "so far all good"):** Boss Raid balance with real groups still unchecked. **Mini Tournament** (bracket style, "coming soon" in the lobby): on hold.
+9. **Possible later:** circuit picker for Quality Cart (9 more circuits in the circuits draft); turning off the remembered name on phones (offered, not requested).
+10. **Ideas discussed, not built:** cheer meter for watchers, revive in Team mode, MVP screen, Hall of Fame across the day, chiptune music and per-type attack sounds, host settings (e.g. HP 200/300/500), random snake/ladder layout, other games (Dragon Boat Race, Capture the Factory, Spot the Defect, Quality Bingo, Horse Race; Tug of War became Pull the Rope).
