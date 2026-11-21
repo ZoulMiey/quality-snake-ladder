@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { get, ref, set, update, remove } from "firebase/database";
+import { get, ref, set, update, remove } from "../lib/store.ts";
 import { db } from "../lib/firebase.ts";
 import { useDbValue } from "../lib/useDb.ts";
 import { DEFAULT_QUESTIONS } from "../lib/defaultQuestions.ts";

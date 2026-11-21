@@ -2,7 +2,7 @@
 // teams on the projector and can move anyone to the other side. Sides are saved in clash/pick/{uid}
 // (the same place as Quality Clash teams), so no new security rules are needed.
 import { useMemo, useState } from "react";
-import { ref, remove, set, serverTimestamp } from "firebase/database";
+import { ref, remove, set, serverTimestamp } from "../lib/store.ts";
 import { db } from "../lib/firebase.ts";
 import { useDbValue } from "../lib/useDb.ts";
 import { unlockAudio } from "../lib/sound.ts";

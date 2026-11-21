@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { onValue, ref } from "firebase/database";
+import { onValue, ref } from "./store.ts";
 import { db } from "./firebase.ts";
 
 /** Live value at a database path. `undefined` while loading. */

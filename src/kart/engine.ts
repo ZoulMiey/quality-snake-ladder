@@ -2,7 +2,7 @@
 // reads each phone's tilt, hands out questions and items, and writes what each phone needs to show.
 import { startTicker } from "../lib/ticker.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";
-import { get, onValue, ref, set, update } from "firebase/database";
+import { get, onValue, ref, set, update } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
 import { readAll } from "../lib/readAll.ts";
 import { pickQuestion, shuffleOptions } from "../lib/rules.ts";

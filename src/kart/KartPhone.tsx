@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ref, set, update } from "firebase/database";
+import { ref, set, update } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
 import { tokenById } from "../lib/tokens.ts";

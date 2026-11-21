@@ -3,7 +3,7 @@
 // make someone captain or send a player back to watching. Picks are saved in clash/pick/{uid} =
 // { side, c: ["spin"] or ["spin", "cap"], at } like Pull the Rope, so no new security rules are needed.
 import { useMemo, useState } from "react";
-import { ref, remove, set, update, serverTimestamp } from "firebase/database";
+import { ref, remove, set, update, serverTimestamp } from "../lib/store.ts";
 import { db } from "../lib/firebase.ts";
 import { useDbValue } from "../lib/useDb.ts";
 import { unlockAudio } from "../lib/sound.ts";

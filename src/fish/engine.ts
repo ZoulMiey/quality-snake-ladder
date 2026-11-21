@@ -4,7 +4,7 @@
 // new security rules are needed. The feed is written one item at a time (feed/{n}) so 50 phones only
 // download what is new.
 import { startTicker } from "../lib/ticker.ts";
-import { ref, get, onValue, update, set } from "firebase/database";
+import { ref, get, onValue, update, set } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
 import { readAll } from "../lib/readAll.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ref, set, remove, serverTimestamp } from "firebase/database";
+import { ref, set, remove, serverTimestamp } from "../lib/store.ts";
 import { db, ensureSignedIn } from "../lib/firebase.ts";
 import Rules from "../components/Rules.tsx";
 import KartPhone from "../kart/KartPhone.tsx";

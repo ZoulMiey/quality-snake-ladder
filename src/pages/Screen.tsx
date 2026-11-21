@@ -1,6 +1,6 @@
 import EndButtons, { EndActionsContext, type EndActions } from "../components/EndButtons.tsx";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { get, ref, set, update } from "firebase/database";
+import { get, ref, set, update } from "../lib/store.ts";
 import { db, ensureSignedIn, serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
 import { winnersNeeded } from "../lib/rules.ts";

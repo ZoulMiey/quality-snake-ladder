@@ -1,6 +1,6 @@
 import EndButtons from "../components/EndButtons.tsx";
 import { useEffect, useRef } from "react";
-import { onValue, ref } from "firebase/database";
+import { onValue, ref } from "../lib/store.ts";
 import { db } from "../lib/firebase.ts";
 import { useDbValue } from "../lib/useDb.ts";
 import { tokenById } from "../lib/tokens.ts";

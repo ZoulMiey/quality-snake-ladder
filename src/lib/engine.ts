@@ -2,7 +2,7 @@
 // it gives out questions, checks answers, rolls the dice and moves the pieces.
 import { startTicker } from "./ticker.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "./questionSets.ts";
-import { ref, get, onValue, update, set } from "firebase/database";
+import { ref, get, onValue, update, set } from "./store.ts";
 import { db, serverNow } from "./firebase.ts";
 import { readAll } from "./readAll.ts";
 import { resolve, pickQuestion, shuffleOptions, winnersNeeded, MAX_WINNERS } from "./rules.ts";

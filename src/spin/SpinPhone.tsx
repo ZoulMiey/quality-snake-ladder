@@ -2,7 +2,7 @@
 // → spin again, buy a vowel or solve. Teammates see the same screen without buttons (they help the captain);
 // everyone else watches both teams. Stuns show a big red countdown. Vibration on Android.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ref, set } from "firebase/database";
+import { ref, set } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
 import { useNow } from "../lib/useDb.ts";
 import { tokenById } from "../lib/tokens.ts";

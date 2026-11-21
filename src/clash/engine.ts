@@ -2,7 +2,7 @@
 // own stream of questions, checks answers, makes the creatures attack and writes what the screens show.
 import { startTicker } from "../lib/ticker.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";
-import { get, onValue, ref, set, update } from "firebase/database";
+import { get, onValue, ref, set, update } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
 import { pickQuestion, shuffleOptions } from "../lib/rules.ts";
 import { COUNTDOWN_MS } from "../lib/engine.ts";

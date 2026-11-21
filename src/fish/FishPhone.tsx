@@ -2,7 +2,7 @@
 // do 3D), the question card at the bottom like Snake & Ladder, full-screen alerts for BIG FISH, GOLDEN FISH,
 // SNAP and FISHING FRENZY, with vibration (Android) and shake/flash (all phones).
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ref, set } from "firebase/database";
+import { ref, set } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
 import { tokenById } from "../lib/tokens.ts";

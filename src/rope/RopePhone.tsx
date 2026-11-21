@@ -3,7 +3,7 @@
 // wait 3 s. HEAVE! and last-10-seconds countdowns, a round result card in the breaks, vibration on Android.
 // Phones only read their own state, the game and the feed (small), so 50 phones stay cheap.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ref, set } from "firebase/database";
+import { ref, set } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
 import { tokenById } from "../lib/tokens.ts";

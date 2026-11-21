@@ -2,7 +2,7 @@
 // over the bottom; after an answer the board goes full screen and the player's piece moves. Snakes,
 // ladders and wrong answers get big full-screen alerts.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ref, set } from "firebase/database";
+import { ref, set } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
 import Countdown from "../components/Countdown.tsx";
 import PhoneBoard, { type Camera, type Motion, type OtherPiece } from "../components/PhoneBoard.tsx";

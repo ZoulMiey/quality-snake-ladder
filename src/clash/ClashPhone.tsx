@@ -1,6 +1,6 @@
 // Quality Clash on the phone: pick a team and creature(s) in the lobby, then answer questions to attack.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ref, remove, serverTimestamp, set } from "firebase/database";
+import { ref, remove, serverTimestamp, set } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
 import { sfx, unlockAudio } from "../lib/sound.ts";

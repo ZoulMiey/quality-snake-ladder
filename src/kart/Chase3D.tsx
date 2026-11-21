@@ -3,7 +3,7 @@
 // countryside, then a factory zone. The projector sends every cart's position about 6 times a second;
 // this view fills in the movement in between, and applies your own steering straight away.
 import { useEffect, useRef, type MutableRefObject } from "react";
-import { onValue, ref } from "firebase/database";
+import { onValue, ref } from "../lib/store.ts";
 import { db } from "../lib/firebase.ts";
 import { tokenById } from "../lib/tokens.ts";
 import type { Player } from "../lib/types.ts";

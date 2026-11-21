@@ -4,7 +4,7 @@
 // in the lobby live in clash/pick/{uid} like Quality Clash, so no new security rules are needed.
 // The flag (game/ropeX) is written at most 4 times a second as one small number.
 import { startTicker } from "../lib/ticker.ts";
-import { ref, get, onValue, update, set } from "firebase/database";
+import { ref, get, onValue, update, set } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
 import { readAll } from "../lib/readAll.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";

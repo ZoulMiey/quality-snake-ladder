@@ -1,6 +1,6 @@
 // Boss Raid on the phone: the full arena from your monster's view, with the question popping up over it.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ref, serverTimestamp, set } from "firebase/database";
+import { ref, serverTimestamp, set } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
 import { sfx, unlockAudio } from "../lib/sound.ts";

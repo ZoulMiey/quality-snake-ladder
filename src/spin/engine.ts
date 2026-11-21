@@ -5,7 +5,7 @@
 // teams and captains are picked in the lobby in clash/pick/{uid} = { side, c: ["spin"] or ["spin", "cap"] },
 // so no new security rules are needed.
 import { startTicker } from "../lib/ticker.ts";
-import { ref, get, onValue, update, set } from "firebase/database";
+import { ref, get, onValue, update, set } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
 import { readAll } from "../lib/readAll.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";

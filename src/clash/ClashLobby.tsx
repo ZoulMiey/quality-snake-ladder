@@ -1,7 +1,7 @@
 // Projector lobby for Quality Clash: choose Single 1 v 1, Team 3 v 3 / 5 v 5 or Boss Raid, and see who is in.
 // The host can move a player to the other team (→ / ←), like Pull the Rope.
 import { useMemo } from "react";
-import { ref, set, update } from "firebase/database";
+import { ref, set, update } from "../lib/store.ts";
 import { db } from "../lib/firebase.ts";
 import { useDbValue } from "../lib/useDb.ts";
 import type { Player } from "../lib/types.ts";
