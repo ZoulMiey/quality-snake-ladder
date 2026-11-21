@@ -1,6 +1,6 @@
 # Handover: Quality Month Games
 
-Last updated **21 Nov 2026, start of the seventh session**. It covers this repository only. Read it fully before changing anything.
+Last updated **21 Nov 2026, end of the seventh session**. It covers this repository only. Read it fully before changing anything.
 
 ## Starting a new session
 
@@ -49,6 +49,7 @@ Last updated **21 Nov 2026, start of the seventh session**. It covers this repos
    - Owner: Step 3 part 2 (30–50 players) already tested on their side: "not so crowded, we having fun" → closed.
    - **Three small fixes** (owner: fix, then push live): (1) Fishing Derby: the FRENZY IN / last-10-s countdown pills now show **on top of** a full-screen SNAP!/FRENZY alert (`.fp-msgs.over`, z-index 9; the catch toast is hidden then). (2) Pull the Rope projector feed: only the **newest POWER PULL** line shows, and the projector remembers every other line it has seen (the database keeps only 12, so power pulls used to push out HEAVE! and round lines): `ropeFeedLines` in `src/rope/rules.ts`, `useRopeFeed` in `RopeView.tsx`; phones still get every power line. (3) Boss Raid with 3 rows: the WRONG / TIME'S UP tag sits **on the stunned monster** instead of above it, so it no longer covers the name of the raider behind (`low` in `stunMark`). Checked on the emulator: `boss.cjs N=30`, `rope.cjs N=50`, `fish.cjs` (new shot `fish-phone-over.png`).
    - **Site renamed** to `https://quality-month.vercel.app` (owner, in Vercel; no code change).
+   - **Event poster made** (owner: "all good for now"). See "Event poster" below. Built from the owner's Quality Month poster theme (blue and gold, chrome title, gold banners). Drafts in order: emoji icons → **two styles side by side: A real game screenshots, B 3D badges → owner picked B** → title "QUALITY GAMES" (not "Virtual"), PIC **Nor Dalila** with e-mail, closing line under the PIC → gift boxes + an animated GIF → "Top Players" trophy removed (no prize for top players), "PRIZES TO WIN!" gift piles on both sides → soft fireworks and confetti in the background.
    - Closed by the owner: Boss Raid "Players" box in the lobby ("good for now"), game list page ("so far all good"), question review ("agreed and kept all the questions"). KIV: Fishing Derby Teams, Quality Clash Mini Tournament.
 
 ## What this is
@@ -69,9 +70,10 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 |---|---|
 | Code | GitHub `ZoulMiey/quality-snake-ladder` |
 | Live branch | `claude/eloquent-allen-cekztv` (default branch; **every push deploys to Vercel**) |
-| Work branch | Sixth session: `claude/trusting-feynman-3yvok6` (same commit as the live branch at the end). Fifth session: `claude/sleepy-edison-q31w24`, pushed to the live branch after each tested change (owner's standing instruction: live after testing). Both are on the same commit at the end of the session. Older: `claude/determined-franklin-aibcmp` (fourth), `claude/new-session-r5myv3` (second, behind). A new session gets its own work branch name: push it, then push the same commit to the live branch (fast-forward). |
+| Work branch | Seventh session: `claude/loving-darwin-nqfndl` (same commit as the live branch at the end). Sixth session: `claude/trusting-feynman-3yvok6` (same commit as the live branch at the end). Fifth session: `claude/sleepy-edison-q31w24`, pushed to the live branch after each tested change (owner's standing instruction: live after testing). Both are on the same commit at the end of the session. Older: `claude/determined-franklin-aibcmp` (fourth), `claude/new-session-r5myv3` (second, behind). A new session gets its own work branch name: push it, then push the same commit to the live branch (fast-forward). |
 | Live site | `https://quality-month.vercel.app` (`/` = projector, `/join` = phones). Renamed by the owner in the seventh session (Vercel → project → Domains → added the new `.vercel.app` name; free). The old `quality-snake-ladder.vercel.app` may still redirect. The QR code uses the page's own address (`location.origin`), so no code change was needed. Phones' remembered name (`qsl-name`) is per address, so phones type their name once on the new address. |
 | Database and login | Firebase project `quality-snake-ladder` (Realtime Database, Singapore, Anonymous sign-in). **Blaze plan, but the owner wants to spend nothing** (hence the 50-player limit). Separate from the FG Tracker on purpose. Web settings in `src/lib/firebase.ts` (not secret; the security rules protect the data). |
+| Event poster | `poster/` (final files in `poster/out/`); see "Event poster" |
 | Question review pages | New sets: `https://claude.ai/artifact/8tjZ3iFsHVqQ7GYNjWUcWb`; original 63: `https://claude.ai/artifact/NeXwos6p8Q56VtvzrQRVsN`. Both hold no choices to apply (checked 19 Nov). |
 
 **Design drafts shown to the owner** (all claude.ai artifacts):
@@ -92,6 +94,19 @@ A web app with live, projector-based quiz games for Quality Month 2026. Players 
 | Pull the Rope characters (5 styles) | `https://claude.ai/artifact/CN6FXNQsQbSJseefWpXHeQ` | **5 wooden peg dolls** (built) |
 | Lobby game page on one screen (A, B, C, then B2) | `https://claude.ai/artifact/TTUQ7tec5tgqpMhsWjYTM1` | **B2**, then tweaked: settings top right, players strip at the bottom, scales to fill the screen (built) |
 | Boss Raid with 30 raiders (today, A, B, C; real screenshots) | `https://claude.ai/artifact/Dcufwe5WD9kbFzrLTto8jn` | **A: 3 rows of 10** (built) |
+
+
+## Event poster (seventh session)
+
+The Quality Games event: **Thursday 26 Nov 2026, 4.00 PM, Training Room KJ**. PIC **Nor Dalila** (nor.dalila@wipro-unza.com). The owner's Quality Month poster lists the "Virtual Games" activity; the game poster follows its look.
+
+- **Files:** `poster/` in this repository (not part of the app: `tsconfig` only includes `src`, Vite only builds `src`/`public`).
+  - `poster/out/`: final files. `poster-A4.png` (2480 × 3508, print), `poster-wide.png` (3840 × 2160, screens), `poster-A4.gif` (800 px wide) and `poster-wide.gif` (1280 × 720) animated, ~4 MB each (WhatsApp may turn a GIF into a video; send it as a Document if it does not play).
+  - `poster/poster.html`: the whole poster (one page, two layouts: `#badges` = A4, `#land,badges` = wide; `#pics` = the unused style A with game screenshots `g-*.jpg`). Fonts (Orbitron, Exo 2, Russo One) are in `poster/fonts/` so it renders offline. 3D badges, gift boxes and sparkles are inline SVG symbols (`iSnake`, `iKart`, `iClash`, `iFish`, `iRope`, `iGift`, `iSpark`; `iTrophy` is unused). Fireworks and confetti are made by the `party()` script, kept see-through and mostly at the edges (owner: must not outshine the poster).
+  - `poster/logo.png`: the company logo **cut from the owner's poster image** (small, a little blurry in print). Asked for a sharp logo file; none sent yet.
+- **Rebuild:** `cd poster`, then `node shoot.cjs "$PWD" png` (PNGs), `node shoot.cjs "$PWD" check` (quick 1× check images `*-check.png`), `node shoot.cjs "$PWD" gif` then `./make-gif.sh` (needs ffmpeg; 29 frames, 12 fps, 2.4 s loop: gifts bob, sparkles twinkle, badge rings and floor rings glow, fireworks burst in turn, confetti flutters; the PNG is the frame at 0.6 s).
+- **Wording on it:** WIPRO UNZA MALAYSIA · QUALITY MONTH 2026 · – POWERING PERFORMANCE – · **QUALITY GAMES / PERMAINAN KUALITI** · PLAY · ANSWER · WIN! (A4 only) · the 5 games (English + Malay) · 1 Bring your phone, 2 Scan the QR on screen, 3 Answer & win · Date / Time / Venue · PIC Nor Dalila | ✉ e-mail · "Quality is everyone's game! / Kualiti tanggungjawab semua!" · "PRIZES TO WIN! / Hadiah menarik menanti!" left and right. The owner once typed "everyone's games!"; it was kept as "game!" and the owner was told.
+- No QR code on the poster on purpose: players scan the projector's QR during the game.
 
 ## How it works
 
@@ -292,13 +307,15 @@ Scripts (host PIN `2468`; screenshots to `scripts/e2e/shots/` or `$SHOTS`):
 - Wants the projector lobby to fit **one screen with no scrolling and no blank space** (checks it in full screen).
 - Likes the room to **see who answered wrong** (Fishing Derby SNAP, Boss Raid stun circles), but not to single out the best players that way.
 - Balance: chose "always close" for the Boss Raid (a normal group loses ~1 in 3 at any size), but better groups must still win more often.
+- Posters: likes the company poster's blue-and-gold style, **3D badge icons** (found emoji "soooo basic"), animated GIFs, and background effects that stay soft. Only promise prizes that exist (removed "Top Players").
 - When the owner sends an unfinished message ("i want another tweaks:"), ask for the list rather than guessing.
 
 ## Open items
 
-1. **Fishing Derby Teams mode (owner: KIV):** not designed yet: discuss first (team count, how teams are picked, scoring), then draft.
-2. **Quality Clash Mini Tournament (owner: KIV):** bracket style, "coming soon" in the lobby.
-3. **Possible later (KIV):** circuit picker for Quality Cart (9 more circuits in the circuits draft); turning off the remembered name on phones (offered, not requested).
-4. **Ideas discussed, not built:** cheer meter for watchers, revive in Team mode, MVP screen, Hall of Fame across the day, chiptune music and per-type attack sounds, host settings (e.g. HP 200/300/500), random snake/ladder layout, other games (Dragon Boat Race, Capture the Factory, Spot the Defect, Quality Bingo, Horse Race; Tug of War became Pull the Rope).
+1. **Poster:** owner "all good for now". Swap in a sharp logo if the owner sends one (`poster/logo.png`, then rebuild).
+2. **Fishing Derby Teams mode (owner: KIV):** not designed yet: discuss first (team count, how teams are picked, scoring), then draft.
+3. **Quality Clash Mini Tournament (owner: KIV):** bracket style, "coming soon" in the lobby.
+4. **Possible later (KIV):** circuit picker for Quality Cart (9 more circuits in the circuits draft); turning off the remembered name on phones (offered, not requested).
+5. **Ideas discussed, not built:** cheer meter for watchers, revive in Team mode, MVP screen, Hall of Fame across the day, chiptune music and per-type attack sounds, host settings (e.g. HP 200/300/500), random snake/ladder layout, other games (Dragon Boat Race, Capture the Factory, Spot the Defect, Quality Bingo, Horse Race; Tug of War became Pull the Rope).
 
 **Closed by the owner (seventh session):** Step 3 part 2 (tested with big groups: fine); the three known small things (fixed); real-phone tests of 5 v 5, Boss Raid 30 raiders and the Exit fix (all good); Boss Raid lobby "Players" box (good for now); game list page (all good); question review (all 406 questions kept, nothing to apply).
