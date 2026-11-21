@@ -23,7 +23,11 @@ const join = (a: string, b: string) => [clean(a), clean(b)].filter(Boolean).join
 export function ref(_db?: unknown, path = ""): SRef {
   return { path: clean(path) };
 }
-const fireRef = (r: SRef) => fb.ref(fireDb, join((space as { prefix: string }).prefix, r.path));
+const fireRef = (r: SRef) => {
+  const p = join((space as { prefix: string }).prefix, r.path);
+  // The whole database is ref(db) with no path (Firebase refuses an empty path).
+  return p ? fb.ref(fireDb, p) : fb.ref(fireDb);
+};
 
 export function serverTimestamp(): object | number {
   return space.kind === "local" ? Date.now() : fb.serverTimestamp();
@@ -141,3 +145,6 @@ export function onValue(r: SRef, cb: (s: Snap) => void, onError?: (e: Error) => 
   }
   return fb.onValue(fireRef(r), cb, onError);
 }
+
+// Emulator tests only (development build): read the phone's memory, e.g. the right answer in a solo game.
+if (import.meta.env.DEV) (globalThis as unknown as { __qslLocal?: (p: string) => unknown }).__qslLocal = (p: string) => clone(readAt(clean(p)));

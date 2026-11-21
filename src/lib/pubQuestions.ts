@@ -38,7 +38,7 @@ export async function publishQuestions(qs: Record<string, Question> | null | und
 }
 
 /** App: the questions of a set (Quality or Mix), as the referee expects them. Cached for offline play. */
-export async function loadQuestions(which: AppSet): Promise<Record<string, Question>> {
+export async function loadQuestions(which: AppSet | "all"): Promise<Record<string, Question>> {
   let raw: Record<string, Pub> | null = null;
   try {
     raw = (await get(ref(db, "pub/qs"))).val();
@@ -51,7 +51,7 @@ export async function loadQuestions(which: AppSet): Promise<Record<string, Quest
   const out: Record<string, Question> = {};
   for (const [id, p] of Object.entries(raw ?? {})) {
     const isQ = (p.s || "quality") === "quality";
-    if (which === "quality" ? !isQ : isQ) continue;
+    if (which !== "all" && (which === "quality" ? !isQ : isQ)) continue;
     out[id] = { id, cat: "", set: p.s as Question["set"], type: p.t, q: p.q, ...(p.o ? { opts: p.o } : {}), ans: unscramble(id, p.k, n(p)), enabled: true };
   }
   return out;

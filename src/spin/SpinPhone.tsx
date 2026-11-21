@@ -190,6 +190,7 @@ function TeamScreen({ uid, t, captain, paused, pausedAt }: { uid: string; t: Spi
           {recent.big} <small>{recent.small}</small>
         </div>
       )}
+      {t.phase === "question" && t.q && <MiniBoard t={t} />}
       {t.phase === "question" && t.q && <SpinQuestion uid={uid} t={t} captain={captain} paused={paused} pausedAt={pausedAt} />}
       {t.phase === "flick" && (captain ? <FlickPad uid={uid} t={t} /> : <Waiting icon="🎡" en="Right! The captain flicks to spin…" ms="Betul! Kapten melontar telefon untuk memutar…" />)}
       {t.phase === "spinning" && <PhoneWheel t={t} />}
