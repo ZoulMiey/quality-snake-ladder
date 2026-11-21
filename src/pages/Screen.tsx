@@ -389,13 +389,14 @@ function HostScreen() {
   );
 }
 
+// General descriptions (owner, Nov 2026: no modes like "team" or "1 v 1" here; those are on the game's page).
 const GAMES: { m: GameMode; desc: string; ms: string }[] = [
-  { m: "snake", desc: "Answer to roll the dice. Climb ladders, dodge snakes, reach box 100.", ms: "Jawab untuk baling dadu. Panjat tangga, elak ular, sampai petak 100." },
-  { m: "kart", desc: "Tilt your phone to steer. Right answers give turbo. 3 laps.", ms: "Condongkan telefon untuk memandu. Jawapan betul beri turbo. 3 pusingan." },
-  { m: "clash", desc: "Monster battles: Single 1 v 1, Team 3 v 3 / 5 v 5 or Boss Raid.", ms: "Pertarungan raksasa: 1 lawan 1, 3 lawan 3 / 5 lawan 5 atau Serangan Bos." },
-  { m: "fish", desc: "Answer to catch fish. 3 in a row = BIG FISH, 5 = GOLDEN. Heaviest catch in 5 minutes wins.", ms: "Jawab untuk tangkap ikan. Tangkapan paling berat dalam 5 minit menang." },
-  { m: "rope", desc: "Red vs Blue across a river. Right answers pull the rope. Best of 3: the losers get a splash!", ms: "Merah lawan Biru merentasi sungai. Jawapan betul menarik tali. Terbaik 3 pusingan!" },
-  { m: "spin", desc: "Red vs Blue, 3 a team. Answer, flick your phone to spin the wheel, guess the letters and solve the quality phrase!", ms: "Merah lawan Biru, 3 setiap pasukan. Jawab, lontar telefon untuk memutar roda, teka huruf dan selesaikan frasa!" },
+  { m: "snake", desc: "Answer to roll the dice. Climb ladders, dodge snakes and race to the top!", ms: "Jawab untuk baling dadu. Panjat tangga, elak ular dan lumba ke atas!" },
+  { m: "kart", desc: "Tilt your phone to steer. Right answers give you turbo. Race to the finish!", ms: "Condongkan telefon untuk memandu. Jawapan betul beri turbo. Lumba ke garisan penamat!" },
+  { m: "clash", desc: "Monster battles! Right answers make your monster attack.", ms: "Pertarungan raksasa! Jawapan betul membuat raksasa anda menyerang." },
+  { m: "fish", desc: "Answer to catch fish. Big fish, golden fish: the heaviest catch wins!", ms: "Jawab untuk tangkap ikan. Ikan besar, ikan emas: tangkapan paling berat menang!" },
+  { m: "rope", desc: "Answer right to pull the rope. Pull the other side into the river!", ms: "Jawab betul untuk menarik tali. Tarik pihak lawan ke dalam sungai!" },
+  { m: "spin", desc: "Answer, flick your phone to spin the wheel and guess the quality phrase!", ms: "Jawab, lontar telefon untuk memutar roda dan teka frasa kualiti!" },
 ];
 
 function LobbyView({
@@ -442,14 +443,10 @@ function LobbyView({
   const info = GAMES.find((g) => g.m === mode);
   const fitRef = useFitZoom(mode);
   if (!mode) {
-    // Game list on one screen, no scrolling (owner, Nov 2026). DRAFT: ?gl=a|b|c shows the three layouts to pick from.
-    const gl = (() => {
-      const v = new URLSearchParams(location.search).get("gl");
-      return v === "b" || v === "c" ? v : "a";
-    })();
+    // Game list on one screen, no scrolling (owner's pick A, Nov 2026): a big QR box as tall as the games, 3 × 2 game cards.
     return (
       <main className="lobby-fitbox" ref={fitRef}>
-        <div className={`lobby lobby-list gl-${gl}`}>
+        <div className="lobby lobby-list gl-a">
           <section className="qr-side gl-qr">
             <Qr text={url} />
             <div className="gl-qr-text">
