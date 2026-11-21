@@ -461,7 +461,8 @@ function LobbyView({
         </section>
       </main>
     );
-  // The game's page fits one projector screen (owner's pick B2): QR | preview, name, Start | settings, how to play, players.
+  // The game's page fits one projector screen (owner's tweak of B2): top QR | preview, name, Start | questions, mode, how to play;
+  // bottom, across the screen: Red team | Blue team, or the list of players.
   return (
     <main className="lobby lobby-game">
       <section className={`qr-side ${mode ? "plain" : ""}`}>
@@ -473,7 +474,9 @@ function LobbyView({
         <div className="url">{url.replace(/^https?:\/\//, "")}</div>
       </section>
       <section className="gd-mid">
-        <GamePreview mode={mode} big />
+        <div className="gd-prev">
+          <GamePreview mode={mode} big />
+        </div>
         <div className="gd-info">
           <div className="gd-name">
             <span className="en">
@@ -564,7 +567,9 @@ function LobbyView({
           </div>
           <Rules mode={mode} variant={mode === "clash" ? clashFormat : undefined} />
         </div>
-        <div className="gd-block">
+        </div>
+      </section>
+      <section className="gd-players">
         <div className="lobby-head">
           <h2>
             Players <span className="ms">Pemain</span>
@@ -573,6 +578,7 @@ function LobbyView({
             {all.length}/{cap}
           </span>
         </div>
+        <div className="gd-plist">
         {!list.length && <p className="waiting">Waiting for players to scan the QR code… / Menunggu pemain…</p>}
         {mode === "clash" && list.length > 0 && <ClashRoster format={clashFormat} players={players} />}
         {mode === "rope" && list.length > 0 && <RopeRoster players={players} />}
@@ -597,7 +603,6 @@ function LobbyView({
             + {all.length - list.length} more / lagi
           </p>
         )}
-        </div>
         </div>
       </section>
     </main>
@@ -634,10 +639,14 @@ function useFitZoom(key: unknown) {
     };
     const mo = new MutationObserver(later);
     mo.observe(inner, { childList: true, subtree: true, characterData: true });
+    // The box also changes height when the players strip below it grows.
+    const ro = new ResizeObserver(later);
+    ro.observe(box);
     window.addEventListener("resize", later);
     return () => {
       cancelAnimationFrame(raf);
       mo.disconnect();
+      ro.disconnect();
       window.removeEventListener("resize", later);
     };
   }, [key]);
