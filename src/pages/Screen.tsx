@@ -1,5 +1,5 @@
 import EndButtons, { EndActionsContext, type EndActions } from "../components/EndButtons.tsx";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { get, ref, set, update } from "firebase/database";
 import { db, ensureSignedIn, serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
@@ -423,9 +423,12 @@ function LobbyView({
   // Only the 15 players who joined last are listed; the counter shows everyone.
   const all = Object.entries(players).sort((a, b) => (b[1].joinedAt ?? 0) - (a[1].joinedAt ?? 0));
   const list = all.slice(0, LIST_MAX);
-  return (
-    <main className="lobby">
-      <section className="qr-side">
+  const info = GAMES.find((g) => g.m === mode);
+  const fitRef = useFitZoom(mode);
+  if (!mode)
+    return (
+      <main className="lobby">
+      <section className={`qr-side ${mode ? "plain" : ""}`}>
         <Qr text={url} />
         <div className="scan">
           <div className="en">Scan to join</div>
@@ -433,8 +436,7 @@ function LobbyView({
         </div>
         <div className="url">{url.replace(/^https?:\/\//, "")}</div>
       </section>
-      <section className="lobby-side">
-        {!mode ? (
+        <section className="lobby-side">
           <div className="game-list">
             <h2 className="gl-title">
               Choose a game <span>Pilih permainan</span>
@@ -456,116 +458,177 @@ function LobbyView({
               </button>
             ))}
           </div>
-        ) : (
-          <div className="game-detail">
-            <div className="gd-head big">
-              <GamePreview mode={mode} big />
-              <div className="gd-info">
-                <div className="gd-name">
-                  <span className="en">
-                    {GAME_NAMES[mode].icon} {GAME_NAMES[mode].en}
-                  </span>
-                  <span className="ms">{GAME_NAMES[mode].ms}</span>
-                </div>
-                <p className="gd-desc">{GAMES.find((g) => g.m === mode)?.desc}</p>
-                <p className="gd-desc ms">{GAMES.find((g) => g.m === mode)?.ms}</p>
-                <button className="btn gd-change" onClick={() => onMode(null)}>
-                  ← Change game <span>/ Tukar permainan</span>
-                </button>
-              </div>
+        </section>
+      </main>
+    );
+  // The game's page fits one projector screen (owner's pick B2): QR | preview, name, Start | settings, how to play, players.
+  return (
+    <main className="lobby lobby-game">
+      <section className={`qr-side ${mode ? "plain" : ""}`}>
+        <Qr text={url} />
+        <div className="scan">
+          <div className="en">Scan to join</div>
+          <div className="ms">Imbas untuk menyertai</div>
+        </div>
+        <div className="url">{url.replace(/^https?:\/\//, "")}</div>
+      </section>
+      <section className="gd-mid">
+        <GamePreview mode={mode} big />
+        <div className="gd-info">
+          <div className="gd-name">
+            <span className="en">
+              {GAME_NAMES[mode].icon} {GAME_NAMES[mode].en}
+            </span>
+            <span className="ms">{GAME_NAMES[mode].ms}</span>
+          </div>
+          <p className="gd-desc">{info?.desc}</p>
+          <p className="gd-desc ms">{info?.ms}</p>
+          <div className="gd-actions">
+            <button className="btn gd-change" onClick={() => onMode(null)}>
+              ← Change game <span>/ Tukar permainan</span>
+            </button>
+            <button className="big-btn start" disabled={!canStart} onClick={onStart}>
+              ▶ Start game
+            </button>
+          </div>
+        </div>
+        {(qsetCounts[qset] ?? 0) === 0 && <p className="waiting">No questions are switched on in this set. Open Questions to switch some on. / Tiada soalan dihidupkan dalam set ini.</p>}
+        {tooMany && (
+          <p className="waiting too-many">
+            {GAME_NAMES[mode].en}
+            {mode === "clash" ? ` (${clashFormat === "boss" ? "Boss Raid" : "Team"})` : ""}: max {cap} players ({all.length} joined). Remove players or pick another game. / Maksimum {cap} pemain.
+          </p>
+        )}
+        {mode === "rope" && list.length > 0 && !ropeSides.ready && <p className="waiting">Pull the Rope needs at least 1 player on each side. Players pick on their phones; you can move them here. / Perlu sekurang-kurangnya 1 pemain di setiap pihak.</p>}
+        {mode === "clash" && list.length > 0 && !clash.ready && (
+          <p className="waiting">
+            {clashFormat === "boss" ? "Waiting for at least one player to pick a monster." : clashFormat === "solo" ? "Waiting for one player on Red and one on Blue, each with 3 monsters." : "Waiting for at least one player on each team."} Players pick on their phones.
+          </p>
+        )}
+      </section>
+      <section className="gd-right" ref={fitRef}>
+        <div className="gd-fit">
+        <div className="qset-pick">
+          <div className="lbl">
+            <span className="en">Questions</span>
+            <span className="ms">Set soalan</span>
+          </div>
+          <div className="qset-btns" role="radiogroup" aria-label="Question set">
+            {QSETS.map((s) => (
+              <button
+                key={s.id}
+                role="radio"
+                aria-checked={qset === s.id}
+                className={`qset-btn ${qset === s.id ? "on" : ""} ${qsetCounts[s.id] ? "" : "empty"}`}
+                onClick={() => onQset(s.id)}
+              >
+                <span className="en">
+                  {s.icon} {s.id === "mix" ? "Mix" : s.en} · {qsetCounts[s.id] ?? 0}
+                </span>
+                <span className="ms">{s.id === "mix" ? "All except Quality / Campuran" : s.ms}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        {mode === "clash" && <ClashFormatPick format={clashFormat} onFormat={onClashFormat} bossMode={bossMode} onBossMode={onBossMode} />}
+        {mode === "fish" && (
+          <div className="qset-pick">
+            <div className="lbl">
+              <span className="en">Mode</span>
+              <span className="ms">Mod</span>
             </div>
-            <div className="qset-pick">
-              <div className="lbl">
-                <span className="en">Questions</span>
-                <span className="ms">Set soalan</span>
-              </div>
-              <div className="qset-btns" role="radiogroup" aria-label="Question set">
-                {QSETS.map((s) => (
-                  <button
-                    key={s.id}
-                    role="radio"
-                    aria-checked={qset === s.id}
-                    className={`qset-btn ${qset === s.id ? "on" : ""} ${qsetCounts[s.id] ? "" : "empty"}`}
-                    onClick={() => onQset(s.id)}
-                  >
-                    <span className="en">
-                      {s.icon} {s.id === "mix" ? "Mix" : s.en} · {qsetCounts[s.id] ?? 0}
-                    </span>
-                    <span className="ms">{s.id === "mix" ? "All except Quality / Campuran" : s.ms}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            {(qsetCounts[qset] ?? 0) === 0 && <p className="waiting">No questions are switched on in this set. Open Questions to switch some on. / Tiada soalan dihidupkan dalam set ini.</p>}
-            {mode === "clash" && <ClashFormatPick format={clashFormat} onFormat={onClashFormat} bossMode={bossMode} onBossMode={onBossMode} />}
-            {mode === "fish" && (
-              <div className="qset-pick">
-                <div className="lbl">
-                  <span className="en">Mode</span>
-                  <span className="ms">Mod</span>
-                </div>
-                <div className="qset-btns" role="radiogroup" aria-label="Fishing mode">
-                  <button role="radio" aria-checked="true" className="qset-btn on">
-                    <span className="en">🎣 Open play</span>
-                    <span className="ms">Everyone vs everyone / Semua lawan semua</span>
-                  </button>
-                  <button role="radio" aria-checked="false" className="qset-btn empty" disabled>
-                    <span className="en">👥 Teams</span>
-                    <span className="ms">Coming soon / Akan datang</span>
-                  </button>
-                </div>
-              </div>
-            )}
-            <div className="lobby-head">
-              <h2>
-                Players <span className="count">{all.length}/{cap}</span>
-              </h2>
-              <button className="big-btn start" disabled={!canStart} onClick={onStart}>
-                ▶ Start game
+            <div className="qset-btns" role="radiogroup" aria-label="Fishing mode">
+              <button role="radio" aria-checked="true" className="qset-btn on">
+                <span className="en">🎣 Open play</span>
+                <span className="ms">Everyone vs everyone / Semua lawan semua</span>
+              </button>
+              <button role="radio" aria-checked="false" className="qset-btn empty" disabled>
+                <span className="en">👥 Teams</span>
+                <span className="ms">Coming soon / Akan datang</span>
               </button>
             </div>
-            {!list.length && <p className="waiting">Waiting for players to scan the QR code… / Menunggu pemain…</p>}
-            {tooMany && mode && (
-              <p className="waiting too-many">
-                {GAME_NAMES[mode].en}
-                {mode === "clash" ? ` (${clashFormat === "boss" ? "Boss Raid" : "Team"})` : ""}: max {cap} players ({all.length} joined). Remove players or pick another game. / Maksimum {cap} pemain.
-              </p>
-            )}
-            {mode === "clash" && list.length > 0 && <ClashRoster format={clashFormat} players={players} />}
-            {mode === "rope" && list.length > 0 && <RopeRoster players={players} />}
-            {mode === "rope" && list.length > 0 && !ropeSides.ready && <p className="waiting">Pull the Rope needs at least 1 player on each side. Players pick on their phones; you can move them here. / Perlu sekurang-kurangnya 1 pemain di setiap pihak.</p>}
-            {mode === "clash" && list.length > 0 && !clash.ready && (
-              <p className="waiting">
-                {clashFormat === "boss" ? "Waiting for at least one player to pick a monster." : clashFormat === "solo" ? "Waiting for one player on Red and one on Blue, each with 3 monsters." : "Waiting for at least one player on each team."} Players pick on their phones.
-              </p>
-            )}
-            {mode !== "rope" && (
-            <ul className={`lobby-players ${list.length > 10 ? "many" : ""}`}>
-              {list.map(([uid, p]) => {
-                const t = tokenById(p.token);
-                return (
-                  <li key={uid} style={{ ["--c" as string]: t.color }}>
-                    <span className="lp-emoji">{t.emoji}</span>
-                    <span className="lp-name">{p.name}</span>
-                    <button className="x" aria-label={`Remove ${p.name}`} onClick={() => removePlayer(uid)}>
-                      ×
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-            )}
-            {mode !== "rope" && all.length > list.length && (
-              <p className="more-players">
-                + {all.length - list.length} more / lagi
-              </p>
-            )}
-            <Rules mode={mode} variant={mode === "clash" ? clashFormat : undefined} />
           </div>
         )}
+        <div className="gd-sec">
+          How to play <span>Cara bermain</span>
+        </div>
+        <Rules mode={mode} variant={mode === "clash" ? clashFormat : undefined} />
+        <div className="lobby-head">
+          <h2>
+            Players <span className="ms">Pemain</span>
+          </h2>
+          <span className="count">
+            {all.length}/{cap}
+          </span>
+        </div>
+        {!list.length && <p className="waiting">Waiting for players to scan the QR code… / Menunggu pemain…</p>}
+        {mode === "clash" && list.length > 0 && <ClashRoster format={clashFormat} players={players} />}
+        {mode === "rope" && list.length > 0 && <RopeRoster players={players} />}
+        {mode !== "rope" && mode !== "clash" && (
+          <ul className="lobby-players">
+            {list.map(([uid, p]) => {
+              const t = tokenById(p.token);
+              return (
+                <li key={uid} style={{ ["--c" as string]: t.color }}>
+                  <span className="lp-emoji">{t.emoji}</span>
+                  <span className="lp-name">{p.name}</span>
+                  <button className="x" aria-label={`Remove ${p.name}`} onClick={() => removePlayer(uid)}>
+                    ×
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {mode !== "rope" && mode !== "clash" && all.length > list.length && (
+          <p className="more-players">
+            + {all.length - list.length} more / lagi
+          </p>
+        )}
+        </div>
       </section>
     </main>
   );
+}
+
+/**
+ * Shrinks the right column (settings, how to play, players) until it fits its box, so the game page
+ * never scrolls, also on smaller projector screens or with many players. Grows back when there is room.
+ */
+function useFitZoom(key: unknown) {
+  const el = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const box = el.current;
+    const inner = box?.firstElementChild as HTMLElement | null;
+    if (!box || !inner) return;
+    let busy = false;
+    const fit = () => {
+      if (busy) return;
+      busy = true;
+      let z = 1;
+      inner.style.zoom = "1";
+      while (box.scrollHeight > box.clientHeight + 1 && z > 0.55) {
+        z -= 0.03;
+        inner.style.zoom = String(z);
+      }
+      busy = false;
+    };
+    fit();
+    let raf = 0;
+    const later = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(fit);
+    };
+    const mo = new MutationObserver(later);
+    mo.observe(inner, { childList: true, subtree: true, characterData: true });
+    window.addEventListener("resize", later);
+    return () => {
+      cancelAnimationFrame(raf);
+      mo.disconnect();
+      window.removeEventListener("resize", later);
+    };
+  }, [key]);
+  return el;
 }
 
 const list0 = (players: Record<string, Player>) => Object.keys(players);

@@ -10,6 +10,7 @@ import CreatureImg from "./CreatureImg.tsx";
 import { TEAM_SIZES, lineUp, other, teamSize, type Side, type TeamSize } from "./sim.ts";
 import { MAX_RAIDERS, newRaid, raiderHp, titanHp } from "./boss.ts";
 import type { RaidBest } from "./bossEngine.ts";
+import { removePlayer } from "../lib/engine.ts";
 import { clock } from "./raidDraw.ts";
 
 export type ClashFormat = "team" | "solo" | "boss";
@@ -134,6 +135,16 @@ export function ClashFormatPick({ format, onFormat, bossMode, onBossMode }: { fo
   );
 }
 
+/** Host: remove a player from the game (same as × in the other games' lists). */
+function RemoveBtn({ uid, name }: { uid: string; name?: string }) {
+  return (
+    <button type="button" className="x" aria-label={`Remove ${name ?? "player"}`} title="Remove" onClick={() => removePlayer(uid)}>
+      ×
+    </button>
+  );
+}
+
+/** Projector lobby: the teams (Red on top, Blue below) or the raiders, as compact chips. */
 export function ClashRoster({ format, players }: { format: ClashFormat; players: Record<string, Player> }) {
   const lu = useLineUp(format, players);
   if (format === "boss") {
@@ -150,19 +161,28 @@ export function ClashRoster({ format, players }: { format: ClashFormat; players:
             </p>
           )}
           {!n && <p className="cr-empty">Waiting for players to pick a monster… / Menunggu pemain…</p>}
-          <div className="cr-raiders">
+          <div className="rope-chips">
             {lu.raiders?.map((x) => (
-              <div key={x.uid} className="cr-raider">
-                <CreatureImg id={x.c} size={48} title={creatureById(x.c).en} />
-                <span>{players[x.uid]?.name}</span>
-              </div>
+              <span key={x.uid} className="rope-chip cr-chip">
+                <CreatureImg id={x.c} size={26} title={creatureById(x.c).en} />
+                {players[x.uid]?.name}
+                <RemoveBtn uid={x.uid} name={players[x.uid]?.name} />
+              </span>
             ))}
           </div>
         </div>
         {lu.watching.length > 0 && (
-          <p className="cr-watch">
-            Not picked yet / Belum pilih: {lu.watching.map((u) => players[u]?.name).join(", ")}
-          </p>
+          <div className="cr-watch rope-unpicked">
+            <span>Not picked yet / Belum pilih ({lu.watching.length}):</span>
+            <div className="rope-chips">
+              {lu.watching.map((u) => (
+                <span key={u} className="rope-chip cr-chip">
+                  {players[u]?.name}
+                  <RemoveBtn uid={u} name={players[u]?.name} />
+                </span>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     );
@@ -172,32 +192,31 @@ export function ClashRoster({ format, players }: { format: ClashFormat; players:
     const fs = Object.values(fighters).filter((f) => f.side === side);
     const uids = [...new Set(fs.map((f) => f.uid))];
     const cap = format === "solo" ? 1 : lu.size ?? 3;
+    const to = other(side) === "red" ? "Red" : "Blue";
     return (
       <div className={`cr-col ${side}`}>
         <h3>
           {side === "red" ? "RED" : "BLUE"} <span className="ms">{side === "red" ? "Merah" : "Biru"}</span> <span className="cr-n">{uids.length}/{cap}</span>
         </h3>
         {!uids.length && <p className="cr-empty">Waiting for a player… / Menunggu pemain…</p>}
-        {uids.map((u) => (
-          <div key={u} className="cr-row">
-            <div className="cr-mons">
+        <div className="rope-chips">
+          {uids.map((u) => (
+            <span key={u} className="rope-chip cr-chip">
               {fs
                 .filter((f) => f.uid === u)
                 .map((f) => (
-                  <CreatureImg key={f.id} id={f.c} size={format === "solo" ? 52 : lu.size === 5 ? 44 : 64} title={creatureById(f.c).en} />
+                  <CreatureImg key={f.id} id={f.c} size={26} title={creatureById(f.c).en} />
                 ))}
-            </div>
-            <div className="cr-who">
-              <div className="cr-name">{players[u]?.name}</div>
-              <div className="cr-cn">{fs.filter((f) => f.uid === u).map((f) => creatureById(f.c).en).join(" · ")}</div>
-            </div>
-            {format === "team" && (
-              <button type="button" className="cr-move" title={`Move to ${other(side) === "red" ? "Red" : "Blue"}`} aria-label={`Move ${players[u]?.name} to ${other(side) === "red" ? "Red" : "Blue"}`} onClick={() => moveTo(u, other(side), lu.picks ?? [])}>
-                {side === "red" ? "→" : "←"}
-              </button>
-            )}
-          </div>
-        ))}
+              {players[u]?.name}
+              {format === "team" && (
+                <button type="button" className={`mv ${other(side)}`} title={`Move to ${to}`} aria-label={`Move ${players[u]?.name} to ${to}`} onClick={() => moveTo(u, other(side), lu.picks ?? [])}>
+                  {side === "red" ? "→" : "←"}
+                </button>
+              )}
+              <RemoveBtn uid={u} name={players[u]?.name} />
+            </span>
+          ))}
+        </div>
       </div>
     );
   };
@@ -207,28 +226,28 @@ export function ClashRoster({ format, players }: { format: ClashFormat; players:
         {col("red")}
         {col("blue")}
       </div>
-      {lu.watching.length > 0 && format !== "team" && (
-        <p className="cr-watch">
-          Watching / Menonton: {lu.watching.map((u) => players[u]?.name).join(", ")}
-        </p>
-      )}
-      {lu.watching.length > 0 && format === "team" && (
+      {lu.watching.length > 0 && (
         <div className="cr-watch rope-unpicked">
           <span>
-            Watching / Menonton ({lu.watching.length}): teams full, or no team / monster picked yet. Use ← / → to put a player on a team.
+            Watching / Menonton ({lu.watching.length}){format === "team" ? ": use ← / → to put a player on a team" : ""}
           </span>
           <div className="rope-chips">
             {lu.watching.map((u) => {
               const pk = lu.picks?.find((p) => p.uid === u);
               return (
                 <span key={u} className={`rope-chip none ${pk?.side ?? ""}`}>
-                  <button type="button" className="red" aria-label={`Put ${players[u]?.name} on Red`} onClick={() => moveTo(u, "red", lu.picks ?? [])}>
-                    ←
-                  </button>
+                  {format === "team" && (
+                    <button type="button" className="red" aria-label={`Put ${players[u]?.name} on Red`} onClick={() => moveTo(u, "red", lu.picks ?? [])}>
+                      ←
+                    </button>
+                  )}
                   {players[u]?.name}
-                  <button type="button" className="blue" aria-label={`Put ${players[u]?.name} on Blue`} onClick={() => moveTo(u, "blue", lu.picks ?? [])}>
-                    →
-                  </button>
+                  {format === "team" && (
+                    <button type="button" className="blue" aria-label={`Put ${players[u]?.name} on Blue`} onClick={() => moveTo(u, "blue", lu.picks ?? [])}>
+                      →
+                    </button>
+                  )}
+                  <RemoveBtn uid={u} name={players[u]?.name} />
                 </span>
               );
             })}
