@@ -1,8 +1,11 @@
 // Fishing Derby rules (owner's spec, Nov 2026; drafts https://claude.ai/artifact/ULUpjtsYfFVsYN2chpj1Ah and
 // https://claude.ai/artifact/BemgFLNobDesu7PfzxprQq). Open play: everyone vs everyone in one pond.
 //   - 5:00 minutes, 20 s per question.
-//   - Every right answer = a fish (1–6 kg). 3 right in a row = BIG FISH (10–18 kg).
-//     5 right in a row = SUPER BIG GOLDEN FISH (30–45 kg), then the row count restarts.
+//   - Every right answer = a fish (1–6 kg). 3 right in a row = BIG FISH (8–12 kg).
+//     5 right in a row = SUPER BIG GOLDEN FISH (15–20 kg), then the row count restarts.
+//   - Balance (owner, eighth session; simulated: strong ÷ weak total 6.5× → ~2.4×):
+//     1 normal catch in 8 is a 🍀 LUCKY FISH (15–40 kg), pure luck; and players behind the middle of the
+//     field (their total below the median) catch ×2 ("catch-up").
 //   - Wrong or time out = the line snaps: wait 5 s, row count back to 0.
 //   - Fishing Frenzy at 1:00, 2:00, 3:00 and 4:00 for 30 s: every fish weighs double.
 //   - Heaviest total catch wins (tie: more right answers).
@@ -20,11 +23,18 @@ export const GOLD_STREAK = 5;
 export const ZOOM_MAX_PLAYERS = 8;
 
 /**
- * How long each result stays before the next question. The phone's side-view catch fits inside
- * (SIDE_BEATS in pondSide.ts): a fish swims to the hook, bites, is reeled up and lands in the boat
- * (2.2 s; big and golden 3.5 s). The BIG / GOLDEN alert shows at the same time as the catch (owner, Nov 2026).
+ * How long each result stays before the next question. Quick catch (owner, eighth session, like Snake &
+ * Ladder's Quick Move): the next question slides up after ~1 s (BIG / GOLDEN: the alert card ~2 s) while the
+ * phone's side-view catch (SIDE_BEATS in pondSide.ts, 2.2 s; big and golden 3.5 s) carries on above the card.
+ * Was 2.6 / 4.0 / 4.2 s. Wrong answers keep the 5 s SNAP!.
  */
-export const RESULT_MS = { fish: 2_600, big: 4_000, gold: 4_200, snap: SNAP_MS } as const;
+export const RESULT_MS = { fish: 1_000, big: 2_000, gold: 2_200, snap: SNAP_MS } as const;
+/** 🍀 Lucky fish: this share of normal catches, and its weight. */
+export const LUCKY_CHANCE = 1 / 8;
+export const LUCKY_KG: [number, number] = [15, 40];
+export const LUCKY_NAMES = ["Jelawat", "Baung", "Tapah"];
+/** Catch-up: players whose total is below the field's median catch this many times the weight. */
+export const CATCH_UP_MULT = 2;
 
 export type CatchKind = "fish" | "big" | "gold" | "snap";
 
@@ -33,7 +43,7 @@ export const FISH_NAMES: Record<Exclude<CatchKind, "snap">, string[]> = {
   big: ["Toman", "Patin", "Kelah"],
   gold: ["Kelisa Emas"],
 };
-const KG: Record<Exclude<CatchKind, "snap">, [number, number]> = { fish: [1, 6], big: [10, 18], gold: [30, 45] };
+const KG: Record<Exclude<CatchKind, "snap">, [number, number]> = { fish: [1, 6], big: [8, 12], gold: [15, 20] };
 
 export type Catch = {
   kind: CatchKind;
@@ -45,7 +55,21 @@ export type Catch = {
   timeout: boolean;
   choice: number | null;
   correctIdx: number;
+  /** A 🍀 lucky fish (a normal catch, 15–40 kg). */
+  lucky?: boolean;
+  /** Caught ×2 because the player was behind (catch-up). */
+  boost?: boolean;
 };
+
+/** Who is behind: total below the median of everyone's totals (nobody while everyone is level). */
+export function behindPlayers(kgs: Record<string, number>): Record<string, true> {
+  const list = Object.values(kgs).sort((a, b) => a - b);
+  const out: Record<string, true> = {};
+  if (list.length < 2) return out;
+  const m = list.length % 2 ? list[(list.length - 1) / 2] : (list[list.length / 2 - 1] + list[list.length / 2]) / 2;
+  for (const [u, kg] of Object.entries(kgs)) if (kg < m) out[u] = true;
+  return out;
+}
 
 export type FishState = {
   phase: "wait" | "question" | "result" | "done";
@@ -92,7 +116,7 @@ export function frenzyAt(elapsed: number): { on: boolean; index: number; endsIn:
 const round1 = (x: number) => Math.round(x * 10) / 10;
 
 /** What a player catches for this answer, and their new row count. */
-export function catchFor(streak: number, correct: boolean, opts: { frenzy: boolean; timeout: boolean; choice: number | null; correctIdx: number; rand?: () => number }): { result: Catch; streak: number } {
+export function catchFor(streak: number, correct: boolean, opts: { frenzy: boolean; timeout: boolean; choice: number | null; correctIdx: number; rand?: () => number; behind?: boolean }): { result: Catch; streak: number } {
   const rand = opts.rand ?? Math.random;
   const base = { frenzy: opts.frenzy, correct, timeout: opts.timeout, choice: opts.choice, correctIdx: opts.correctIdx };
   if (!correct) return { result: { ...base, kind: "snap", kg: 0, name: "" }, streak: 0 };
@@ -102,10 +126,13 @@ export function catchFor(streak: number, correct: boolean, opts: { frenzy: boole
     kind = "gold";
     s = 0;
   } else if (s === BIG_STREAK) kind = "big";
-  const [lo, hi] = KG[kind];
-  const names = FISH_NAMES[kind];
-  const kg = round1((lo + rand() * (hi - lo)) * (opts.frenzy ? FRENZY_MULT : 1));
-  return { result: { ...base, kind, kg, name: names[Math.floor(rand() * names.length)] }, streak: s };
+  const lucky = kind === "fish" && rand() < LUCKY_CHANCE;
+  const [lo, hi] = lucky ? LUCKY_KG : KG[kind];
+  const names = lucky ? LUCKY_NAMES : FISH_NAMES[kind];
+  const boost = !!opts.behind;
+  const kg = round1((lo + rand() * (hi - lo)) * (opts.frenzy ? FRENZY_MULT : 1) * (boost ? CATCH_UP_MULT : 1));
+  const extra = { ...(lucky ? { lucky: true } : {}), ...(boost ? { boost: true } : {}) };
+  return { result: { ...base, kind, kg, name: names[Math.floor(rand() * names.length)], ...extra }, streak: s };
 }
 
 /** Add a result to a player's totals. */

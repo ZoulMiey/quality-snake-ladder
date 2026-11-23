@@ -1,7 +1,7 @@
 // Checks the Fishing Derby rules, and simulates 5-minute games. Run: npm test
 import assert from "node:assert/strict";
 import { SIDE_BEATS } from "../src/fish/pondSide.ts";
-import { catchFor, addCatch, newFishState, frenzyAt, rankFishers, shoutOuts, boatOrder, boatSpot, GAME_MS, QUESTION_MS, FRENZY_MS, RESULT_MS, SNAP_MS, type FishState } from "../src/fish/rules.ts";
+import { catchFor, addCatch, newFishState, frenzyAt, rankFishers, shoutOuts, boatOrder, boatSpot, behindPlayers, GAME_MS, QUESTION_MS, FRENZY_MS, RESULT_MS, SNAP_MS, type FishState } from "../src/fish/rules.ts";
 
 let n = 0;
 const t = (name: string, fn: () => void) => {
@@ -37,13 +37,32 @@ t("a wrong answer snaps the line and resets the row count", () => {
   assert.equal(catchFor(r.streak, true, opts()).result.kind, "fish");
 });
 
-t("weights: fish 1–6, big 10–18, golden 30–45 kg; frenzy doubles", () => {
-  for (const [streak, lo, hi] of [[0, 1, 6], [2, 10, 18], [4, 30, 45]] as const)
-    for (const x of [0, 0.5, 0.9999]) {
+t("weights: fish 1–6, big 8–12, golden 15–20 kg, 1 normal catch in 8 a lucky fish 15–40 kg; frenzy doubles", () => {
+  for (const [streak, lo, hi] of [[0, 1, 6], [2, 8, 12], [4, 15, 20]] as const)
+    for (const x of [0.5, 0.9999]) {
       const kg = catchFor(streak, true, opts(false, () => x)).result.kg;
       assert.ok(kg >= lo && kg <= hi, `${kg} in ${lo}-${hi}`);
       assert.equal(catchFor(streak, true, opts(true, () => x)).result.kg, Math.round(kg * 20) / 10);
     }
+  // rand() below 1/8 on a normal catch = lucky (BIG and GOLDEN are never lucky)
+  const lucky = catchFor(0, true, opts(false, () => 0.05)).result;
+  assert.ok(lucky.lucky && lucky.kg >= 15 && lucky.kg <= 40 && lucky.kind === "fish", JSON.stringify(lucky));
+  assert.ok(!catchFor(2, true, opts(false, () => 0.05)).result.lucky);
+  let n = 0;
+  for (let i = 0; i < 8000; i++) if (catchFor(0, true, opts()).result.lucky) n++;
+  assert.ok(n > 800 && n < 1200, `lucky ${n}/8000`);
+});
+
+t("catch-up: players below the median total catch x2; nobody while everyone is level", () => {
+  assert.deepEqual(behindPlayers({ a: 0, b: 0, c: 0 }), {});
+  assert.deepEqual(behindPlayers({ a: 50, b: 10 }), { b: true });
+  assert.deepEqual(behindPlayers({ a: 50, b: 30, c: 10, d: 5 }), { c: true, d: true });
+  assert.deepEqual(behindPlayers({ solo: 3 }), {});
+  const x = () => 0.5;
+  const normal = catchFor(0, true, opts(false, x)).result;
+  const boosted = catchFor(0, true, { ...opts(false, x), behind: true }).result;
+  assert.equal(boosted.kg, Math.round(normal.kg * 20) / 10);
+  assert.ok(boosted.boost && !normal.boost);
 });
 
 t("frenzy windows at 1:00, 2:00, 3:00, 4:00 for 30 s", () => {
@@ -71,10 +90,11 @@ t("totals, ranking (tie = more right answers) and shout-outs", () => {
   assert.equal(shoutOuts([["x", newFishState()]]).golden, null);
 });
 
-t("result times leave room for the phone's side-view catch", () => {
-  assert.ok(RESULT_MS.fish >= SIDE_BEATS.fish.land + 300);
-  assert.ok(RESULT_MS.big >= SIDE_BEATS.big.land + 400);
+t("Quick catch: the next question comes before the fish lands; BIG / GOLDEN alerts stay ~2 s; SNAP 5 s", () => {
+  assert.ok(RESULT_MS.fish >= 800 && RESULT_MS.fish < SIDE_BEATS.fish.land);
+  assert.ok(RESULT_MS.big >= 1_800 && RESULT_MS.big < SIDE_BEATS.big.land);
   assert.ok(RESULT_MS.gold >= RESULT_MS.big);
+  assert.equal(RESULT_MS.snap, 5_000);
 });
 
 t("boats: everyone agrees on the order; two rings above 24 players", () => {
@@ -110,6 +130,29 @@ t("simulation: better players catch clearly more", () => {
   console.log(`   average total: weak ${weak.toFixed(0)} kg, average ${mid.toFixed(0)} kg, strong ${strong.toFixed(0)} kg`);
   assert.ok(weak < mid && mid < strong);
   assert.ok(strong > 2 * mid);
+});
+
+// A whole pond: 7 weak, 7 average, 7 strong players at once, with the catch-up (behind the median = x2).
+t("simulation, 21 players with catch-up: better players still win, the gap is much smaller", () => {
+  const kinds = [["weak", 0.5, 4000, 14000], ["avg", 0.7, 3000, 12000], ["strong", 0.9, 2000, 7000]] as const;
+  const tot: Record<string, number> = { weak: 0, avg: 0, strong: 0 };
+  const G = 150;
+  for (let g = 0; g < G; g++) {
+    const P = kinds.flatMap(([k, acc, a, b]) => Array.from({ length: 7 }, (_, i) => ({ id: `${k}${i}`, k, acc, a, b, st: newFishState(), next: a + Math.random() * (b - a) })));
+    for (;;) {
+      const p = P.reduce((m, x) => (x.next < m.next ? x : m));
+      if (p.next > GAME_MS) break;
+      const behind = !!behindPlayers(Object.fromEntries(P.map((x) => [x.id, x.st.kg])))[p.id];
+      const r = catchFor(p.st.streak, Math.random() < p.acc, { ...opts(frenzyAt(p.next).on), behind });
+      p.st.streak = r.streak;
+      addCatch(p.st, r.result);
+      p.next += RESULT_MS[r.result.kind] + p.a + Math.random() * (p.b - p.a);
+    }
+    for (const p of P) tot[p.k] += p.st.kg / 7 / G;
+  }
+  console.log(`   21 players: weak ${tot.weak.toFixed(0)} kg, average ${tot.avg.toFixed(0)} kg, strong ${tot.strong.toFixed(0)} kg (strong / weak ${(tot.strong / tot.weak).toFixed(1)}; was 6.5)`);
+  assert.ok(tot.weak < tot.avg && tot.avg < tot.strong);
+  assert.ok(tot.strong / tot.weak < 3.5);
 });
 
 console.log(`\n${n} fishing checks passed`);

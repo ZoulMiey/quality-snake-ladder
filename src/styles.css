@@ -1535,3 +1535,8 @@ button:disabled { cursor: default; }
 .card.bye .small-note { margin: 4px 0 0; }
 /* Podium rows without a piece (every game except Snake & Ladder): rank | name | score. */
 .place:not(:has(.pl-emoji)) { grid-template-columns: 70px 1fr auto; }
+/* Fishing Derby balance (eighth session): catch-up pill and the lucky-fish label. */
+.fp-catchup { display: grid; justify-items: center; background: #15803d; color: #fff; border-radius: 999px; padding: 3px 14px; font-weight: 800; font-size: 15px; line-height: 1.15; }
+.fp-catchup small { font-family: var(--body); font-weight: 600; font-size: 12px; opacity: .9; }
+.fp-toast.lucky { background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; }
+.fp-toast small + small { margin-left: 4px; }

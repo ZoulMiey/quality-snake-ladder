@@ -96,6 +96,8 @@ export type Game = {
   endsAt?: number | null;
   /** Fishing Derby: everyone's place, refreshed every few seconds (uid → 1, 2, 3…). */
   ranks?: Record<string, number> | null;
+  /** Fishing Derby catch-up: players behind the field's median total (×2 catches), refreshed with ranks. */
+  behind?: Record<string, true> | null;
   /** Pull the Rope: rounds, wins and teams (see src/rope/rules.ts). */
   rope?: RopeGame | null;
   /** Pull the Rope: the centre flag, −1 (Red bank) … 0 … +1 (Blue bank). Written a few times a second. */

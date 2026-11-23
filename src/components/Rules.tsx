@@ -21,12 +21,12 @@ const CLASH_TILES = [
 import { MAX_WINNERS } from "../lib/engine.ts";
 
 const FISH_TILES = [
-  { icon: "🐟", en: "Right answer =\na fish (1–6 kg)", ms: "Betul = seekor ikan" },
+  { icon: "🐟🍀", en: "Right answer = a fish\n1 in 8 is a LUCKY FISH!", ms: "Betul = seekor ikan · 1 dalam 8 ikan bertuah" },
   { icon: "🐠", en: "3 right in a row\n= BIG FISH", ms: "3 betul berturut = IKAN BESAR" },
   { icon: "✨", en: "5 right in a row =\nSUPER BIG GOLDEN FISH", ms: "5 betul berturut = IKAN EMAS" },
   { icon: "✂️", en: "Wrong = line snaps\nwait 5 sec", ms: "Salah = tali putus, tunggu 5 saat" },
   { icon: "🌀", en: "Every minute: FRENZY\n30 s, weight ×2", ms: "Setiap minit: pesta, berat ×2" },
-  { icon: "🏆", en: "5 minutes. Heaviest\ntotal catch wins!", ms: "5 minit. Tangkapan paling berat menang!" },
+  { icon: "🏆", en: "Heaviest total wins!\nBehind? Catch ×2", ms: "Paling berat menang · Di belakang? Tangkapan ×2" },
 ];
 
 const ROPE_TILES = [

@@ -11,7 +11,7 @@ import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.t
 import { pickQuestion, shuffleOptions } from "../lib/rules.ts";
 import { COUNTDOWN_MS } from "../lib/engine.ts";
 import type { FeedItem, Game, Player, Question } from "../lib/types.ts";
-import { GAME_MS, QUESTION_MS, RESULT_MS, addCatch, catchFor, fixFishState, frenzyAt, newFishState, rankFishers, type Catch, type FishState } from "./rules.ts";
+import { GAME_MS, QUESTION_MS, RESULT_MS, addCatch, behindPlayers, catchFor, fixFishState, frenzyAt, newFishState, rankFishers, type Catch, type FishState } from "./rules.ts";
 
 const GRACE_MS = 800;
 const FEED_KEEP = 12;
@@ -72,6 +72,7 @@ export class FishEngine {
       endedAt: null,
       winners: [],
       ranks: null,
+      behind: null,
     };
     for (const uid of Object.keys(this.players)) this.states[uid] = newFishState();
     await update(ref(db), { answers: null, private: {}, used: {}, state: this.states, feed: null, game: this.game });
@@ -229,10 +230,12 @@ export class FishEngine {
     if (now - this.ranksAt > RANKS_EVERY_MS) {
       this.ranksAt = now;
       const ranks = this.ranks();
-      const key = JSON.stringify(ranks);
+      // Catch-up (players behind the median total) goes out with the ranks, for the phones' "×2" pill.
+      const behind = behindPlayers(Object.fromEntries(Object.entries(this.states).map(([u, s]) => [u, s.kg])));
+      const key = JSON.stringify([ranks, behind]);
       if (key !== this.lastRanks) {
         this.lastRanks = key;
-        void set(ref(db, "game/ranks"), ranks);
+        void update(ref(db, "game"), { ranks, behind: Object.keys(behind).length ? behind : null });
       }
     }
   }
@@ -265,7 +268,8 @@ export class FishEngine {
       const now = serverNow();
       const correct = choice !== null && choice === p.correctIdx;
       const frenzy = frenzyAt(this.elapsed(now)).on;
-      const { result, streak } = catchFor(st.streak, correct, { frenzy, timeout: choice === null, choice, correctIdx: p.correctIdx });
+      const behind = !!behindPlayers(Object.fromEntries(Object.entries(this.states).map(([u, s]) => [u, s.kg])))[uid];
+      const { result, streak } = catchFor(st.streak, correct, { frenzy, timeout: choice === null, choice, correctIdx: p.correctIdx, behind });
       st.streak = streak;
       st.result = result;
       st.seq += 1;
@@ -310,7 +314,8 @@ export class FishEngine {
 }
 
 function feedFor(at: number, uid: string, who: string, r: Catch): FeedItem {
-  const x2 = r.frenzy ? " (×2)" : "";
+  const x2 = `${r.frenzy ? " (×2)" : ""}${r.boost ? " (catch-up ×2)" : ""}`;
+  if (r.lucky) return { at, uid, text: `🍀 ${who} caught a LUCKY FISH: ${r.name} · ${r.kg} kg${x2}`, tone: "good", k: "fish", kg: r.kg, name: r.name };
   if (r.kind === "snap") return { at, uid, text: `${who}: line snapped ✂️${r.timeout ? " (time up)" : ""}`, tone: "bad", k: "snap" };
   if (r.kind === "gold") return { at, uid, text: `✨ ${who} caught a SUPER BIG GOLDEN FISH: ${r.name} · ${r.kg} kg${x2}`, tone: "win", k: "gold", kg: r.kg, name: r.name };
   if (r.kind === "big") return { at, uid, text: `🐠 ${who} caught a BIG FISH: ${r.name} · ${r.kg} kg${x2}`, tone: "good", k: "big", kg: r.kg, name: r.name };

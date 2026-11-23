@@ -84,7 +84,7 @@ export default function FishPhone({ uid, me, game, onExit }: { uid: string; me: 
   // My catches.
   const [alert, setAlert] = useState<Alert | null>(null);
   // What I just caught, big and readable at the top of the pond (owner: the weight was hard to see).
-  const [toast, setToast] = useState<{ name: string; kg: number; frenzy: boolean; until: number; key: number } | null>(null);
+  const [toast, setToast] = useState<{ name: string; kg: number; frenzy: boolean; lucky?: boolean; boost?: boolean; until: number; key: number } | null>(null);
   const lastSeq = useRef<number | null>(null);
   useEffect(() => {
     if (!st) return;
@@ -97,10 +97,13 @@ export default function FishPhone({ uid, me, game, onExit }: { uid: string; me: 
     const p = pond.current;
     const now = Date.now();
     if (r.kind === "fish") {
-      p?.catchAt(uid, "fish", 0);
-      setToast({ name: r.name, kg: r.kg, frenzy: r.frenzy, until: now + 2_600, key: st.seq });
-      sfx.reel();
-      buzz(HAPTIC.fish);
+      // Quick catch: the next question comes after ~1 s; the fish is still reeled into the boat above it.
+      // A 🍀 lucky fish (15–40 kg) comes up from the deep like a big one.
+      p?.catchAt(uid, r.lucky ? "big" : "fish", 0);
+      setToast({ name: r.name, kg: r.kg, frenzy: r.frenzy, lucky: r.lucky, boost: r.boost, until: now + 2_600, key: st.seq });
+      if (r.lucky) sfx.bigFish();
+      else sfx.reel();
+      buzz(r.lucky ? HAPTIC.big : HAPTIC.fish);
     } else if (r.kind === "big" || r.kind === "gold") {
       // The alert and the catch play at the same time (owner, Nov 2026): the alert card sits in the
       // bottom half while the fish is caught in the top half.
@@ -186,15 +189,21 @@ export default function FishPhone({ uid, me, game, onExit }: { uid: string; me: 
         {/* Over a full-screen SNAP!/FRENZY alert too, so the countdowns stay visible (owner, Nov 2026). */}
         <div className={`fp-msgs ${showAlert && showAlert.kind !== "big" && showAlert.kind !== "gold" ? "over" : ""}`} aria-live="polite">
           {toastNow && (
-            <div className={`fp-toast ${toastNow.frenzy ? "fr" : ""}`} key={toastNow.key}>
-              🐟 {toastNow.name} <b>+{toastNow.kg} kg</b>
+            <div className={`fp-toast ${toastNow.frenzy ? "fr" : ""} ${toastNow.lucky ? "lucky" : ""}`} key={toastNow.key}>
+              {toastNow.lucky ? "🍀 LUCKY!" : "🐟"} {toastNow.name} <b>+{toastNow.kg} kg</b>
               {toastNow.frenzy && <small>×2</small>}
+              {toastNow.boost && <small>catch-up ×2</small>}
             </div>
           )}
           {frenzySoon !== null && (
             <div className="fp-soon" key={`soon-${frenzySoon}`}>
               🌀 FRENZY IN <b>{frenzySoon}</b>
               <small>Pesta memancing dalam {frenzySoon}</small>
+            </div>
+          )}
+          {game.behind?.[uid] && playing && (
+            <div className="fp-catchup">
+              🍀 Catch-up ×2 <small>Tangkapan ×2</small>
             </div>
           )}
           {fr.on && playing && (

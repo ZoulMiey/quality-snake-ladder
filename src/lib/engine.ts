@@ -336,7 +336,7 @@ function describe(icon: string, name: string, r: Result): string {
   }
 }
 
-const LOBBY_GAME = { "game/status": "lobby", "game/engine": null, "game/paused": false, "game/pausedAt": null, "game/startedAt": null, "game/goAt": null, "game/endedAt": null, "game/winners": null, "game/specials": null, "game/endsAt": null, "game/ranks": null, "game/rope": null, "game/ropeX": null, "game/spin": null };
+const LOBBY_GAME = { "game/status": "lobby", "game/engine": null, "game/paused": false, "game/pausedAt": null, "game/startedAt": null, "game/goAt": null, "game/endedAt": null, "game/winners": null, "game/specials": null, "game/endsAt": null, "game/ranks": null, "game/behind": null, "game/rope": null, "game/ropeX": null, "game/spin": null };
 
 /** Remove everything from the last game. Players will need to join again. The chosen game (mode) is kept. */
 export async function resetGame() {
