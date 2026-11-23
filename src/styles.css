@@ -1529,3 +1529,7 @@ button:disabled { cursor: default; }
 .gb-kart { position: fixed; z-index: 60; left: max(12px, env(safe-area-inset-left)); top: 30%; background: rgba(0,0,0,.45); color: #fff; font-size: 18px; width: 38px; height: 38px; justify-content: center; }
 .gb-ask { z-index: 80; }
 .gb-card { background: #fff; color: var(--ink); width: min(380px, 100%); border-radius: 18px; padding: 20px 18px 14px; display: grid; gap: 10px; text-align: center; }
+/* Event thank-you screen after ✕: Back to the game (while it is on) and 🏠 Home. */
+.card.bye { display: grid; gap: 12px; }
+.card.bye .trophy { margin-bottom: 0; }
+.card.bye .small-note { margin: 4px 0 0; }

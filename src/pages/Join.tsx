@@ -31,6 +31,8 @@ export default function Join() {
   const [uid, setUid] = useState<string | null>(null);
   const [err, setErr] = useState("");
   const [exited, setExited] = useState(false);
+  // The game this phone exited (its goAt): "Back to the game" stays until the host starts another one.
+  const [exitedFor, setExitedFor] = useState<number | null>(null);
   // 🏠 Home (event phones): the game this phone left to wait for the host (its goAt), and the "are you sure?" box.
   const [homeFor, setHomeFor] = useState<number | null>(null);
   const [ask, setAsk] = useState<"home" | "exit" | null>(null);
@@ -51,6 +53,7 @@ export default function Join() {
   // the database only allows that in the lobby, so on the end screen the player stays listed until the next game.
   async function exit() {
     setExited(true);
+    setExitedFor(game && game.status !== "lobby" ? (game.goAt ?? 0) : null);
     if (uid && (!game || game.status === "lobby")) {
       await remove(ref(db, `clash/pick/${uid}`)).catch(() => {});
       await remove(ref(db, `players/${uid}`)).catch(() => {});
@@ -66,8 +69,38 @@ export default function Join() {
   const goHome = () => (playing ? setAsk("home") : setHomeFor(gameKey));
   const goExit = () => (playing ? setAsk("exit") : void exit());
 
+  // Thank-you screen at the event (owner, 23 Nov 2026): Back to the game while it is still on, Home = wait for the host.
+  const canBack = !!(me && game && game.status !== "lobby" && exitedFor !== null && (game.goAt ?? 0) === exitedFor);
   let body;
-  if (exited)
+  if (exited && isEvent())
+    body = (
+      <div className="card center won bye">
+        <div className="trophy">👋</div>
+        <Bi en="Thank you for playing!" ms="Terima kasih kerana bermain!" className="title" />
+        {canBack && (
+          <button
+            className="big-btn"
+            onClick={() => {
+              setExited(false);
+              setHomeFor(null);
+            }}
+          >
+            ↩ Back to the game / Kembali ke permainan
+          </button>
+        )}
+        <button
+          className={`big-btn ${canBack ? "alt" : ""}`}
+          onClick={() => {
+            setExited(false);
+            setHomeFor(game && game.status !== "lobby" ? (game.goAt ?? 0) : null);
+          }}
+        >
+          🏠 Home / Utama
+        </button>
+        <p className="muted small-note">You can close this page now. / Anda boleh tutup halaman ini.</p>
+      </div>
+    );
+  else if (exited)
     body = (
       <div className="card center won">
         <div className="trophy">👋</div>
