@@ -291,6 +291,36 @@ body.land .fmt { padding: 3px 12px 3px 8px; margin: 0; }
 body.land .fmt b { font-size: 15px; }
 body.land .fmt small { font-size: 11px !important; }
 body.land .fmt .fi { font-size: 20px; }
+/* 23 Nov (owner): English only; the Do You Remember? rule large inside its tile */
+.prule { display: flex; align-items: center; gap: 14px; margin-top: 12px; padding: 10px 20px; border-radius: 14px; background: rgba(10,30,80,.8); border: 2px solid var(--gold2); box-shadow: 0 0 18px rgba(255,190,60,.4); width: fit-content; }
+.prule .pr-ic { font-size: 40px; line-height: 1; }
+.prule b { display: block; font-family: "Russo One"; font-size: 30px; letter-spacing: 1px; color: var(--gold2); line-height: 1.1; }
+.prule em { display: block; font-style: normal; font-weight: 800; font-size: 26px; color: #fff; line-height: 1.2; }
+body:not(.land) .pdesc { font-size: 22px; }
+.fmt { padding: 6px 20px 6px 14px; }
+.fmt b { font-size: 22px !important; }
+body.land .gamezone { grid-template-columns: 410px minmax(0, 1fr) !important; }
+body.land .prule { flex-direction: row; gap: 10px; padding: 6px 14px; margin: 8px auto 0; text-align: left; }
+body.land .prule .pr-ic { font-size: 34px; }
+body.land .prule b { font-size: 24px; }
+body.land .prule em { font-size: 18px; white-space: nowrap; }
+body.land .phys .name b { font-size: 24px !important; }
+body.land .phys .icon { width: 88px; height: 88px; }
+body.land .hexban { transform: scale(.9); margin-top: 0; }
+body.land .gamezone { margin-top: 6px; }
+/* A4 has room now (no Malay lines): bigger text */
+body:not(.land) .prule b { font-size: 38px; }
+body:not(.land) .prule em { font-size: 30px; }
+body:not(.land) .prule .pr-ic { font-size: 48px; }
+body:not(.land) .pdesc { font-size: 24px; }
+body:not(.land) .phys .name b { font-size: 42px; }
+body:not(.land) .egames .name b { font-size: 33px; }
+body:not(.land) .egames .icon { width: 128px; height: 128px; }
+body:not(.land) .step b { font-size: 27px; }
+body:not(.land) .gamezone { gap: 34px; margin-top: 34px; }
+body:not(.land) .how { margin-top: 40px; }
+body.land .egames .sect-h .fmt b { font-size: 17px !important; }
+body.land .phys .name { padding-bottom: 12px; }
 </style>
 </head>
 <body>
@@ -506,7 +536,7 @@ body.land .fmt .fi { font-size: 20px; }
       <svg class="g g3" viewBox="0 0 120 120" style="--box1:#1d6fe0;--box2:#3d8dff;--box3:#0a2a66"><use href="#iGift"/></svg>
       <svg class="sp s1" viewBox="0 0 40 40"><use href="#iSpark"/></svg><svg class="sp s2" viewBox="0 0 40 40"><use href="#iSpark"/></svg>
     </div>
-    <div class="plabel"><b>PRIZES TO WIN!</b><small>Hadiah menarik menanti!</small></div>
+    <div class="plabel"><b>PRIZES TO WIN!</b></div>
   </div>
   <div class="prize right">
     <div class="pile">
@@ -515,50 +545,50 @@ body.land .fmt .fi { font-size: 20px; }
       <svg class="g g3" viewBox="0 0 120 120" style="--box1:#e3263a;--box2:#ff4d5e;--box3:#6e0b16"><use href="#iGift"/></svg>
       <svg class="sp s3" viewBox="0 0 40 40"><use href="#iSpark"/></svg><svg class="sp s4" viewBox="0 0 40 40"><use href="#iSpark"/></svg>
     </div>
-    <div class="plabel"><b>PRIZES TO WIN!</b><small>Hadiah menarik menanti!</small></div>
+    <div class="plabel"><b>PRIZES TO WIN!</b></div>
   </div>
   <div class="content">
     <div class="brand"><img src="logo.png" alt="Company logo"><span>WIPRO UNZA MALAYSIA</span></div>
     <div class="title"><span class="chrome">QUALITY MONTH </span><span class="goldtxt">2026</span></div>
     <div class="plate">- POWERING PERFORMANCE -</div>
 
-    <div class="hexban"><div><b class="chrome">QUALITY GAMES</b><small>PERMAINAN KUALITI</small></div></div>
+    <div class="hexban"><div><b class="chrome">QUALITY GAMES</b></div></div>
 
-    <div class="tag"><span class="goldtxt">PLAY · ANSWER · WIN!</span><small>MAIN · JAWAB · MENANG!</small></div>
+    <div class="tag"><span class="goldtxt">PLAY · ANSWER · WIN!</span></div>
 
     <!-- 24 Nov (owner): Physical Game first (team: max 6 groups × 4), then 4 E-Games (individual). -->
     <div class="gamezone">
       <div class="sect phys">
-        <div class="sect-h"><b>🤸 PHYSICAL GAME</b><small>Permainan Fizikal</small><div class="fmt"><span class="fi">👥</span><span><b>TEAM · Max 6 groups × 4 members</b><small>Berkumpulan · Maks 6 kumpulan × 4 ahli</small></span></div></div>
+        <div class="sect-h"><b>🤸 PHYSICAL GAME</b></div>
         <div class="games">
-          <div class="tile"><div class="in"><div class="icon" data-g="memory"></div><div class="name"><b>Do You Remember?</b><small>Ingat ke Tak?</small><span class="pdesc">Look, remember, then put it back in the right place!<br><i>Lihat, ingat, susun semula!</i></span></div></div></div>
+          <div class="tile"><div class="in"><div class="icon" data-g="memory"></div><div class="name"><b>Do You Remember?</b><span class="pdesc">Look, remember, then put it back in the right place!</span><span class="prule"><span class="pr-ic">👥</span><span><b>TEAM GAME</b><em>Max 6 groups · 4 members per group</em></span></span></div></div></div>
         </div>
       </div>
       <div class="sect egames">
-        <div class="sect-h"><b>📱 E-GAMES</b><small>Permainan Elektronik</small><div class="fmt"><span class="fi">👤</span><span><b>INDIVIDUAL</b><small>Individu · on your phone</small></span></div></div>
+        <div class="sect-h"><b>📱 E-GAMES</b><div class="fmt"><span class="fi">👤</span><span><b>INDIVIDUAL · play on your phone</b></span></div></div>
         <div class="games">
-          <div class="tile"><div class="in"><div class="icon" data-g="snake"></div><div class="name"><b>Snake &amp; Ladder</b><small>Ular &amp; Tangga</small></div></div></div>
-          <div class="tile"><div class="in"><div class="icon" data-g="kart"></div><div class="name"><b>Quality Cart</b><small>Kart Kualiti</small></div></div></div>
-          <div class="tile"><div class="in"><div class="icon" data-g="clash"></div><div class="name"><b>Quality Clash</b><small>Pertempuran Kualiti</small></div></div></div>
-          <div class="tile"><div class="in"><div class="icon" data-g="fish"></div><div class="name"><b>Fishing Derby</b><small>Pertandingan Memancing</small></div></div></div>
+          <div class="tile"><div class="in"><div class="icon" data-g="snake"></div><div class="name"><b>Snake &amp; Ladder</b></div></div></div>
+          <div class="tile"><div class="in"><div class="icon" data-g="kart"></div><div class="name"><b>Quality Cart</b></div></div></div>
+          <div class="tile"><div class="in"><div class="icon" data-g="clash"></div><div class="name"><b>Quality Clash</b></div></div></div>
+          <div class="tile"><div class="in"><div class="icon" data-g="fish"></div><div class="name"><b>Fishing Derby</b></div></div></div>
         </div>
       </div>
     </div>
 
     <div class="how">
-      <div class="step"><em>1</em><div><b>Bring your phone</b><small>Bawa telefon anda</small></div></div>
-      <div class="step"><em>2</em><div><b>Scan the QR on screen</b><small>Imbas kod QR di skrin</small></div></div>
-      <div class="step"><em>3</em><div><b>Answer &amp; win!</b><small>Jawab &amp; menang!</small></div></div>
+      <div class="step"><em>1</em><div><b>Bring your phone</b></div></div>
+      <div class="step"><em>2</em><div><b>Scan the QR on screen</b></div></div>
+      <div class="step"><em>3</em><div><b>Answer &amp; win!</b></div></div>
     </div>
 
     <div class="details">
-      <div class="info"><div><span class="ic">🗓️</span><span><small>Date · Tarikh</small><b>25 Nov 2026 (Wed)</b></span></div></div>
-      <div class="info"><div><span class="ic">🕓</span><span><small>Time · Masa</small><b>4.00 PM</b></span></div></div>
-      <div class="info"><div><span class="ic">📍</span><span><small>Venue · Tempat</small><b>Training Room KJ</b></span></div></div>
+      <div class="info"><div><span class="ic">🗓️</span><span><small>Date</small><b>25 Nov 2026 (Wed)</b></span></div></div>
+      <div class="info"><div><span class="ic">🕓</span><span><small>Time</small><b>4.00 PM</b></span></div></div>
+      <div class="info"><div><span class="ic">📍</span><span><small>Venue</small><b>Training Room KJ</b></span></div></div>
     </div>
 
     <div class="pic"><div class="p1">PIC</div><div class="p2"><span>Nor Dalila</span><i></i><span class="mail">✉ nor.dalila@wipro-unza.com</span></div></div>
-    <div class="foot">Quality is everyone's game!<small>Kualiti tanggungjawab semua!</small></div>
+    <div class="foot">Quality is everyone's game!</div>
   </div>
 </div>
 
