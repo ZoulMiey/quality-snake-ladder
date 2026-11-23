@@ -61,6 +61,17 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
     if (errors.length) break;
     if (await proj.locator(".raid-win").count()) break;
     const all = await get();
+    // Titan defeated: shots through the break, the BOOM, the 3-2-1 and the results (owner, eighth session).
+    if (all.game?.status === "ended" && all.clash?.raid?.winner === "players") {
+      const t0 = all.game.endedAt;
+      for (const [sec, tag] of [[0.8, "crack"], [1.75, "boom"], [2.4, "fire"], [3.4, "count3"], [5.4, "count1"], [6.6, "results"]]) {
+        const wait = t0 + sec * 1000 - Date.now();
+        if (wait > 0) await proj.waitForTimeout(wait);
+        await Promise.all([snap(proj, `${OUT}/${TAG}-defeat-${tag}.png`), snap(phones[0].p, `${OUT}/${TAG}-phone-defeat-${tag}.png`)]);
+      }
+      log("results on projector after 6 s:", await proj.locator(".raid-win").count(), "| on phone:", await phones[0].p.locator(".cph-end").count());
+      break;
+    }
     const byName = Object.fromEntries(Object.entries(all.players || {}).map(([u, v]) => [v.name, u]));
     await Promise.all(
       phones.map(async (ph) => {

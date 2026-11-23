@@ -1,6 +1,6 @@
 // Boss Raid on the projector, plus the live canvas used by phones.
 import EndButtons from "../components/EndButtons.tsx";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { serverNow } from "../lib/firebase.ts";
 import { useDbValue } from "../lib/useDb.ts";
 import { sfx } from "../lib/sound.ts";
@@ -8,7 +8,7 @@ import type { Game, Player } from "../lib/types.ts";
 import Countdown from "../components/Countdown.tsx";
 import CreatureImg from "./CreatureImg.tsx";
 import { fixRaid, fixRaidEvents, fixResult, type RaidBoard, type RaidEvent, type RaidResult } from "./bossEngine.ts";
-import { clock, drawRaidTall, drawRaidWide, stompWarning } from "./raidDraw.ts";
+import { DEFEAT, DEFEAT_RESULTS_MS, clock, drawRaidTall, drawRaidWide, stompWarning } from "./raidDraw.ts";
 
 /** The raid drawn on a canvas, kept in step with the database. */
 export function RaidCanvas({ r, events, game, players, me, className }: { r: RaidBoard | null; events: RaidEvent[]; game: Game; players: Record<string, Player>; me?: string; className?: string }) {
@@ -40,6 +40,45 @@ export function useRaid() {
   const r = useMemo(() => fixRaid(rRaw), [rRaw]);
   const events = useMemo(() => fixRaidEvents(evRaw), [evRaw]);
   return { r, events };
+}
+
+/**
+ * Titan defeated (owner, eighth session): the Titan cracks, explodes (BOOM!) and a 3, 2, 1 counts down on the
+ * canvas; the results come after that. Plays the boom, the countdown beeps and the win tune at the right moments.
+ * Returns true when the results may show (straight away if the Titan won, or the raid ended long ago).
+ */
+export function useDefeatShow(game: Game, r: RaidBoard | null, phone = false): boolean {
+  const won = game.status === "ended" && r?.winner === "players";
+  const [ready, setReady] = useState(() => !won || !game.endedAt || serverNow() - game.endedAt >= DEFEAT_RESULTS_MS);
+  useEffect(() => {
+    if (game.status !== "ended") return setReady(false);
+    if (!won || !game.endedAt) {
+      setReady(true);
+      sfx.win();
+      return;
+    }
+    const age = serverNow() - game.endedAt;
+    if (age >= DEFEAT_RESULTS_MS) return setReady(true);
+    setReady(false);
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const at = (ms: number, fn: () => void) => {
+      if (ms >= age) timers.push(setTimeout(fn, ms - age));
+    };
+    at(DEFEAT.boom * 1000, () => {
+      sfx.boom();
+      if (phone)
+        try {
+          navigator.vibrate?.([500, 100, 700]);
+        } catch {}
+    });
+    for (const k of [0, 1, 2]) at((DEFEAT.count + k) * 1000, () => sfx.count());
+    at(DEFEAT_RESULTS_MS, () => {
+      setReady(true);
+      sfx.win();
+    });
+    return () => timers.forEach(clearTimeout);
+  }, [game.status, game.endedAt, won, phone]);
+  return ready;
 }
 
 export default function RaidView({ game, players, onAgain }: { game: Game; players: Record<string, Player>; onAgain: () => void }) {
@@ -75,9 +114,7 @@ export default function RaidView({ game, players, onAgain }: { game: Game; playe
     }, 120);
     return () => clearInterval(iv);
   }, [r, game]);
-  useEffect(() => {
-    if (game.status === "ended") sfx.win();
-  }, [game.status]);
+  const showResults = useDefeatShow(game, r);
 
   return (
     <main className="clash-stage">
@@ -85,7 +122,7 @@ export default function RaidView({ game, players, onAgain }: { game: Game; playe
         <RaidCanvas r={r} events={events} game={game} players={players} className="clash-canvas" />
         {game.paused && <div className="paused-overlay">⏸ Paused / Dihentikan seketika</div>}
         {game.status === "playing" && game.goAt && <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="board-cd" />}
-        {game.status === "ended" && res && r && (
+        {game.status === "ended" && showResults && res && r && (
           <div className="clash-win raid-win">
             <RaidResults res={res} r={r} players={players} />
             <EndButtons onAgain={onAgain} />

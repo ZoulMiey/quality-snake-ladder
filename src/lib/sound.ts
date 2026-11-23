@@ -37,7 +37,33 @@ function tone(freq: number, start: number, dur: number, type: OscillatorType = "
   o.stop(t0 + dur + 0.02);
 }
 
+/** A short burst of noise (explosions). */
+function noise(start: number, dur: number, vol = 0.35, lowpass = 900) {
+  if (!ctx || muted) return;
+  const t0 = ctx.currentTime + start;
+  const len = Math.floor(ctx.sampleRate * dur);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const f = ctx.createBiquadFilter();
+  f.type = "lowpass";
+  f.frequency.value = lowpass;
+  const g = ctx.createGain();
+  g.gain.value = vol;
+  src.connect(f).connect(g).connect(ctx.destination);
+  src.start(t0);
+}
+
 export const sfx = {
+  /** The Defect Titan explodes. */
+  boom() {
+    noise(0, 1.4, 0.5, 700);
+    noise(0.05, 0.5, 0.3, 2400);
+    tone(110, 0, 0.9, "sawtooth", 0.18, 30);
+    tone(60, 0, 1.2, "sine", 0.3, 25);
+  },
   dice() {
     for (let i = 0; i < 6; i++) tone(180 + Math.random() * 260, i * 0.06, 0.05, "square", 0.06);
   },

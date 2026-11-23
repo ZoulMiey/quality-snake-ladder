@@ -212,21 +212,174 @@ function floor(c: Ctx, W: number, H: number, wall: number) {
   }
 }
 
+/**
+ * Titan defeated (owner, eighth session): it shakes and cracks, then explodes (BOOM!, fire, flying pieces),
+ * then a big 3, 2, 1 over the burning arena, then the results. Seconds after the raid ended.
+ */
+export const DEFEAT = { boom: 1.5, count: 3, results: 6 };
+export const DEFEAT_RESULTS_MS = DEFEAT.results * 1000;
+/** 3, 2 or 1 during the countdown after the Titan exploded, else 0. */
+export const defeatCount = (endAge: number) => (endAge >= DEFEAT.count && endAge < DEFEAT.results ? 3 - Math.floor(endAge - DEFEAT.count) : 0);
+/** Shake the whole arena for half a second when it explodes. */
+const defeatShake = (r: RaidBoard, endAge: number) => (r.winner === "players" && endAge >= DEFEAT.boom && endAge < DEFEAT.boom + 0.6 ? 10 * (1 - (endAge - DEFEAT.boom) / 0.6) : 0);
+/** The same "random" numbers every frame, so pieces fly on fixed paths. */
+const seeded = (i: number) => {
+  const x = Math.sin(i * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+};
+const PIECE_COLOURS = ["#6b6f7d", "#9aa0ad", "#c2621f", "#ffcf40", "#3a3d48", "#e8853a"];
+
+/** Glowing cracks spreading over the Titan before it explodes (k: 0 → 1). */
+function cracks(c: Ctx, cx: number, cy: number, w: number, k: number) {
+  c.save();
+  c.strokeStyle = "#ffcf40";
+  c.shadowColor = "#ff7a1a";
+  c.shadowBlur = 12;
+  c.lineWidth = Math.max(2, w / 40);
+  c.lineJoin = "miter";
+  for (let i = 0; i < 9; i++) {
+    const ang = seeded(i) * Math.PI * 2;
+    const len = w * 0.5 * Math.min(1, k * 1.25 - i * 0.05);
+    if (len <= 0) continue;
+    c.beginPath();
+    let x = cx;
+    let y = cy;
+    c.moveTo(x, y);
+    const steps = 4;
+    for (let j = 1; j <= steps; j++) {
+      const a = ang + (seeded(i * 7 + j) - 0.5) * 1.1;
+      x += (Math.cos(a) * len) / steps;
+      y += (Math.sin(a) * len) / steps;
+      c.lineTo(x, y);
+    }
+    c.stroke();
+  }
+  c.restore();
+}
+
+/** The explosion and the fire it leaves, a seconds after the BOOM. */
+function explosion(c: Ctx, cx: number, cy: number, feet: number, w: number, a: number, t: number) {
+  c.save();
+  // white flash
+  if (a < 0.35) {
+    c.fillStyle = `rgba(255,255,240,${0.85 * (1 - a / 0.35)})`;
+    c.fillRect(-2000, -2000, 6000, 6000);
+  }
+  // fire left burning on the floor (stays through the countdown)
+  const fireOn = Math.min(1, a / 0.3);
+  for (let i = 0; i < 16; i++) {
+    const fx = cx + (seeded(i + 40) - 0.5) * w * 1.5;
+    const fh = w * (0.16 + 0.22 * seeded(i + 60)) * (0.65 + 0.35 * Math.sin(t * 9 + i * 1.7)) * fireOn;
+    const fw = w * 0.11;
+    const g = c.createLinearGradient(fx, feet, fx, feet - fh);
+    g.addColorStop(0, "rgba(220,38,38,.95)");
+    g.addColorStop(0.5, "rgba(249,115,22,.9)");
+    g.addColorStop(1, "rgba(253,224,71,0)");
+    c.fillStyle = g;
+    c.beginPath();
+    c.moveTo(fx - fw, feet);
+    c.quadraticCurveTo(fx - fw * 0.6, feet - fh * 0.5, fx + Math.sin(t * 7 + i) * fw * 0.4, feet - fh);
+    c.quadraticCurveTo(fx + fw * 0.6, feet - fh * 0.5, fx + fw, feet);
+    c.fill();
+  }
+  // smoke rising
+  for (let i = 0; i < 9; i++) {
+    const life = (a * 0.5 + seeded(i + 80)) % 1;
+    if (a < 0.2) break;
+    c.fillStyle = `rgba(70,70,85,${0.35 * (1 - life)})`;
+    c.beginPath();
+    c.arc(cx + (seeded(i + 90) - 0.5) * w + Math.sin(t + i) * 6, feet - w * 0.2 - life * w * 1.1, w * (0.12 + life * 0.22), 0, 7);
+    c.fill();
+  }
+  // the fireball
+  if (a < 1.6) {
+    const fade = Math.max(0, 1 - a / 1.6);
+    for (let k = 0; k < 5; k++) {
+      const ox = (seeded(k + 1) - 0.5) * w * 0.5;
+      const oy = (seeded(k + 11) - 0.5) * w * 0.4;
+      const rad = w * (0.25 + Math.min(1, a * 2.2) * (0.55 - k * 0.06));
+      const g = c.createRadialGradient(cx + ox, cy + oy, 0, cx + ox, cy + oy, rad);
+      g.addColorStop(0, `rgba(255,255,220,${fade})`);
+      g.addColorStop(0.3, `rgba(253,224,71,${fade})`);
+      g.addColorStop(0.6, `rgba(249,115,22,${0.9 * fade})`);
+      g.addColorStop(0.85, `rgba(185,28,28,${0.6 * fade})`);
+      g.addColorStop(1, "rgba(185,28,28,0)");
+      c.fillStyle = g;
+      c.beginPath();
+      c.arc(cx + ox, cy + oy, rad, 0, 7);
+      c.fill();
+    }
+  }
+  // pieces of the Titan flying out and falling
+  if (a < 2.4) {
+    const fade = Math.min(1, (2.4 - a) / 0.6);
+    for (let i = 0; i < 28; i++) {
+      const ang = seeded(i + 100) * Math.PI * 2;
+      const sp = w * (0.9 + seeded(i + 200) * 1.4);
+      const x = cx + Math.cos(ang) * sp * a;
+      const y = cy + Math.sin(ang) * sp * a * 0.8 + w * 0.9 * a * a;
+      if (y > feet + w * 0.2) continue;
+      const sz = w * (0.05 + seeded(i + 300) * 0.07);
+      c.save();
+      c.globalAlpha = fade;
+      c.translate(x, y);
+      c.rotate(a * (4 + seeded(i + 400) * 8));
+      c.fillStyle = PIECE_COLOURS[i % PIECE_COLOURS.length];
+      c.fillRect(-sz / 2, -sz / 2, sz, sz);
+      c.restore();
+    }
+  }
+  // BOOM!
+  if (a < 1.3) {
+    const pop = a < 0.15 ? a / 0.15 : 1;
+    const size = Math.round(w * 0.32 * (0.6 + 0.6 * pop));
+    c.globalAlpha = Math.min(1, (1.3 - a) / 0.3);
+    txt(c, "BOOM!", cx, cy - w * 0.15, size, "#fff3b0", "center", PX, true);
+  }
+  c.restore();
+}
+
+/** The big 3, 2, 1 before the results. */
+function defeatCountdown(c: Ctx, cx: number, cy: number, size: number, endAge: number) {
+  const n = defeatCount(endAge);
+  if (!n) return;
+  const f = endAge - DEFEAT.count - (3 - n); // 0 → 1 within this number
+  const pop = f < 0.15 ? 0.6 + (f / 0.15) * 0.5 : 1.1 - Math.min(0.1, (f - 0.15) * 0.3);
+  c.save();
+  c.globalAlpha = f > 0.85 ? (1 - f) / 0.15 : 1;
+  c.fillStyle = "rgba(10,8,25,.55)";
+  c.beginPath();
+  c.arc(cx, cy - size * 0.35, size * 0.78, 0, 7);
+  c.fill();
+  txt(c, String(n), cx, cy, Math.round(size * pop), "#ffcf40", "center", PX, true);
+  txt(c, "RESULTS IN", cx, cy + size * 0.55, Math.round(size * 0.16), "#fff", "center", PX, true);
+  txt(c, "Keputusan dalam", cx, cy + size * 0.8, Math.round(size * 0.17), "#ffe9a8", "center", `700 ${BODY}`, true);
+  c.restore();
+}
+
 function drawTitan(c: Ctx, V: View, r: RaidBoard, cx: number, feet: number, scale: number, t: number, endAge: number) {
   const w = 64 * scale;
   let y = feet - 63 * scale;
   if (V.warn >= 0) y -= (1 - V.warn / 3) * 14;
   if (V.counter) y -= 10;
   if (r.winner === "players") {
-    c.globalAlpha = Math.max(0, 1 - endAge / 1.6);
-    y += Math.min(endAge, 2) * 30;
+    // Owner: the defeated Titan breaks, then explodes with a boom and fire.
+    if (endAge >= DEFEAT.boom) return explosion(c, cx, y + w * 0.5, feet, w, endAge - DEFEAT.boom, t);
+    const k = endAge / DEFEAT.boom;
+    const shake = 2 + k * k * 12;
+    const dx = (Math.random() - 0.5) * shake;
+    const dy = (Math.random() - 0.5) * shake;
+    c.imageSmoothingEnabled = false;
+    c.drawImage(titan(Math.floor(endAge * (6 + k * 14)) % 2 === 0 ? "white" : "red"), cx - w / 2 + dx, y + dy, w, w);
+    cracks(c, cx + dx, y + w * 0.45 + dy, w, k);
+    return;
   }
   y += Math.sin(t * 2) * 2;
   c.fillStyle = "#2a2440";
   c.beginPath();
   c.ellipse(cx, feet, w * 0.7, w * 0.14, 0, 0, 7);
   c.fill();
-  const raging = r.titan.rage && r.winner !== "players";
+  const raging = r.titan.rage;
   if (raging) {
     const g = c.createRadialGradient(cx, y + w * 0.5, w * 0.1, cx, y + w * 0.5, w * 0.75);
     g.addColorStop(0, `rgba(255,40,60,${0.35 + 0.15 * Math.sin(t * 5)})`);
@@ -236,10 +389,10 @@ function drawTitan(c: Ctx, V: View, r: RaidBoard, cx: number, feet: number, scal
   }
   c.imageSmoothingEnabled = false;
   const blink = V.warn >= 0 && Math.floor(t * 6) % 2 === 0;
-  const mode = V.titanFlash || (r.winner === "players" && Math.floor(endAge * 10) % 2 === 0) ? "white" : raging ? (blink ? "" : "red") : blink ? "red" : "";
+  const mode = V.titanFlash ? "white" : raging ? (blink ? "" : "red") : blink ? "red" : "";
   c.drawImage(titan(mode), cx - w / 2, y, w, w);
   c.globalAlpha = 1;
-  if (V.titanSh > 0.5 && r.winner !== "players") {
+  if (V.titanSh > 0.5) {
     c.save();
     c.globalAlpha = 0.35 + 0.15 * Math.sin(t * 6);
     c.strokeStyle = "#7ae0ff";
@@ -549,7 +702,8 @@ export function drawRaidWide(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
   const endAge = game.endedAt ? (now - game.endedAt) / 1000 : 0;
   c.setTransform(2, 0, 0, 2, 0, 0);
   c.clearRect(0, 0, W, H);
-  if (V.shake) c.translate((Math.random() - 0.5) * V.shake * 2, (Math.random() - 0.5) * V.shake * 2);
+  const shake = V.shake + defeatShake(r, endAge);
+  if (shake) c.translate((Math.random() - 0.5) * shake * 2, (Math.random() - 0.5) * shake * 2);
   floor(c, W, H, 170);
   const TX = 360;
   const list = Object.values(r.raiders).sort((a, b) => a.slot - b.slot);
@@ -582,7 +736,9 @@ export function drawRaidWide(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
   }
   titanBar(c, V, r, 16, 10, 680, 1);
   warnText(c, V, TX, 140, 22);
-  messageBox(c, V, TX, huge ? 252 : roomy ? 280 : 312, 600, 1);
+  // During the 3-2-1 the big number replaces the message box.
+  if (!(r.winner === "players" && defeatCount(endAge))) messageBox(c, V, TX, huge ? 252 : roomy ? 280 : 312, 600, 1);
+  if (r.winner === "players") defeatCountdown(c, TX, 190, 120, endAge);
   rageBanner(c, V, 700, 200, 1);
   // leaderboard
   rr(c, 712, 10, 236, 520, 10);
@@ -619,7 +775,8 @@ export function drawRaidTall(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
   const endAge = game.endedAt ? (now - game.endedAt) / 1000 : 0;
   c.setTransform(2, 0, 0, 2, 0, 0);
   c.clearRect(0, 0, W, H);
-  if (V.shake) c.translate((Math.random() - 0.5) * V.shake * 2, (Math.random() - 0.5) * V.shake * 2);
+  const shake = V.shake + defeatShake(r, endAge);
+  if (shake) c.translate((Math.random() - 0.5) * shake * 2, (Math.random() - 0.5) * shake * 2);
   floor(c, W, H, 200);
   // Everything important sits in the top ~45%, so the question card never hides it.
   const TX = 270;
@@ -693,8 +850,9 @@ export function drawRaidTall(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
     txt(c, `${Math.ceil(hp)}/${mine.max} HP · ${mine.pts.toLocaleString()} ${r.mode === "hs" ? "pts" : "dmg"}`, 162, 452, 12, "#cfc8f0", "left", `600 ${BODY}`);
   }
   warnText(c, V, TX, 196, 26);
-  messageBox(c, V, W / 2, 66, 500, 1.2);
+  if (!(r.winner === "players" && defeatCount(endAge))) messageBox(c, V, W / 2, 66, 500, 1.2);
   rageBanner(c, V, W, 190, 1.2);
+  if (r.winner === "players") defeatCountdown(c, TX, 196, 104, endAge);
   rr(c, W - 92, 120, 82, 28, 6);
   c.fillStyle = "rgba(16,10,30,.85)";
   c.fill();

@@ -13,7 +13,7 @@ import { raiderState } from "./boss.ts";
 import { fixResult, type RaidResult } from "./bossEngine.ts";
 import type { ClashQ } from "./engine.ts";
 import { Question } from "./ClashPhone.tsx";
-import { RaidCanvas, RaidResults, useRaid } from "./RaidView.tsx";
+import { RaidCanvas, RaidResults, useDefeatShow, useRaid } from "./RaidView.tsx";
 import { stompWarning } from "./raidDraw.ts";
 
 type RaidQ = ClashQ & { revive?: boolean; result: (NonNullable<ClashQ["result"]> & { revive?: boolean }) | null };
@@ -35,6 +35,7 @@ export default function RaidPhone({ uid, me, game, onExit }: { uid: string; me: 
   const resRaw = useDbValue<RaidResult>(game.status === "ended" ? "clash/result" : null);
   const res = useMemo(() => fixResult(resRaw), [resRaw]);
   const now = game.paused && game.pausedAt ? game.pausedAt : serverNow();
+  const showResults = useDefeatShow(game, r, true);
 
   // Vibrate and tick during the stomp countdown, and buzz on the stomp itself.
   const warn = stompWarning(r, game, now);
@@ -68,7 +69,7 @@ export default function RaidPhone({ uid, me, game, onExit }: { uid: string; me: 
   let sheet: React.ReactNode = null;
   let center: React.ReactNode = null;
   if (game.status === "ended") {
-    center = res ? (
+    center = res && showResults ? (
       <div className="card center cph-end">
         <RaidResults res={res} r={r} players={players ?? {}} me={uid} />
         <button className="big-btn" onClick={onExit}>
