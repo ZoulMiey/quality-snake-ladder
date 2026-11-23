@@ -4,7 +4,7 @@
 // A moment starts when a player gets a snake or ladder question and ends a little after their piece has
 // slid down or climbed. The piece follows the snake's body / the ladder's rungs, at the same time as the phone.
 import { LADDERS, SNAKES } from "./board.ts";
-import { CLIMB_MS, SLIDE_MS, VERDICT_MS } from "./phoneTiming.ts";
+import { SLIDE_MS, climbMs, verdictMs } from "./phoneTiming.ts";
 import type { PlayerState } from "./types.ts";
 
 /** Up to this many players the projector uses the spotlight; above it, glow + side-panel cards. */
@@ -41,6 +41,8 @@ export type Moment = {
   startedAt: number;
   /** Answering: seconds left (0–30). */
   secs?: number;
+  /** The first 2 s of answering (Quick Move has no alert stage, so the projector shows SNAKE! / LADDER! then). */
+  fresh?: boolean;
   outcome?: MomentOutcome;
   from?: number;
   to?: number;
@@ -54,14 +56,14 @@ export function isMomentOutcome(o: string | undefined): o is MomentOutcome {
   return o === "safe" || o === "slide" || o === "climb" || o === "nolad";
 }
 
-export function moveMs(outcome: MomentOutcome): number {
-  return outcome === "slide" ? SLIDE_MS : outcome === "climb" ? CLIMB_MS : 0;
+export function moveMs(outcome: MomentOutcome, quick = false): number {
+  return outcome === "slide" ? SLIDE_MS : outcome === "climb" ? climbMs(quick) : 0;
 }
 
-/** When the piece starts and stops moving, in local ms. The phone shows its verdict alert for VERDICT_MS first. */
-export function verdictTimes(v: Verdict) {
-  const moveAt = v.at + VERDICT_MS;
-  const moveEnd = moveAt + moveMs(v.outcome);
+/** When the piece starts and stops moving, in local ms. The phone shows its verdict first (shorter in Quick Move). */
+export function verdictTimes(v: Verdict, quick = false) {
+  const moveAt = v.at + verdictMs(v.outcome, quick);
+  const moveEnd = moveAt + moveMs(v.outcome, quick);
   return { moveAt, moveEnd, doneAt: moveEnd + MOMENT_DONE_MS };
 }
 
@@ -79,13 +81,14 @@ export function currentMoments(
   localNowMs: number,
   questionMs: number,
   alertMs: number,
+  quick = false,
 ): Moment[] {
   const out: Moment[] = [];
   for (const [uid, st] of Object.entries(states)) {
     const v = verdicts[uid];
     const asked = st.phase === "question" && (st.kind === "snake" || st.kind === "ladder");
-    if (v && !(asked && localNowMs >= verdictTimes(v).moveEnd)) {
-      const { moveAt, moveEnd, doneAt } = verdictTimes(v);
+    if (v && !(asked && localNowMs >= verdictTimes(v, quick).moveEnd)) {
+      const { moveAt, moveEnd, doneAt } = verdictTimes(v, quick);
       if (localNowMs < doneAt) {
         const end = v.kind === "snake" ? SNAKES[v.from] : LADDERS[v.from];
         const base = { uid, kind: v.kind, box: v.from, end: end ?? v.to, key: `${uid}-${v.seq}`, startedAt: v.at, outcome: v.outcome, from: v.from, to: v.to };
@@ -109,6 +112,7 @@ export function currentMoments(
         key: `${uid}-${st.seq}`,
         startedAt: askedAt,
         secs: Math.max(0, Math.min(questionMs / 1000, Math.ceil((st.deadline - clockMs) / 1000))),
+        fresh: clockMs < askedAt + alertMs + 2_000,
       });
     }
   }

@@ -36,7 +36,7 @@ function Face({ n }: { n: number }) {
 const ROLL_MS = 1200;
 
 /** One 3D die that tumbles and lands on `value`. A new `seed` throws it again. */
-export function Die3D({ value, seed, size = 64, delay = 0 }: { value: number; seed: string | number; size?: number; delay?: number }) {
+export function Die3D({ value, seed, size = 64, delay = 0, rollMs = ROLL_MS }: { value: number; seed: string | number; size?: number; delay?: number; rollMs?: number }) {
   const [rot, setRot] = useState<{ x: number; y: number; z: number; anim: boolean }>(() => ({
     x: Math.random() * 360,
     y: Math.random() * 360,
@@ -58,7 +58,7 @@ export function Die3D({ value, seed, size = 64, delay = 0 }: { value: number; se
         className="cube"
         style={{
           transform: `rotateX(${rot.x}deg) rotateY(${rot.y}deg) rotateZ(${rot.z}deg)`,
-          transition: rot.anim ? `transform ${ROLL_MS}ms cubic-bezier(.15,.75,.25,1) ${delay}ms` : "none",
+          transition: rot.anim ? `transform ${rollMs}ms cubic-bezier(.15,.75,.25,1) ${delay}ms` : "none",
         }}
       >
         {FACES.map((n) => (
@@ -71,7 +71,7 @@ export function Die3D({ value, seed, size = 64, delay = 0 }: { value: number; se
 }
 
 /** Throws all the dice together, then shows the total. */
-export function DiceRoll({ values, seed, size, onDone }: { values: number[]; seed: string | number; size?: number; onDone?: () => void }) {
+export function DiceRoll({ values, seed, size, onDone, rollMs = ROLL_MS }: { values: number[]; seed: string | number; size?: number; onDone?: () => void; rollMs?: number }) {
   const [done, setDone] = useState(false);
   const cb = useRef(onDone);
   cb.current = onDone;
@@ -81,14 +81,14 @@ export function DiceRoll({ values, seed, size, onDone }: { values: number[]; see
     const t = setTimeout(() => {
       setDone(true);
       cb.current?.();
-    }, ROLL_MS + last + 60);
+    }, rollMs + last + 60);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seed]);
   return (
     <div className="dice-row">
       {values.map((v, i) => (
-        <Die3D key={i} value={v} seed={`${seed}-${i}`} size={size} delay={i * 90} />
+        <Die3D key={i} value={v} seed={`${seed}-${i}`} size={size} delay={i * 90} rollMs={rollMs} />
       ))}
       {values.length > 1 && <span className={`dice-sum ${done ? "" : "hide"}`}>= {values.reduce((a, b) => a + b, 0)}</span>}
     </div>

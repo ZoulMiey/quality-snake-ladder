@@ -1,6 +1,6 @@
 import EndButtons, { EndActionsContext, type EndActions } from "../components/EndButtons.tsx";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { get, ref, set, update } from "../lib/store.ts";
+import { get, ref, set, update, isEvent } from "../lib/store.ts";
 import { db, ensureSignedIn, serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
 import { winnersNeeded } from "../lib/rules.ts";
@@ -31,7 +31,7 @@ import GamePreview from "../components/GamePreview.tsx";
 import { QSETS, poolFor, type QChoice } from "../lib/questionSets.ts";
 import { eventById } from "../lib/specials.ts";
 import { DiceRoll } from "../components/Dice.tsx";
-import { SL_ALERT_MS } from "../lib/phoneTiming.ts";
+import { slAlertMs } from "../lib/phoneTiming.ts";
 import {
   ALERT_TEXT,
   CARD_LINGER_MS,
@@ -766,10 +766,10 @@ function GameView({
   // Snake & ladder moments: spotlight for 1–8 players, glow + side cards for 9–20.
   const verdicts = useVerdicts(states);
   const localNow = Date.now();
-  const animating = Object.values(verdicts).some((v) => localNow < verdictTimes(v).doneAt);
+  const animating = Object.values(verdicts).some((v) => localNow < verdictTimes(v, isEvent()).doneAt);
   useFrames(animating);
   const clock = game.paused && game.pausedAt ? game.pausedAt : serverNow();
-  const moments = game.status === "playing" ? currentMoments(states, verdicts, clock, localNow, QUESTION_MS, SL_ALERT_MS) : [];
+  const moments = game.status === "playing" ? currentMoments(states, verdicts, clock, localNow, QUESTION_MS, slAlertMs(isEvent()), isEvent()) : [];
   const spotlight = pieces.length <= SPOTLIGHT_MAX_PLAYERS;
   const winners = (game.winners ?? []).filter((u) => players[u]);
   const ranking = [...pieces].sort((a, b) => {
@@ -865,7 +865,7 @@ function useVerdicts(states: Record<string, PlayerState>): Record<string, Verdic
     if (st.phase === "result" && r && isMomentOutcome(r.outcome) && (r.kind === "snake" || r.kind === "ladder"))
       verdicts.current[uid] = { kind: r.kind, outcome: r.outcome, from: r.from, to: r.to, at: now, seq: st.seq };
   }
-  for (const [uid, v] of Object.entries(verdicts.current)) if (now >= verdictTimes(v).doneAt) delete verdicts.current[uid];
+  for (const [uid, v] of Object.entries(verdicts.current)) if (now >= verdictTimes(v, isEvent()).doneAt) delete verdicts.current[uid];
   return verdicts.current;
 }
 

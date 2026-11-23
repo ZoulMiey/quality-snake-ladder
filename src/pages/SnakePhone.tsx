@@ -2,7 +2,7 @@
 // over the bottom; after an answer the board goes full screen and the player's piece moves. Snakes,
 // ladders and wrong answers get big full-screen alerts.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ref, set } from "../lib/store.ts";
+import { ref, set, isEvent } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
 import Countdown from "../components/Countdown.tsx";
 import PhoneBoard, { type Camera, type Motion, type OtherPiece } from "../components/PhoneBoard.tsx";
@@ -12,7 +12,7 @@ import { LADDERS, SNAKES, LAST_BOX } from "../lib/board.ts";
 import { BONUS_STREAK } from "../lib/rules.ts";
 import { eventById } from "../lib/specials.ts";
 import { QUESTION_MS } from "../lib/engine.ts";
-import { CLIMB_MS, HOP_MS, PENALTY_MS, SHAKE_MS, SLIDE_MS, VERDICT_MS, WRONG_MS, moveTimeline } from "../lib/phoneTiming.ts";
+import { CLIMB_MS, PENALTY_MS, QUICK_CLIMB_MS, QUICK_DICE_MS, QUICK_VERDICT_MS, SHAKE_MS, SLIDE_MS, VERDICT_MS, WRONG_MS, hopMs, moveTimeline } from "../lib/phoneTiming.ts";
 import { DiceRoll } from "../components/Dice.tsx";
 import { sfx, unlockAudio } from "../lib/sound.ts";
 import { fixStates, type Game, type Player, type PlayerState, type Result } from "../lib/types.ts";
@@ -64,15 +64,22 @@ type Scene = {
   float?: React.ReactNode; // over the board, not full screen
   sheet?: React.ReactNode; // question card at the bottom
   sheetKey?: string;
+  /** No "🗺 Board" button on the sheet (Quick Move: the whole board is already in view). */
+  noPeek?: boolean;
   banner?: React.ReactNode;
   dice?: number[] | null;
   shakeUntil?: number;
 };
 
+/** Quick Move (event only): what the answered question card says while the piece moves. */
+type Done = { icon: string; en: string; ms: string; tone: "good" | "safe" | "bonus" };
+
 export default function SnakePhone({ uid, me, game, state, onExit }: { uid: string; me: Player; game: Game; state: PlayerState | null; onExit: () => void }) {
   const all = useDbValue<Record<string, PlayerState>>("state");
   const players = useDbValue<Record<string, Player>>("players");
   useNow(100);
+  // Quick Move at the event (owner, 23 Nov 2026); the app's solo games and rooms keep the full animation.
+  const quick = isEvent();
   const t0 = useSceneStart(`${state?.phase}-${state?.seq}`);
   const [peek, setPeek] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -81,7 +88,7 @@ export default function SnakePhone({ uid, me, game, state, onExit }: { uid: stri
   const ended = game.status === "ended";
   // A winner keeps the board (their last move and the trophy) even when their win ends the game.
   const winner = state?.phase === "won";
-  const scene = state && (!ended || winner) ? buildScene(uid, game, state, t0, ended ? onExit : undefined, me.token) : null;
+  const scene = state && (!ended || winner) ? buildScene(uid, game, state, t0, ended ? onExit : undefined, me.token, quick) : null;
   const sheetKey = scene?.sheet ? scene.sheetKey ?? "sheet" : "";
   useEffect(() => setPeek(false), [sheetKey]);
 
@@ -124,20 +131,22 @@ export default function SnakePhone({ uid, me, game, state, onExit }: { uid: stri
           others={others}
           myToken={me.token}
           motion={sc.motion}
-          hopMs={HOP_MS}
+          hopMs={hopMs(quick)}
           camera={sc.camera}
           coverBottom={cover}
           shakeUntil={sc.shakeUntil}
         />
         {game.paused && game.status === "playing" && <div className="paused-bar slp-paused">Paused by host / Dihentikan seketika</div>}
         {sc.banner && <div className="slp-banner">{sc.banner}</div>}
-        {sc.dice && sc.dice.length > 0 && <DiceBox values={sc.dice} seed={state.seq} />}
+        {sc.dice && sc.dice.length > 0 && <DiceBox values={sc.dice} seed={state.seq} rollMs={quick ? QUICK_DICE_MS : undefined} />}
         {sc.float && <div className="slp-float">{sc.float}</div>}
         {sc.sheet && (
           <div className={`slp-sheet ${peek ? "peek" : ""}`} ref={sheetRef} key={sheetKey}>
-            <button type="button" className="slp-mapbtn" onClick={() => setPeek((p) => !p)}>
-              {peek ? "⬆ Question / Soalan" : "🗺 Board / Papan"}
-            </button>
+            {!sc.noPeek && (
+              <button type="button" className="slp-mapbtn" onClick={() => setPeek((p) => !p)}>
+                {peek ? "⬆ Question / Soalan" : "🗺 Board / Papan"}
+              </button>
+            )}
             {sc.sheet}
           </div>
         )}
@@ -148,7 +157,7 @@ export default function SnakePhone({ uid, me, game, state, onExit }: { uid: stri
 }
 
 /** Work out what the phone shows right now, from the player's state and how long the scene has run. */
-function buildScene(uid: string, game: Game, st: PlayerState, t0: number, onExit?: () => void, meToken?: string): Scene {
+function buildScene(uid: string, game: Game, st: PlayerState, t0: number, onExit?: () => void, meToken?: string, quick = false): Scene {
   const still = (pos: number): Motion => ({ kind: "still", pos });
   const now = Date.now();
   const e = now - t0;
@@ -163,15 +172,17 @@ function buildScene(uid: string, game: Game, st: PlayerState, t0: number, onExit
   if (st.phase === "question" && st.q) {
     const sl = st.kind === "snake" || st.kind === "ladder";
     const target = st.kind === "snake" ? (SNAKES[st.pos] ?? st.pos) : (LADDERS[st.pos] ?? st.pos);
-    const camera: Camera = sl ? { focus: [st.pos, target] } : "split";
+    // Quick Move: the whole board above the card, no zoom (SNAKE! / LADDER! is the banner on the card).
+    const camera: Camera = sl && !quick ? { focus: [st.pos, target] } : "split";
     if (sl && clock < st.deadline - QUESTION_MS)
       return { camera, motion: still(st.pos), overlay: <SnakeLadderAlert key={st.seq} kind={st.kind as "snake" | "ladder"} at={st.pos} /> };
-    return { camera, motion: still(st.pos), sheet: <QuestionCard uid={uid} st={st} paused={game.paused} pausedAt={game.pausedAt} />, sheetKey: `q-${st.q.id}-${st.seq}` };
+    return { camera, motion: still(st.pos), sheet: <QuestionCard uid={uid} st={st} paused={game.paused} pausedAt={game.pausedAt} alertSound={quick && sl} />, sheetKey: `q-${st.q.id}-${st.seq}` };
   }
 
   const r = st.result;
   if (!r) return { camera: "split", motion: still(st.pos) };
   const ra = st.q?.opts[r.correctIdx];
+  if (quick && st.q && (r.outcome === "move" || r.outcome === "win" || r.outcome === "climb" || r.outcome === "safe")) return quickScene(uid, game, st, r, t0, e, onExit);
 
   if (r.outcome === "move" || r.outcome === "win") {
     const tl = moveTimeline(r);
@@ -224,19 +235,74 @@ function buildScene(uid: string, game: Game, st: PlayerState, t0: number, onExit
   return { camera: shaking ? "full" : "split", motion: still(r.to), shakeUntil: t0 + VERDICT_MS + SHAKE_MS, ...penaltySheet(VERDICT_MS + SHAKE_MS + 300) };
 }
 
+/**
+ * Quick Move after a right answer: the card shrinks to one strip at the bottom ("Correct!" and the right
+ * answer), so the whole board shows above it; the dice roll in the corner and the piece hops; then the next
+ * question slides up.
+ */
+function quickScene(uid: string, game: Game, st: PlayerState, r: Result, t0: number, e: number, onExit?: () => void): Scene {
+  const still = (pos: number): Motion => ({ kind: "still", pos });
+  const done: Done =
+    r.outcome === "climb"
+      ? { icon: "✅", en: `CORRECT! Climb to box ${r.to}`, ms: `BETUL! Naik ke petak ${r.to}`, tone: "good" }
+      : r.outcome === "safe"
+        ? { icon: "🛡️", en: `SAFE! You stay on box ${r.to}`, ms: `SELAMAT! Anda kekal di petak ${r.to}`, tone: "safe" }
+        : r.bonus
+          ? { icon: "🔥", en: "Correct! 2-dice bonus", ms: "Betul! Bonus 2 dadu", tone: "bonus" }
+          : { icon: "✔", en: "Correct!", ms: "Betul!", tone: "good" };
+  // Same key as the question card it replaces (the answer added 1 to seq), so it shrinks instead of sliding.
+  const card = { sheet: <DoneCard done={done} answer={st.q!.opts[r.correctIdx]} />, sheetKey: `q-${st.q!.id}-${st.seq - 1}`, noPeek: true };
+
+  if (r.outcome === "safe") return { camera: "split", motion: still(r.to), ...card };
+  if (r.outcome === "climb") {
+    if (e < QUICK_VERDICT_MS) return { camera: "split", motion: still(r.from), ...card };
+    return { camera: "split", motion: { kind: "ladder", from: r.from, to: r.to, t0: t0 + QUICK_VERDICT_MS, dur: QUICK_CLIMB_MS }, float: <SoundOnce play="ladder" />, ...card };
+  }
+  const tl = moveTimeline(r, true);
+  if (st.phase === "won" && e >= tl.walkEnd + 900) return { camera: "full", motion: still(LAST_BOX), overlay: <Won rank={st.rank ?? 0} onExit={onExit} /> };
+  const land = r.outcome === "win" ? LAST_BOX : (r.land ?? r.to);
+  const dice = e < tl.walkEnd + 300 ? r.dice : null;
+  if (e < tl.walkAt) return { camera: "split", motion: still(r.from), dice, ...card };
+  if (e < tl.walkEnd || !r.special) return { camera: "split", motion: { kind: "walk", boxes: boxesBetween(r.from, land), t0: t0 + tl.walkAt }, dice, ...card };
+  // Quality event box: a short pop-up over the board, then the piece moves forward or back.
+  if (e < tl.specialEnd) return { camera: "split", motion: still(land), float: <SpecialAlert key={st.seq} r={r} mini />, ...card };
+  return { camera: "split", motion: { kind: "walk", boxes: boxesBetween(land, r.to), t0: t0 + tl.shiftAt }, ...card };
+}
+
+function DoneCard({ done, answer }: { done: Done; answer?: { en: string; ms: string } }) {
+  useEffect(() => sfx.correct(), []);
+  return (
+    <div className="slp-donecard">
+      <div className={`slp-done tone-${done.tone}`} role="status">
+        <span aria-hidden="true">{done.icon}</span>
+        <span>
+          {done.en}
+          <small>{done.ms}</small>
+        </span>
+      </div>
+      {answer && (
+        <div className="slp-done-ans">
+          <b>✔ {answer.en}</b>
+          <span>{answer.ms}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CorrectBanner({ bonus }: { bonus: boolean }) {
   useEffect(() => sfx.correct(), []);
   return <span className="slp-ok">{bonus ? "🔥 Correct! 2-dice bonus / Bonus 2 dadu" : "✔ Correct! / Betul!"}</span>;
 }
 
-function DiceBox({ values, seed }: { values: number[]; seed: number }) {
+function DiceBox({ values, seed, rollMs }: { values: number[]; seed: number; rollMs?: number }) {
   useEffect(() => {
     const t = setTimeout(() => sfx.dice(), 200);
     return () => clearTimeout(t);
   }, []);
   return (
     <div className="slp-dice">
-      <DiceRoll values={values} seed={seed} size={54} />
+      <DiceRoll values={values} seed={seed} size={54} rollMs={rollMs} />
     </div>
   );
 }
@@ -354,8 +420,18 @@ function SnakeLadderBanner({ st }: { st: PlayerState }) {
 
 const LETTERS = ["A", "B", "C", "D"];
 
-function QuestionCard({ uid, st, paused, pausedAt }: { uid: string; st: PlayerState; paused: boolean; pausedAt: number | null }) {
+function QuestionCard({ uid, st, paused, pausedAt, alertSound }: { uid: string; st: PlayerState; paused: boolean; pausedAt: number | null; alertSound?: boolean }) {
   useNow(200);
+  // Quick Move has no full-screen SNAKE! / LADDER! alert, so the card plays its sound and buzz.
+  useEffect(() => {
+    if (!alertSound) return;
+    const snake = st.kind === "snake";
+    if (snake) sfx.snake();
+    else sfx.ladder();
+    buzz(snake ? HAPTIC.snake : HAPTIC.ladder);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const q = st.q!;
   const [sent, setSent] = useState<{ qid: string; choice: number } | null>(null);
   const lastBeep = useRef(-1);
@@ -420,7 +496,7 @@ function QuestionCard({ uid, st, paused, pausedAt }: { uid: string; st: PlayerSt
 }
 
 /** Full-screen alert when the dice land on a quality event box. */
-function SpecialAlert({ r }: { r: Result }) {
+function SpecialAlert({ r, mini }: { r: Result; mini?: boolean }) {
   const ev = eventById(r.special);
   useEffect(() => {
     if (!ev) return;
@@ -439,7 +515,7 @@ function SpecialAlert({ r }: { r: Result }) {
         ? { en: `Then 🪜 a ladder at box ${r.to}!`, ms: `Kemudian tangga di petak ${r.to}!` }
         : null;
   return (
-    <div className={`slp-alert ${good ? "a-good" : "a-bad"}`} role="alert">
+    <div className={`slp-alert ${good ? "a-good" : "a-bad"} ${mini ? "mini" : ""}`} role="alert">
       <div className="a-tag">{good ? "LUCKY BOX! / KOTAK BERTUAH!" : "OH NO! / ALAMAK!"}</div>
       <div className="a-icon">{ev.icon}</div>
       <div className="a-t3">{ev.en}</div>

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { resolve, pickQuestion, shuffleOptions, winnersNeeded } from "../src/lib/rules.ts";
 import { SNAKES, LADDERS, LAST_BOX } from "../src/lib/board.ts";
 import { placeSpecials, EVENTS, EVENT_SETS, eventById } from "../src/lib/specials.ts";
-import { resultMs, moveTimeline, PENALTY_MS, VERDICT_MS, WRONG_MS, SLIDE_MS, SHAKE_MS, CLIMB_MS, ZOOM_OUT_MS, SL_ALERT_MS } from "../src/lib/phoneTiming.ts";
+import { resultMs, moveTimeline, PENALTY_MS, VERDICT_MS, WRONG_MS, SLIDE_MS, SHAKE_MS, CLIMB_MS, ZOOM_OUT_MS, SL_ALERT_MS, slAlertMs, QUICK_VERDICT_MS, QUICK_CLIMB_MS } from "../src/lib/phoneTiming.ts";
 import { currentMoments, verdictTimes, climbProgress, slideProgress, SPOTLIGHT_MAX_PLAYERS, type Verdict } from "../src/lib/moments.ts";
 import type { PlayerState } from "../src/lib/types.ts";
 import { TOKENS, MAX_PLAYERS, assignPieces, gameMaxPlayers, tokenById, NO_PIECE } from "../src/lib/tokens.ts";
@@ -174,6 +174,46 @@ t("the phone's animations always finish before the next question", () => {
   assert.ok(VERDICT_MS + SHAKE_MS + 300 < PENALTY_MS && WRONG_MS < PENALTY_MS, "wrong-answer screens fit in the penalty");
   assert.equal(resultMs(r(HEAD, 0, "snake", false).result), PENALTY_MS);
   assert.equal(resultMs(r(5, 0, "turn", false).result), PENALTY_MS);
+});
+t("Quick Move (event): a right answer is about 2 s, wrong answers keep the 5-second penalty", () => {
+  let total = 0;
+  let n = 0;
+  let longest = 0;
+  for (let pos = 0; pos < LAST_BOX; pos++)
+    for (let d = 1; d <= 6; d++)
+      for (const specials of [null, placeSpecials()]) {
+        const x = resolve(pos, 0, "turn", true, { correctIdx: 0, rollDie: dice(d, 7 - d), specials });
+        if (x.result.outcome !== "move") continue;
+        const ms = resultMs(x.result, true);
+        assert.ok(ms >= moveTimeline(x.result, true).end, `quick move from ${pos}`);
+        assert.ok(ms < resultMs(x.result), `quick is faster from ${pos}`);
+        if (!specials) {
+          total += ms;
+          n++;
+        }
+        longest = Math.max(longest, ms);
+      }
+  const avg = total / n;
+  assert.ok(avg > 1500 && avg < 2300, `average quick move ${Math.round(avg)} ms`);
+  assert.ok(longest < 4500, `longest quick move ${longest} ms`);
+  assert.equal(slAlertMs(true), 0, "no full-screen SNAKE!/LADDER! alert");
+  assert.equal(slAlertMs(false), SL_ALERT_MS);
+  assert.ok(resultMs(r(FOOT, 0, "ladder", true).result, true) >= QUICK_VERDICT_MS + QUICK_CLIMB_MS);
+  assert.equal(resultMs(r(HEAD, 0, "snake", false).result, true), PENALTY_MS);
+  assert.equal(resultMs(r(5, 0, "turn", false).result, true), PENALTY_MS);
+  // The projector climbs in step with the quick phone; a wrong answer still waits for the 2 s full-screen WRONG.
+  const climb: Verdict = { kind: "ladder", outcome: "climb", from: FOOT, to: LADDERS[FOOT], at: 0, seq: 1 };
+  assert.equal(verdictTimes(climb, true).moveAt, QUICK_VERDICT_MS);
+  assert.equal(verdictTimes(climb, true).moveEnd, QUICK_VERDICT_MS + QUICK_CLIMB_MS);
+  const slide: Verdict = { kind: "snake", outcome: "slide", from: HEAD, to: TAIL, at: 0, seq: 1 };
+  assert.equal(verdictTimes(slide, true).moveAt, VERDICT_MS);
+  // No alert stage: answering (and the projector's SNAKE! pop-up) starts at once.
+  const asked = { pos: HEAD, streak: 0, phase: "question", kind: "snake", q: null, deadline: 1000 + 30_000, until: 0, result: null, seq: 3, rank: null, correct: 0, answered: 0 } as PlayerState;
+  const m = currentMoments({ a: asked }, {}, 1500, 0, 30_000, 0, true)[0];
+  assert.equal(m.stage, "answer");
+  assert.equal(m.fresh, true);
+  assert.equal(currentMoments({ a: asked }, {}, 4000, 0, 30_000, 0, true)[0].fresh, false);
+  console.log(`    quick move: average ${(avg / 1000).toFixed(1)} s, longest ${(longest / 1000).toFixed(1)} s (was ${(resultMs(resolve(10, 0, "turn", true, { correctIdx: 0, rollDie: dice(3, 4) }).result) / 1000).toFixed(1)} s for a 3)`);
 });
 t("projector snake/ladder moments follow the question, then the answer, in step with the phone", () => {
   const Q = 30_000;

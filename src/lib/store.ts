@@ -14,6 +14,8 @@ export function setSpace(s: Space) {
   space = s;
 }
 export const isLocal = () => space.kind === "local";
+/** The event itself (projector + QR), not the app's solo games or rooms. */
+export const isEvent = () => space.kind === "fire" && !space.prefix;
 
 export type SRef = { path: string };
 const clean = (p: string) => p.replace(/^\/+|\/+$/g, "");

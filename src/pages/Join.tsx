@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ref, set, remove, serverTimestamp } from "../lib/store.ts";
+import { ref, set, remove, serverTimestamp, isEvent } from "../lib/store.ts";
 import { db, ensureSignedIn } from "../lib/firebase.ts";
 import Rules from "../components/Rules.tsx";
 import KartPhone from "../kart/KartPhone.tsx";
@@ -31,6 +31,9 @@ export default function Join() {
   const [uid, setUid] = useState<string | null>(null);
   const [err, setErr] = useState("");
   const [exited, setExited] = useState(false);
+  // 🏠 Home (event phones): the game this phone left to wait for the host (its goAt), and the "are you sure?" box.
+  const [homeFor, setHomeFor] = useState<number | null>(null);
+  const [ask, setAsk] = useState<"home" | "exit" | null>(null);
   useEffect(() => {
     ensureSignedIn()
       .then((u) => setUid(u.uid))
@@ -53,6 +56,15 @@ export default function Join() {
       await remove(ref(db, `players/${uid}`)).catch(() => {});
     }
   }
+
+  const gameKey = game?.goAt ?? 0;
+  const inGame = !!(uid && me && game && game.status !== "lobby" && !exited);
+  const atHome = inGame && homeFor === gameKey;
+  const showBar = inGame && !atHome && isEvent();
+  // While a game is running, Home and ✕ ask first; on the end screen they go straight away.
+  const playing = game?.status === "playing";
+  const goHome = () => (playing ? setAsk("home") : setHomeFor(gameKey));
+  const goExit = () => (playing ? setAsk("exit") : void exit());
 
   let body;
   if (exited)
@@ -77,7 +89,9 @@ export default function Join() {
         </div>
       );
     else body = <JoinForm count={Object.keys(players ?? {}).length} />;
-  } else if (!game || game.status === "lobby")
+  } else if (atHome)
+    body = <HomeWait me={me} game={game!} onBack={game!.status === "playing" ? () => setHomeFor(null) : undefined} />;
+  else if (!game || game.status === "lobby")
     body = (
       <>
         {game?.mode === "clash" && game.clashFormat === "boss" && <RaidPick uid={uid} />}
@@ -97,8 +111,62 @@ export default function Join() {
 
   return (
     <div className="phone">
-      <Header small mode={game?.mode} />
+      <Header small mode={game?.mode} onHome={showBar ? goHome : undefined} onExit={showBar ? goExit : undefined} />
+      {showBar && game?.mode === "kart" && (
+        <button type="button" className="gb-btn gb-kart" onClick={goHome} aria-label="Home / Utama">
+          🏠
+        </button>
+      )}
       <main className="phone-main">{body}</main>
+      {ask && (
+        <div className="modal-back gb-ask" role="dialog" aria-modal="true">
+          <div className="gb-card">
+            <Bi en={ask === "home" ? "Leave this game?" : "Exit the game?"} ms={ask === "home" ? "Tinggalkan permainan ini?" : "Keluar dari permainan?"} className="title" />
+            <p className="muted">
+              {ask === "home"
+                ? "You will wait for the host and join the next game. / Anda akan menunggu hos dan menyertai permainan seterusnya."
+                : "You will leave the games. / Anda akan keluar dari permainan."}
+            </p>
+            <button
+              className="big-btn"
+              onClick={() => {
+                const a = ask;
+                setAsk(null);
+                if (a === "home") setHomeFor(gameKey);
+                else void exit();
+              }}
+            >
+              {ask === "home" ? "🏠 Yes, go Home / Ya, ke Utama" : "✕ Yes, exit / Ya, keluar"}
+            </button>
+            <button className="link-btn" onClick={() => setAsk(null)}>
+              Stay in the game / Kekal dalam permainan
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** 🏠 Home during or after a game: the phone waits for the host's next game (the player stays in the list). */
+function HomeWait({ me, game, onBack }: { me: Player; game: Game; onBack?: () => void }) {
+  const t = tokenById(me.token);
+  return (
+    <div className="card center lobby-me">
+      <LobbyPreview />
+      <div className="me-piece" style={{ ["--c" as string]: t.color }}>
+        {t.emoji}
+      </div>
+      <h2>{me.name}</h2>
+      <Bi en="Waiting for the host to start the next game…" ms="Menunggu hos memulakan permainan seterusnya…" />
+      <p className="muted">
+        {game.status === "playing" ? "A game is being played. Watch the big screen. / Permainan sedang berlangsung. Lihat skrin besar." : "Watch the big screen. / Lihat skrin besar."}
+      </p>
+      {onBack && (
+        <button className="big-btn" onClick={onBack}>
+          ↩ Back to the game / Kembali ke permainan
+        </button>
+      )}
     </div>
   );
 }

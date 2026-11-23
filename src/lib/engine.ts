@@ -2,14 +2,14 @@
 // it gives out questions, checks answers, rolls the dice and moves the pieces.
 import { startTicker } from "./ticker.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "./questionSets.ts";
-import { ref, get, onValue, update, set } from "./store.ts";
+import { ref, get, onValue, update, set, isEvent } from "./store.ts";
 import { db, serverNow } from "./firebase.ts";
 import { readAll } from "./readAll.ts";
 import { resolve, pickQuestion, shuffleOptions, winnersNeeded, MAX_WINNERS } from "./rules.ts";
 import { LAST_BOX } from "./board.ts";
 import { tokenById } from "./tokens.ts";
 import { eventById, placeSpecials } from "./specials.ts";
-import { PENALTY_MS, SL_ALERT_MS, resultMs } from "./phoneTiming.ts";
+import { PENALTY_MS, slAlertMs, resultMs } from "./phoneTiming.ts";
 import { fixStates, type FeedItem, type Game, type Player, type PlayerState, type Question, type QuestionKind, type Result } from "./types.ts";
 
 export const QUESTION_MS = 30_000;
@@ -193,7 +193,7 @@ export class Engine {
     st.phase = "question";
     st.kind = kind;
     st.q = { id: q.id, type: q.type, q: q.q, opts: shuffled.opts };
-    st.deadline = now + QUESTION_MS + (kind === "turn" ? 0 : SL_ALERT_MS); // snake/ladder: the answer time starts after the alert
+    st.deadline = now + QUESTION_MS + (kind === "turn" ? 0 : slAlertMs(isEvent())); // snake/ladder: the answer time starts after the alert (no alert in Quick Move)
     updates[`state/${uid}`] = st;
     updates[`private/${uid}`] = this.priv[uid];
     updates[`used/${uid}`] = this.used[uid];
@@ -272,7 +272,7 @@ export class Engine {
         this.pushFeed(now, uid, `🏆 ${icon} ${name} finished #${st.rank}!`, "win");
       } else {
         st.phase = "result";
-        st.until = now + resultMs(result);
+        st.until = now + resultMs(result, isEvent());
       }
       updates[`state/${uid}`] = st;
       updates.feed = this.feed;

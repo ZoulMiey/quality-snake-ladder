@@ -23,6 +23,11 @@ const SCREENS = {
   "special-good": ".slp-alert.a-good",
   "special-bad": ".slp-alert.a-bad",
   won: ".slp-alert.a-won",
+  // Quick Move (event): the answered card stays, the event box is a small pop-up over the board.
+  "quick-correct": ".slp-done.tone-good",
+  "quick-bonus": ".slp-done.tone-bonus",
+  "quick-safe": ".slp-done.tone-safe",
+  "quick-special": ".slp-alert.mini",
 };
 
 (async () => {

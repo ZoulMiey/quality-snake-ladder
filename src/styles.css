@@ -1494,3 +1494,38 @@ button:disabled { cursor: default; }
 .big-screen { min-height: 0 !important; border-radius: 12px; overflow: hidden; zoom: .5; }
 .code-input { font-family: var(--display); font-size: 36px !important; letter-spacing: 10px; text-align: center; text-transform: uppercase; }
 @media (min-width: 700px) { .big-screen { zoom: .7; } }
+
+/* ---------- Snake & Ladder Quick Move (event phones, 23 Nov 2026) ---------- */
+/* After a right answer the card shrinks to one strip ("Correct!" + the right answer) so the whole board shows. */
+.slp-done { display: flex; align-items: center; gap: 10px; border-radius: 12px; padding: 6px 12px; color: #fff; font-family: var(--display); font-weight: 800; font-size: 19px; line-height: 1.1; background: linear-gradient(135deg, #16a34a, #0f6b33); animation: pop .25s ease-out; }
+.slp-done > span:first-child { font-size: 28px; }
+.slp-done small { display: block; font-family: var(--body); font-weight: 600; font-size: 13px; opacity: .92; }
+.slp-done.tone-safe { background: linear-gradient(135deg, #0284c7, #075985); }
+.slp-done.tone-bonus { background: linear-gradient(135deg, #f97316, #c2410c); }
+.slp-donecard { display: grid; gap: 6px; }
+.slp-done-ans { background: #fff; border-radius: 12px; padding: 6px 12px; line-height: 1.2; }
+.slp-done-ans b { display: block; color: var(--good); font-size: 15px; }
+.slp-done-ans span { color: var(--muted); font-size: 12px; }
+/* Quality event box: a short pop-up over the top of the board instead of a full-screen alert. */
+.slp-float:has(> .slp-alert.mini) { top: 56px; transform: none; }
+.slp-alert.mini { border-radius: 18px; padding: 10px 14px; gap: 2px; box-shadow: 0 8px 22px rgba(0,0,0,.35); animation: pop .25s ease-out; }
+.slp-alert.mini .a-tag { margin-bottom: 2px; font-size: 13px; }
+.slp-alert.mini .a-icon { font-size: 40px; animation: none; }
+.slp-alert.mini .a-t3 { font-size: 20px; max-width: none; }
+.slp-alert.mini .a-t4 { font-size: 13px; max-width: none; }
+.slp-alert.mini .a-move { margin-top: 4px; padding: 4px 12px; }
+.slp-alert.mini .a-move b { font-size: 17px; }
+.slp-alert.mini .a-move span { font-size: 12px; }
+.slp-alert.mini .a-sub { display: none; }
+.slp-alert.mini::after { animation: none !important; }
+
+/* Event phones during a game: 🏠 Home | game name | ✕ (same height as the small header it replaces). */
+.game-bar { flex-wrap: nowrap; }
+.game-bar .qm-title { flex: 1; min-width: 0; }
+.game-bar .t-en, .game-bar .t-ms { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gb-btn { flex: none; border: 0; cursor: pointer; font-family: var(--display); font-weight: 800; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; }
+.gb-home { background: var(--gold); color: var(--gold-ink); font-size: 15px; padding: 6px 12px 5px; box-shadow: 0 2px 0 #b8901f; }
+.gb-exit { background: rgba(255,255,255,.14); color: #fff; font-size: 18px; width: 36px; height: 36px; justify-content: center; }
+.gb-kart { position: fixed; z-index: 60; left: max(12px, env(safe-area-inset-left)); top: 30%; background: rgba(0,0,0,.45); color: #fff; font-size: 18px; width: 38px; height: 38px; justify-content: center; }
+.gb-ask { z-index: 80; }
+.gb-card { background: #fff; color: var(--ink); width: min(380px, 100%); border-radius: 18px; padding: 20px 18px 14px; display: grid; gap: 10px; text-align: center; }

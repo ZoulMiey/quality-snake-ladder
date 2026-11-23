@@ -385,7 +385,7 @@ export default function Board({
                 </div>,
               );
             if (spotlight) return out;
-            if (m.stage === "alert") {
+            if (m.stage === "alert" || (m.stage === "answer" && m.fresh)) {
               out.push(<span key={`${m.key}-ring-a`} className={`m-ring ask-${m.kind}`} style={pct(centre(m.box))} />);
               out.push(
                 <div key={`${m.key}-alert`} className={`m-float ask-${m.kind}`} style={pct(centre(m.box))}>
