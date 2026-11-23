@@ -11,7 +11,7 @@ const LOOP = 2400, FPS = 12;
     const out = out0 + suf;
     const dsf = mode === "png" ? 2 : 1;
     const p = await b.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: dsf });
-    await p.goto(`file://${dir}/poster.html#${hash}`);
+    await p.goto(`file://${dir}/${process.env.FILE || "poster.html"}#${hash}`);
     await p.evaluate(() => document.fonts.ready);
     await p.waitForTimeout(500);
     const at = (t) => p.evaluate((t) => document.getAnimations().forEach((a) => { a.pause(); a.currentTime = t; }), t);
