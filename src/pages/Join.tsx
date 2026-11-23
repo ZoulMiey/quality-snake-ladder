@@ -16,6 +16,7 @@ import { MAX_PLAYERS, hasPiece, tokenById } from "../lib/tokens.ts";
 import { unlockAudio } from "../lib/sound.ts";
 import { fixState, type Game, type GameMode, type Player, type PlayerState } from "../lib/types.ts";
 import Header, { GAME_NAMES } from "../components/Header.tsx";
+import { leaveFullscreen } from "../lib/fullscreen.ts";
 import GamePreview from "../components/GamePreview.tsx";
 
 function Bi({ en, ms, className }: { en: string; ms: string; className?: string }) {
@@ -52,6 +53,7 @@ export default function Join() {
   // the player after "Play again", which keeps the players). Back in the lobby, Exit also leaves the game;
   // the database only allows that in the lobby, so on the end screen the player stays listed until the next game.
   async function exit() {
+    leaveFullscreen();
     setExited(true);
     setExitedFor(game && game.status !== "lobby" ? (game.goAt ?? 0) : null);
     if (uid && (!game || game.status === "lobby")) {
@@ -66,7 +68,11 @@ export default function Join() {
   const showBar = inGame && !atHome && isEvent();
   // While a game is running, Home and ✕ ask first; on the end screen they go straight away.
   const playing = game?.status === "playing";
-  const goHome = () => (playing ? setAsk("home") : setHomeFor(gameKey));
+  const home = () => {
+    leaveFullscreen();
+    setHomeFor(gameKey);
+  };
+  const goHome = () => (playing ? setAsk("home") : home());
   const goExit = () => (playing ? setAsk("exit") : void exit());
 
   // Thank-you screen at the event (owner, 23 Nov 2026): Back to the game while it is still on, Home = wait for the host.
@@ -165,7 +171,7 @@ export default function Join() {
               onClick={() => {
                 const a = ask;
                 setAsk(null);
-                if (a === "home") setHomeFor(gameKey);
+                if (a === "home") home();
                 else void exit();
               }}
             >

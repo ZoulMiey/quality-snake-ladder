@@ -10,6 +10,7 @@ import { ITEMS, type ItemId } from "./sim.ts";
 import { LAPS } from "./track.ts";
 import { CART_QUESTION_MS, type CartMe, type CartQ, type CartResult } from "./engine.ts";
 import Chase3D from "./Chase3D.tsx";
+import { leaveFullscreen } from "../lib/fullscreen.ts";
 
 type TiltState = "checking" | "need-permission" | "on" | "none";
 
@@ -82,6 +83,8 @@ const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? "st" : n % 10 =
 
 export default function KartPhone({ uid, me, game, onExit }: { uid: string; me: Player; game: Game; onExit: () => void }) {
   useNow(150);
+  // Leaving the race any way (Home, ✕, Play again, a new game) also leaves full screen and the sideways lock.
+  useEffect(() => () => leaveFullscreen(), []);
   const cart = useDbValue<CartMe>(`kart/me/${uid}`);
   const q = useDbValue<CartQ>(`kart/q/${uid}`);
   const results = useDbValue<CartResult[]>(game.status === "ended" ? "kart/results" : null);
