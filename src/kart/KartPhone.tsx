@@ -81,7 +81,7 @@ const FX: Record<string, { icon: string; en: string; ms: string; cls: string }> 
 
 const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th"}`;
 
-export default function KartPhone({ uid, me, game, onExit }: { uid: string; me: Player; game: Game; onExit: () => void }) {
+export default function KartPhone({ uid, me, game, onExit, onHome }: { uid: string; me: Player; game: Game; onExit: () => void; onHome?: () => void }) {
   useNow(150);
   // Leaving the race any way (Home, ✕, Play again, a new game) also leaves full screen and the sideways lock.
   useEffect(() => () => leaveFullscreen(), []);
@@ -280,6 +280,12 @@ export default function KartPhone({ uid, me, game, onExit }: { uid: string; me: 
       )}
       {game.paused && game.status === "playing" && <div className="paused-bar kr-paused">Paused by host / Dihentikan seketika</div>}
       <TurnSideways />
+      {/* The race covers the top bar, so a small 🏠 (event); hidden while answers are on screen so it is never tapped by mistake. */}
+      {onHome && !showQ && (
+        <button type="button" className="gb-btn gb-kart" onClick={onHome} aria-label="Home / Utama">
+          🏠
+        </button>
+      )}
     </div>
   );
 }

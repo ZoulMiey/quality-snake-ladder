@@ -8,7 +8,7 @@ import { db } from "../lib/firebase.ts";
 import { tokenById } from "../lib/tokens.ts";
 import type { Player } from "../lib/types.ts";
 import { BOX_LANES, BOX_ROWS, HAZARDS, HALF, TRACK_LEN, TRACK_W, PATH_POINTS } from "./track.ts";
-import type { CartPos } from "./engine.ts";
+import { decodePos, type CartPos, type CartPosWire } from "./engine.ts";
 import * as px from "./pixel.ts";
 import { BASE_SPEED } from "./sim.ts";
 
@@ -228,7 +228,18 @@ export default function Chase3D({ uid, players, steer }: { uid: string; players:
   const playersRef = useRef(players);
   playersRef.current = players;
 
-  useEffect(() => onValue(ref(db, "kart/pos"), (s) => s.val() && (posRef.current = { pos: s.val() as CartPos, at: performance.now() })), []);
+  useEffect(() => {
+    let ids: string[] | null = null;
+    const offIds = onValue(ref(db, "kart/ids"), (s) => (ids = (s.val() as string[] | null) ?? null));
+    const offPos = onValue(ref(db, "kart/pos"), (s) => {
+      const pos = decodePos(s.val() as CartPosWire | null, ids);
+      if (pos) posRef.current = { pos, at: performance.now() };
+    });
+    return () => {
+      offIds();
+      offPos();
+    };
+  }, []);
 
   useEffect(() => {
     const cv = canvasRef.current;

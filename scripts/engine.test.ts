@@ -272,8 +272,8 @@ t("50 different pieces, given at random at Start; per-game player limits", () =>
   for (const id of Object.values(g2)) assert.ok(id !== "lion" && id !== "fox");
   assert.notEqual(g2.c, g2.d);
   assert.equal(gameMaxPlayers("snake"), 50);
-  assert.equal(gameMaxPlayers("kart"), 30);
-  assert.equal(gameMaxPlayers("clash", "team"), 30);
+  assert.equal(gameMaxPlayers("kart"), 50);
+  assert.equal(gameMaxPlayers("clash", "team"), 50);
   assert.equal(gameMaxPlayers("clash", "boss"), 30);
   assert.equal(gameMaxPlayers("clash", "solo"), 50);
 });

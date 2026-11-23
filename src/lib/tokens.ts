@@ -68,10 +68,9 @@ export const hasPiece = (id: string | undefined) => !!id && BY_ID.has(id);
 /** The room limit: how many can join. Each game may allow fewer (see gameMaxPlayers). */
 export const MAX_PLAYERS = TOKENS.length;
 
-/** How many players a game can start with (owner, Nov 2026): Quality Cart 30, Clash Team and Boss Raid 30. */
-export function gameMaxPlayers(mode: string | null | undefined, clashFormat?: string | null): number {
-  if (mode === "kart") return 30;
-  if (mode === "clash") return clashFormat === "solo" ? MAX_PLAYERS : 30;
+/** How many players a game can start with: every game 50 (owner, 23 Nov 2026; Quality Cart, Clash Team and Boss Raid were 30). */
+export function gameMaxPlayers(mode?: string | null, clashFormat?: string | null): number {
+  if (mode === "clash" && clashFormat === "boss") return 30; // Boss Raid: 50 raiders next (new layout + re-tuned Titan)
   return MAX_PLAYERS;
 }
 

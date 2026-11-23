@@ -1,5 +1,5 @@
-// 50 phones + projector: join (name only), a 51st phone is refused, Quality Cart refuses to start with more
-// than 30, random pieces at Start ("You are …" in the countdown), play ~2 minutes. Options: N (default 50), SECS.
+// 50 phones + projector: join (name only), a 51st phone is refused, Quality Cart can start with 50 (every game
+// allows 50 since 23 Nov 2026), random pieces at Start ("You are …" in the countdown), play ~2 minutes. Options: N (default 50), SECS.
 const { chromium } = require("playwright");
 const OUT = process.env.SHOTS || require("path").join(__dirname, "shots");
 require("fs").mkdirSync(OUT, { recursive: true });
@@ -43,12 +43,12 @@ const NAMES = Array.from({ length: N }, (_, i) => BASE_NAMES[i % 20] + (i >= 20 
   await p21.waitForTimeout(2500);
   log(`${N + 1}th phone sees:`, (await p21.locator(".phone-main").innerText()).replace(/\n/g, " | ").slice(0, 70));
   await phones[N - 1].p.screenshot({ path: OUT + "/phone50-lobby.png" });
-  // Quality Cart allows 30: Start is blocked with a message.
+  // Quality Cart allows 50 too (was 30): Start is not blocked.
   await proj.getByRole("button", { name: /Change game/ }).click();
   await proj.getByRole("button", { name: /Quality Cart/ }).click();
   await proj.waitForTimeout(500);
-  log("cart start disabled:", await proj.getByRole("button", { name: "▶ Start game" }).isDisabled(), "|", (await proj.locator(".too-many").innerText().catch(() => "no message")).slice(0, 80));
-  await proj.screenshot({ path: OUT + "/projector50-cart-blocked.png" });
+  log("cart start disabled (should be false):", await proj.getByRole("button", { name: "▶ Start game" }).isDisabled(), "|", (await proj.locator(".too-many").innerText().catch(() => "no message")).slice(0, 80));
+  await proj.screenshot({ path: OUT + "/projector50-cart.png" });
   await proj.getByRole("button", { name: /Change game/ }).click();
   await proj.getByRole("button", { name: /Snake & Ladder/ }).click();
   await proj.waitForTimeout(800);

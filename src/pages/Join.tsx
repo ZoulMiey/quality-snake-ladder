@@ -142,7 +142,7 @@ export default function Join() {
     );
   else if (game.mode === "clash" && game.clashFormat === "boss") body = <RaidPhone uid={uid} me={me} game={game} onExit={exit} />;
   else if (game.mode === "clash") body = <ClashPhone uid={uid} me={me} game={game} onExit={exit} />;
-  else if (game.mode === "kart") body = <KartPhone uid={uid} me={me} game={game} onExit={exit} />;
+  else if (game.mode === "kart") body = <KartPhone uid={uid} me={me} game={game} onExit={exit} onHome={isEvent() ? goHome : undefined} />;
   else if (game.mode === "fish") body = <FishPhone uid={uid} me={me} game={game} onExit={exit} />;
   else if (game.mode === "rope") body = <RopePhone uid={uid} me={me} game={game} onExit={exit} />;
   else if (game.mode === "spin") body = <SpinPhone uid={uid} me={me} game={game} onExit={exit} />;
@@ -151,11 +151,6 @@ export default function Join() {
   return (
     <div className="phone">
       <Header small mode={game?.mode} onHome={showBar ? goHome : undefined} onExit={showBar ? goExit : undefined} />
-      {showBar && game?.mode === "kart" && (
-        <button type="button" className="gb-btn gb-kart" onClick={goHome} aria-label="Home / Utama">
-          🏠
-        </button>
-      )}
       <main className="phone-main">{body}</main>
       {ask && (
         <div className="modal-back gb-ask" role="dialog" aria-modal="true">

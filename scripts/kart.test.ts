@@ -79,6 +79,7 @@ t("items: turbo speeds up, oil is dropped behind, audit slows the leader", () =>
   const w = newWorld(["a", "b"]);
   w.carts[0].p = 500;
   w.carts[1].p = 300;
+  w.carts[1].d = 0; // the middle of the road (the start grid's lanes can put it on a cone here)
   w.carts[1].item = "turbo";
   useItem(w, "b");
   for (let k = 0; k < 30; k++) step(w, 1 / 30, {});

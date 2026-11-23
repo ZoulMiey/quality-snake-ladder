@@ -51,7 +51,8 @@ export const SUPER_STREAK = 3;
 export const SUPER_S = 4;
 
 export function newWorld(uids: string[]): World {
-  const lanes = [-0.66, -0.22, 0.22, 0.66];
+  // 6 abreast (owner, 23 Nov 2026: up to 50 carts = 9 rows; the last row starts ~4 s behind the first).
+  const lanes = [-0.75, -0.45, -0.15, 0.15, 0.45, 0.75];
   const carts = uids.map((uid, i) => ({
     uid,
     p: -(Math.floor(i / lanes.length) + 1) * 34,

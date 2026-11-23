@@ -43,7 +43,26 @@ export type CartQ = {
 };
 /** Live positions for the phones: c = { uid: [distance, side, speed, flags] }, b = hidden box numbers, o = oil spills [s, d].
  * flags: 1 spinning, 2 turbo, 4 shield, 8 slowed, 16 finished. */
+/**
+ * Every cart's position for the phones' race view. Slim (owner, 23 Nov 2026, up to 50 carts): `s` is one
+ * text with "p,d,v,flags" per cart, separated by ";", in the order of `kart/ids` (written once at the start),
+ * instead of an object keyed by the long player ids. Sent 5 times a second.
+ */
+export type CartPosWire = { t: number; s: string; b?: number[]; o?: number[][] };
 export type CartPos = { t: number; c: Record<string, number[]>; b?: number[]; o?: number[][] };
+export const POS_EVERY_MS = 200;
+
+export function encodeCarts(carts: number[][]): string {
+  return carts.map((a) => a.join(",")).join(";");
+}
+export function decodePos(w: CartPosWire | null | undefined, ids: string[] | null | undefined): CartPos | null {
+  if (!w || !ids) return null;
+  const c: Record<string, number[]> = {};
+  (w.s ?? "").split(";").forEach((part, i) => {
+    if (part && ids[i]) c[ids[i]] = part.split(",").map(Number);
+  });
+  return { t: w.t, c, b: w.b, o: w.o };
+}
 export type CartResult = { uid: string; rank: number; finished: boolean; time: number | null; lap: number };
 
 export class KartEngine {
@@ -83,7 +102,7 @@ export class KartEngine {
     this.qs = Object.fromEntries(uids.map((u) => [u, { open: false, qid: "", correctIdx: 0, deadline: 0, nextAt: 4 + Math.random() * 5, seq: 0 }]));
     this.feed = [{ at: now, uid: "", text: "🏁 The race has started! Good luck everyone.", tone: "info" }];
     this.game = { status: "playing", qset: this.qset, mode: "kart", engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt: now + COUNTDOWN_MS, endedAt: null, winners: [] };
-    await update(ref(db), { game: this.game, feed: this.feed, kart: null, answers: null, private: null, used: null, state: null });
+    await update(ref(db), { game: this.game, feed: this.feed, kart: { ids: this.world.carts.map((c) => c.uid) }, answers: null, private: null, used: null, state: null });
     this.run();
   }
 
@@ -107,6 +126,7 @@ export class KartEngine {
     for (const c of this.world.carts) this.qs[c.uid] ??= { open: false, qid: "", correctIdx: 0, deadline: 0, nextAt: this.world.t + 5, seq: 0 };
     this.game = { ...(all.game as Game), engine: this.tabId };
     await set(ref(db, "game/engine"), this.tabId);
+    await set(ref(db, "kart/ids"), this.world.carts.map((c) => c.uid));
     this.run();
   }
 
@@ -211,17 +231,16 @@ export class KartEngine {
       }
     }
 
-    // Every cart's position, about 6 times a second, for the drivers' view on the phones.
-    if (nowMs - this.lastPos > 160) {
+    // Every cart's position, 5 times a second, for the drivers' view on the phones (slim: see CartPosWire).
+    if (nowMs - this.lastPos > POS_EVERY_MS - 20) {
       this.lastPos = nowMs;
-      const c: Record<string, number[]> = {};
-      for (const k of w.carts) {
+      const c = w.carts.map((k) => {
         const flags = (k.spinUntil > w.t ? 1 : 0) | (k.boostUntil > w.t ? 2 : 0) | (k.shieldUntil > w.t ? 4 : 0) | (k.slowUntil > w.t ? 8 : 0) | (k.finished ? 16 : 0) | ((k.superUntil ?? 0) > w.t ? 32 : 0);
-        c[k.uid] = [Math.round(k.p * 10) / 10, Math.round(k.d * 100) / 100, Math.round(k.v * 10) / 10, flags];
-      }
-      const pos: CartPos = {
+        return [Math.round(k.p * 10) / 10, Math.round(k.d * 100) / 100, Math.round(k.v * 10) / 10, flags];
+      });
+      const pos: CartPosWire = {
         t: Math.round(w.t * 100) / 100,
-        c,
+        s: encodeCarts(c),
         b: w.boxes.map((b, i) => (b.hiddenUntil > w.t ? i : -1)).filter((i) => i >= 0),
         o: w.oils.map((o) => [Math.round(o.s), Math.round(o.d * 100) / 100]),
       };
