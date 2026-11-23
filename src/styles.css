@@ -1540,3 +1540,8 @@ button:disabled { cursor: default; }
 .fp-catchup small { font-family: var(--body); font-weight: 600; font-size: 12px; opacity: .9; }
 .fp-toast.lucky { background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; }
 .fp-toast small + small { margin-left: 4px; }
+/* Lobby player list (eighth session, owner: "the white box too big"): names only, so each player is a compact
+   pill that fits the name, side by side, wrapping when the row is full. */
+.lobby-players, .lobby-players.many, .gd-players .lobby-players { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px; }
+.lobby-players li, .lobby-players.many li, .gd-players .lobby-players li { flex: none; max-width: 220px; gap: 4px; padding: 3px 6px 3px 12px; border-radius: 999px; border-bottom: 0; box-shadow: 0 2px 0 rgba(0,0,0,.25); }
+.lobby-players .lp-name, .lobby-players.many .lp-name, .gd-players .lp-name { flex: 0 1 auto; font-size: 16px; }
