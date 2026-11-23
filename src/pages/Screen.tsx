@@ -444,9 +444,10 @@ function LobbyView({
   const cap = mode ? gameMaxPlayers(mode, clashFormat) : MAX_PLAYERS;
   const tooMany = list0(players).length > cap;
   const canStart = !!mode && !!list0(players).length && !tooMany && !!enabledQs && (qsetCounts[qset] ?? 0) > 0 && (mode !== "clash" || clash.ready) && (mode !== "rope" || ropeSides.ready) && (mode !== "spin" || spinTeams.ready);
-  // Only the 15 players who joined last are listed; the counter shows everyone.
+  // Newest first.
   const all = Object.entries(players).sort((a, b) => (b[1].joinedAt ?? 0) - (a[1].joinedAt ?? 0));
-  const list = all.slice(0, LIST_MAX);
+  // Owner (eighth session): the lobby lists every player (up to 50) as small name pills.
+  const list = all.slice(0, MAX_PLAYERS);
   const info = GAMES.find((g) => g.m === mode);
   const fitRef = useFitZoom(mode);
   if (!mode) {
