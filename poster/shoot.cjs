@@ -1,10 +1,14 @@
 const { chromium } = require("playwright");
 const fs = require("fs");
 const dir = process.argv[2], mode = process.argv[3] || "check"; // check | png | gif
+const variant = process.argv[4] || ""; // "" (all games) or "nospin"
+const suf = variant ? `-${variant}` : "";
 const LOOP = 2400, FPS = 12;
 (async () => {
   const b = await chromium.launch();
-  for (const [hash, w, h, out] of [["badges", 1240, 1754, "poster-A4"], ["land,badges", 1920, 1080, "poster-wide"]]) {
+  for (const [hash0, w, h, out0] of [["badges", 1240, 1754, "poster-A4"], ["land,badges", 1920, 1080, "poster-wide"]]) {
+    const hash = hash0 + (variant ? `,${variant}` : "");
+    const out = out0 + suf;
     const dsf = mode === "png" ? 2 : 1;
     const p = await b.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: dsf });
     await p.goto(`file://${dir}/poster.html#${hash}`);

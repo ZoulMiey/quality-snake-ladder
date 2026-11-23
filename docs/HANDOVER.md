@@ -115,6 +115,7 @@ The Quality Games event: **Thursday 26 Nov 2026, 4.00 PM, Training Room KJ**. PI
 - **Rebuild:** `cd poster`, then `node shoot.cjs "$PWD" png` (PNGs), `node shoot.cjs "$PWD" check` (quick 1× check images `*-check.png`), `node shoot.cjs "$PWD" gif` then `./make-gif.sh` (needs ffmpeg; 29 frames, 12 fps, 2.4 s loop: gifts bob, sparkles twinkle, badge rings and floor rings glow, fireworks burst in turn, confetti flutters; the PNG is the frame at 0.6 s).
 - **Wording on it:** WIPRO UNZA MALAYSIA · QUALITY MONTH 2026 · – POWERING PERFORMANCE – · **QUALITY GAMES / PERMAINAN KUALITI** · PLAY · ANSWER · WIN! (A4 only) · the 5 games (English + Malay) · 1 Bring your phone, 2 Scan the QR on screen, 3 Answer & win · Date / Time / Venue · PIC Nor Dalila | ✉ e-mail · "Quality is everyone's game! / Kualiti tanggungjawab semua!" · "PRIZES TO WIN! / Hadiah menarik menanti!" left and right. The owner once typed "everyone's games!"; it was kept as "game!" and the owner was told.
 - No QR code on the poster on purpose: players scan the projector's QR during the game.
+- **Update (23 Nov):** owner removed **Quality Cart** and **Quality Clash** and added **"Do You Remember? / Ingat ke Tak?"** (a physical memory game from a TikTok video: a cardboard box with drinks and banknotes; new 3D badge `iMemory`). Also added a **Quality Spin** badge (`iSpin`). Two versions: with Quality Spin (5 games, `poster-*.png/gif`) and without (4 games, `poster-*-nospin.*`; `node shoot.cjs "$PWD" png nospin`). Waiting for the owner to pick one.
 
 
 ## Quality Games app (/play) — seventh session
