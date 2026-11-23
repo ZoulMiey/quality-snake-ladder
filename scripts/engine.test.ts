@@ -274,7 +274,7 @@ t("50 different pieces, given at random at Start; per-game player limits", () =>
   assert.equal(gameMaxPlayers("snake"), 50);
   assert.equal(gameMaxPlayers("kart"), 50);
   assert.equal(gameMaxPlayers("clash", "team"), 50);
-  assert.equal(gameMaxPlayers("clash", "boss"), 30);
+  assert.equal(gameMaxPlayers("clash", "boss"), 50);
   assert.equal(gameMaxPlayers("clash", "solo"), 50);
 });
 console.log(`\n${n} checks passed`);

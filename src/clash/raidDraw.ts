@@ -447,7 +447,7 @@ export const clock = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.fl
  * a pulsing red ring at the feet, a red outline around the monster and a "WRONG / SALAH" or "TIME'S UP" tag.
  * Fades out over the last half second of the 3 s stun.
  */
-function stunMark(c: Ctx, p: { x: number; feet: number; scale: number }, left: number, timeout: boolean, t: number, low = false) {
+function stunMark(c: Ctx, p: { x: number; feet: number; scale: number }, left: number, timeout: boolean, t: number, low = false, compact = false) {
   const a = Math.min(1, left / 500);
   const pulse = 1 + 0.08 * Math.sin(t * 10);
   const w = 40 * p.scale;
@@ -465,6 +465,18 @@ function stunMark(c: Ctx, p: { x: number; feet: number; scale: number }, left: n
   c.stroke();
   c.setLineDash([]);
   const [en, ms] = timeout ? ["TIME'S UP", "Masa tamat"] : ["WRONG", "Salah"];
+  if (compact) {
+    // More than 30 raiders (4 rows): one short line on the monster, so neighbours' tags do not overlap.
+    const ty = p.feet - w * 0.5;
+    c.font = `6px ${PX}`;
+    const tw = c.measureText(en).width + 6;
+    rr(c, p.x - tw / 2, ty - 6, tw, 11, 3);
+    c.fillStyle = "#ff3b4e";
+    c.fill();
+    txt(c, en, p.x, ty + 2, 6, "#fff", "center", PX);
+    c.restore();
+    return;
+  }
   // With 3 rows the tag sits on the monster itself, so it does not cover the name of the raider above.
   const ty = low ? p.feet - w * 0.5 - 6 : p.feet - w * 1.2 - 14;
   c.font = `8px ${PX}`;
@@ -482,6 +494,8 @@ const PHONE_NEIGHBOURS = 8;
 
 /** Big raids (more than 20) use 3 rows; the Titan is drawn a little smaller and the message box moves up. */
 const ROOMY = 20;
+/** Very big raids (more than 30, up to 50: owner, eighth session) use 4 rows of up to 13 and compact stun tags. */
+const HUGE = 30;
 /**
  * Where each raider stands on the projector: one row for up to 8, two rows up to 20,
  * three rows of up to 10 above that (owner's pick A for 30 raiders), back rows a little smaller.
@@ -489,6 +503,17 @@ const ROOMY = 20;
 function wideSpots(n: number): { x: number; feet: number; scale: number }[] {
   const left = 30;
   const width = 660;
+  if (n > HUGE) {
+    const per = Math.ceil(n / 4);
+    const gap = width / per;
+    return Array.from({ length: n }, (_, i) => {
+      const row = Math.floor(i / per);
+      const k = i % per;
+      const count = Math.min(per, n - row * per);
+      const start = left + (width - gap * count) / 2 + gap / 2 + (row % 2 === 1 ? gap / 4 : 0);
+      return { x: start + k * gap, feet: [368, 417, 466, 515][row], scale: [0.8, 0.86, 0.92, 0.98][row] };
+    });
+  }
   if (n > ROOMY) {
     const per = Math.ceil(n / 3);
     const gap = width / per;
@@ -529,8 +554,9 @@ export function drawRaidWide(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
   const TX = 360;
   const list = Object.values(r.raiders).sort((a, b) => a.slot - b.slot);
   const roomy = list.length > ROOMY;
-  const TF = roomy ? 262 : 300;
-  drawTitan(c, V, r, TX, TF, roomy ? 2.85 : 3.4, t, endAge);
+  const huge = list.length > HUGE;
+  const TF = huge ? 238 : roomy ? 262 : 300;
+  drawTitan(c, V, r, TX, TF, huge ? 2.55 : roomy ? 2.85 : 3.4, t, endAge);
   const spots = wideSpots(list.length);
   const at: Record<string, { x: number; feet: number; scale: number }> = {};
   list.forEach((x, i) => (at[x.uid] = spots[i]));
@@ -545,7 +571,7 @@ export function drawRaidWide(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
   for (const x of list) {
     const until = stun[x.uid] ?? 0;
     if (until <= now || x.hp <= 0) continue;
-    stunMark(c, at[x.uid], until - now, V.wrongTimeout[x.uid] ?? false, t, list.length > ROOMY);
+    stunMark(c, at[x.uid], until - now, V.wrongTimeout[x.uid] ?? false, t, list.length > ROOMY, list.length > HUGE);
   }
   for (const p of V.pops) {
     const pos = p.at === "titan" ? [TX + 60, 150] : at[p.at] ? [at[p.at].x, at[p.at].feet - 48 * at[p.at].scale] : null;
@@ -556,7 +582,7 @@ export function drawRaidWide(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
   }
   titanBar(c, V, r, 16, 10, 680, 1);
   warnText(c, V, TX, 140, 22);
-  messageBox(c, V, TX, roomy ? 280 : 312, 600, 1);
+  messageBox(c, V, TX, huge ? 252 : roomy ? 280 : 312, 600, 1);
   rageBanner(c, V, 700, 200, 1);
   // leaderboard
   rr(c, 712, 10, 236, 520, 10);

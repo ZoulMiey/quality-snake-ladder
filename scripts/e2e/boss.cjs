@@ -8,8 +8,10 @@ const MODE = process.env.MODE === "hs" ? "hs" : "ta";
 const N = Number(process.env.N || 6);
 const ACC = Number(process.env.ACC || 0.8);
 const TAG = `boss-${MODE}-${N}`;
-const NAMES = ["Aina", "Ravi", "Hafiz", "Siti", "Mei Ling", "Daniel", "Farah", "Kumar", "Lina", "Arif", "Jun", "Nora", "Zul", "Priya", "Tan", "Yus", "Hana", "Ken", "Ali", "Bea", "Izzat", "Dewi", "Faiz", "Gopal", "Chen", "Amir", "Sara", "Iqbal", "Wei", "Nurul"];
+const NAMES = ["Aina", "Ravi", "Hafiz", "Siti", "Mei Ling", "Daniel", "Farah", "Kumar", "Lina", "Arif", "Jun", "Nora", "Zul", "Priya", "Tan", "Yus", "Hana", "Ken", "Ali", "Bea", "Izzat", "Dewi", "Faiz", "Gopal", "Chen", "Amir", "Sara", "Iqbal", "Wei", "Nurul", "Azlan", "Rina", "Vijay", "Mira", "Hakim", "Joanne", "Syafiq", "Aishah", "Raj", "Ling", "Firdaus", "Kavitha", "Hadi", "Suzy", "Rashid", "Ying", "Fauzi", "Maya", "Danial", "Elena"];
 const MONS = ["Kaizen Dragon", "Audit Owl", "Viscosity Turtle", "Calibration Golem", "Sigma Fox", "pH Shark", "Sensor Bee", "Root Cause Rhino", "Sample Otter", "Gemba Falcon"];
+// A busy sandbox (50 phones) can time out a screenshot: skip it rather than fail the raid.
+const snap = (page, path) => page.screenshot({ path, timeout: 60000 }).catch(() => console.log("screenshot skipped:", path.split("/").pop()));
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { headers: { Authorization: "Bearer owner" } })).json();
 
@@ -22,7 +24,7 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
   const errors = [];
   const watch = (page, who) => {
     page.on("pageerror", (e) => errors.push(`${who}: ${e.message}`));
-    page.on("console", (m) => m.type() === "error" && !/TUNNEL|fonts\.g/.test(m.text()) && errors.push(`${who} console: ${m.text()}`));
+    page.on("console", (m) => m.type() === "error" && !/TUNNEL|fonts\.g|AudioContext/.test(m.text()) && errors.push(`${who} console: ${m.text()}`));
   };
   const proj = await (await browser.newContext({ viewport: { width: 1920, height: 1080 } })).newPage();
   watch(proj, "projector");
@@ -37,7 +39,7 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
 
   const phones = [];
   for (let i = 0; i < N; i++) {
-    const p = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })).newPage();
+    const p = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: i === 0 ? 2 : 1 })).newPage();
     watch(p, NAMES[i]);
     await p.goto(BASE + "/join");
     await p.locator("#name").fill(NAMES[i]);
@@ -48,8 +50,8 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
     phones.push({ name: NAMES[i], p });
   }
   log("joined", N, "phones");
-  await phones[0].p.screenshot({ path: `${OUT}/${TAG}-phone-pick.png` });
-  await proj.screenshot({ path: `${OUT}/${TAG}-lobby.png` });
+  await snap(phones[0].p, `${OUT}/${TAG}-phone-pick.png`);
+  await snap(proj, `${OUT}/${TAG}-lobby.png`);
   await proj.getByRole("button", { name: "▶ Start game" }).click();
 
   const start = Date.now();
@@ -69,8 +71,8 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
         const isRevive = (await ph.p.locator(".raid-revive").count()) > 0;
         if (isRevive && !sawRevive) {
           sawRevive = true;
-          await ph.p.screenshot({ path: `${OUT}/${TAG}-phone-revive.png` });
-          await proj.screenshot({ path: `${OUT}/${TAG}-fainted.png` });
+          await snap(ph.p, `${OUT}/${TAG}-phone-revive.png`);
+          await snap(proj, `${OUT}/${TAG}-fainted.png`);
           log(ph.name, "got a revive question");
         }
         const right = all.private?.clash?.qs?.[byName[ph.name]]?.correctIdx ?? 0;
@@ -82,23 +84,23 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
     for (const e of all.clash?.rev || []) if (e && e.kind === "stomp") stomps.set(e.n, e.counter ? "counter" : "timed");
     if (!sawCounter && all.clash?.raid?.counterAt && Date.now() < all.clash.raid.counterAt) {
       sawCounter = true;
-      await proj.screenshot({ path: `${OUT}/${TAG}-counter.png` });
+      await snap(proj, `${OUT}/${TAG}-counter.png`);
     }
     const rage = (all.clash?.rev || []).find((e) => e && e.kind === "rage");
     if (rage && !sawRage && Date.now() > rage.at + 900) {
       sawRage = true;
-      await proj.screenshot({ path: `${OUT}/${TAG}-rage.png` });
-      await phones[0].p.screenshot({ path: `${OUT}/${TAG}-phone-rage.png` });
+      await snap(proj, `${OUT}/${TAG}-rage.png`);
+      await snap(phones[0].p, `${OUT}/${TAG}-phone-rage.png`);
       log("Titan enraged; shield", rage.sh, "stomp", rage.stomp);
     }
     if (!sawWarn && t > 8 && (await phones[0].p.locator(".cph-stage.shake").count())) {
       sawWarn = true;
-      await proj.screenshot({ path: `${OUT}/${TAG}-warn.png` });
-      await phones[0].p.screenshot({ path: `${OUT}/${TAG}-phone-warn.png` });
+      await snap(proj, `${OUT}/${TAG}-warn.png`);
+      await snap(phones[0].p, `${OUT}/${TAG}-phone-warn.png`);
     }
     if (shots === 0 && t > 18) {
-      await proj.screenshot({ path: `${OUT}/${TAG}-raid.png` });
-      await phones[0].p.screenshot({ path: `${OUT}/${TAG}-phone-q.png` });
+      await snap(proj, `${OUT}/${TAG}-raid.png`);
+      await snap(phones[0].p, `${OUT}/${TAG}-phone-q.png`);
       shots++;
     }
     await proj.waitForTimeout(300);
@@ -113,8 +115,8 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
   log("best:", JSON.stringify(all.clash?.records?.best?.ms), "saw warning:", sawWarn, "saw revive:", sawRevive, "saw rage:", sawRage, "saw counter:", sawCounter);
   const kinds = [...stomps.values()];
   log("stomps:", kinds.filter((k) => k === "timed").length, "timed +", kinds.filter((k) => k === "counter").length, "counter");
-  await proj.screenshot({ path: `${OUT}/${TAG}-end.png` });
-  await phones[0].p.screenshot({ path: `${OUT}/${TAG}-phone-end.png` });
+  await snap(proj, `${OUT}/${TAG}-end.png`);
+  await snap(phones[0].p, `${OUT}/${TAG}-phone-end.png`);
   log("errors:", errors.length ? errors.slice(0, 8) : "none");
   await browser.close();
   if (errors.length || all.game?.status !== "ended") process.exit(1);

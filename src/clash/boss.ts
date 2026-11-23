@@ -1,12 +1,12 @@
 // Boss Raid rules in one place (no database, no browser), so they can be tested.
-// 1–30 players each have one monster and fight the Defect Titan together.
+// 1–50 players each have one monster and fight the Defect Titan together.
 // Time Attack: beat it as fast as possible. High Score: most damage (points) wins.
 // In both modes the Titan stomps every player every 8 seconds; a fainted monster gets one revive question per raid.
 // At 30% HP it becomes ENRAGED: a shield (10% of its HP) that must be broken first, and harder stomps.
 // The Titan ADAPTS (owner's pick "always close", Nov 2026): at every timed stomp it forecasts how long until it
 // falls and how long until the raiders are wiped out, and nudges its toughness `d` (armour and stomp) so the
-// race stays close. Simulated (1-30 players): Titan wins 28-38% against groups answering 70% right,
-// 48-72% at 50% right, 6-34% at 90% right; raids last about 2-3.5 minutes.
+// race stays close. Simulated (1-50 players): Titan wins 30-43% against groups answering 70% right,
+// 54-80% at 50% right, 15-25% at 80%, 4-9% at 90% right; raids last about 2-3.5 minutes.
 import { CREATURE_IDS } from "./creatures.ts";
 import { FAST_MULT, SUPER_MULT, SUPER_STREAK } from "./sim.ts";
 
@@ -26,7 +26,7 @@ export const RAGE_SHIELD = 0.1;
 export const RAGE_STOMP = 1.3;
 export const STOMP_EVERY_MS = 8_000;
 export const STOMP_WARN_MS = 3_000;
-export const MAX_RAIDERS = 30;
+export const MAX_RAIDERS = 50;
 
 export const titanHp = (n: number) => TITAN_BASE + TITAN_PER_PLAYER * (Math.max(1, n) - 1);
 export const raiderHp = (n: number) => RAIDER_BASE + RAIDER_PER_PLAYER * (Math.max(1, n) - 1);
@@ -55,9 +55,13 @@ export const ADAPT = {
   /** How strongly each stomp reacts, and the most it can change at one stomp (×e^±0.2 ≈ ±22%). */
   gain: 0.6,
   step: 0.2,
-  /** Lowest and highest toughness. Above ~1.6 very strong big groups lost more often than average ones. */
+  /**
+   * Lowest and highest toughness. Re-tuned for 50 raiders (eighth session): with 1.6, a 90%-right group of 50
+   * lost 45% of raids (more than a 70% group); with 1.45 better groups always win more often (simulated, 301 raids
+   * each, 1-50 players): Titan wins ~60-75% at 50% right, ~30-40% at 70%, ~15-25% at 80%, ~5-9% at 90%.
+   */
   min: 0.35,
-  max: 1.6,
+  max: 1.45,
   /** Seconds of recent damage used to measure the raiders' damage rate. */
   window: 24,
 };
@@ -82,7 +86,7 @@ export type RaiderState = "alive" | "down" | "out";
 /** alive: fighting. down: fainted, waiting for the revive question. out: fainted for good. */
 export const raiderState = (x: Raider): RaiderState => (x.hp > 0 ? "alive" : x.revive === "ready" ? "down" : "out");
 
-/** Everyone who picked a monster, in the order they picked (up to 20). */
+/** Everyone who picked a monster, in the order they picked (up to MAX_RAIDERS = 50). */
 export function newRaid(mode: BossMode, picks: { uid: string; c: string[]; at?: number }[]): Raid {
   const ok = [...picks]
     .filter((p) => CREATURE_IDS.includes(p.c?.[0] ?? ""))

@@ -19,10 +19,10 @@ t("HP grows with the group: Titan 700 + 600, players 300 + 200, stomp 11 + 9.8 p
   assert.ok(Object.values(r.raiders).every((x) => x.hp === 1100));
 });
 
-t("anyone with a monster joins (duplicates allowed), up to 30, in the order they picked", () => {
-  const r = newRaid("ta", [...picks(32), { uid: "bad", c: ["nothing"], at: -1 }]);
-  assert.equal(Object.keys(r.raiders).length, 30);
-  assert.ok(!r.raiders.bad && !r.raiders.u31);
+t("anyone with a monster joins (duplicates allowed), up to 50, in the order they picked", () => {
+  const r = newRaid("ta", [...picks(52), { uid: "bad", c: ["nothing"], at: -1 }]);
+  assert.equal(Object.keys(r.raiders).length, 50);
+  assert.ok(!r.raiders.bad && !r.raiders.u51);
   assert.equal(r.raiders.u0.slot, 0);
 });
 
@@ -159,8 +159,8 @@ const runRaids = (k: number, acc: number) => {
   const times = runs.map((x) => x.time).sort((a, b) => a - b);
   return { median: times[50] / 60, lost: runs.filter((x) => x.winner === "titan").length, all: runs.every((x) => x.winner) };
 };
-t("adaptive Titan: a 70% group loses about 1 raid in 3 at any size (1-30), raids last about 2-3.5 minutes", () => {
-  for (const k of [1, 3, 8, 20, 30]) {
+t("adaptive Titan: a 70% group loses about 1 raid in 3 at any size (1-50), raids last about 2-3.5 minutes", () => {
+  for (const k of [1, 3, 8, 20, 30, 40, 50]) {
     const { median, lost, all } = runRaids(k, 0.7);
     console.log(`   ${String(k).padStart(2)} players, 70% right: median ${median.toFixed(1)} min, Titan wins ${lost}/101`);
     assert.ok(all, "every raid ends");
@@ -168,12 +168,14 @@ t("adaptive Titan: a 70% group loses about 1 raid in 3 at any size (1-30), raids
     assert.ok(lost >= 18 && lost <= 50, `Titan wins ${lost}/101`);
   }
 });
-t("adaptive Titan: no group always wins or always loses (50% and 90% right, 30 players)", () => {
-  for (const acc of [0.5, 0.9]) {
-    const { median, lost } = runRaids(30, acc);
-    console.log(`   30 players, ${acc * 100}% right: median ${median.toFixed(1)} min, Titan wins ${lost}/101`);
-    assert.ok(lost >= 5 && lost <= 97, `Titan wins ${lost}/101`);
-  }
+t("adaptive Titan: no group always wins or always loses (50% and 90% right, 30 and 50 players)", () => {
+  for (const k of [30, 50])
+    for (const acc of [0.5, 0.6, 0.8, 0.9]) {
+      const { median, lost } = runRaids(k, acc);
+      console.log(`   ${k} players, ${acc * 100}% right: median ${median.toFixed(1)} min, Titan wins ${lost}/101`);
+      if (acc === 0.5 || acc === 0.9) assert.ok(lost >= 2 && lost <= 97, `Titan wins ${lost}/101`);
+      if (acc === 0.9) assert.ok(lost < 20, `a 90% group should rarely lose (${lost}/101)`);
+    }
 });
 t("adaptive Titan: toughness rises when the raiders race ahead, falls when they lag, within its limits", () => {
   const r = newRaid("ta", picks(10));
