@@ -3,6 +3,7 @@
 // at the edges; under the water fish swim around your hook. A right answer: a fish swims to the hook, bites,
 // is reeled up and flips into your boat. The view never moves; the question card covers the deep water.
 // Units: 400 wide; the height follows the phone.
+import { pegDoll, darker } from "../rope/scene.ts";
 import type { BoatInfo, LeapKind, PondApi } from "./pondApi.ts";
 
 const UW = 400;
@@ -439,12 +440,15 @@ function fishShape(c: CanvasRenderingContext2D, x: number, y: number, len: numbe
   c.restore();
 }
 
-function boat(c: CanvasRenderingContext2D, x: number, y: number, s: number, t: number, alpha: number, emoji: string, col: string) {
+function boat(c: CanvasRenderingContext2D, x: number, y: number, s: number, t: number, alpha: number, _emoji: string, col: string, i = 0) {
   c.save();
   c.globalAlpha = alpha;
   c.translate(x, y + Math.sin(t / 600) * 2);
   c.scale(s, s);
   c.rotate(Math.sin(t / 900) * 0.03);
+  // The fisher: a wooden peg doll like Pull the Rope (owner, eighth session) in the boat's colour, sitting in
+  // the boat (the hull is drawn over its base) with both hands on the rod's handle.
+  pegDoll(c, { x: -8, gy: -8, s: 0.66, face: 1, colour: { color: col, dark: darker(col) }, emoji: "", pose: "fish", i, t, ropeY: null, handAt: { x: 8, y: -38 } });
   c.fillStyle = "#8b5a2b";
   c.beginPath();
   c.moveTo(-62, -14);
@@ -457,18 +461,6 @@ function boat(c: CanvasRenderingContext2D, x: number, y: number, s: number, t: n
   c.fillRect(-62, -18, 128, 8);
   c.fillStyle = "#6b4423";
   for (let i = -40; i <= 40; i += 26) c.fillRect(i, -10, 3, 26);
-  c.fillStyle = "#fff";
-  c.beginPath();
-  c.arc(-4, -42, 24, 0, 7);
-  c.fill();
-  c.lineWidth = 5;
-  c.strokeStyle = col;
-  c.stroke();
-  c.font = `28px ${EMO}`;
-  c.textAlign = "center";
-  c.textBaseline = "middle";
-  c.fillStyle = "#000";
-  c.fillText(emoji, -4, -40);
   c.restore();
 }
 

@@ -59,7 +59,7 @@ export function emoji(c: CanvasRenderingContext2D, e: string, x: number, y: numb
   c.restore();
 }
 
-export type Pose = "pull" | "power" | "wet" | "win" | "stand";
+export type Pose = "pull" | "power" | "wet" | "win" | "stand" | "fish";
 const WOOD = "#e9c891";
 const HAIR = ["#2b1d14", "#7c2d12", "#111827", "#a16207", "#4a2f1f"];
 
@@ -67,15 +67,29 @@ const HAIR = ["#2b1d14", "#7c2d12", "#111827", "#a16207", "#4a2f1f"];
  * A wooden peg doll, side view. (x, gy) = the foot of the peg; `face` = +1 facing right (towards the rope's
  * other end), −1 facing left. `ropeY` = where the hands hold the rope (null = no rope, e.g. cheering).
  */
-export function pegDoll(c: CanvasRenderingContext2D, o: { x: number; gy: number; s: number; face: 1 | -1; side: Side; emoji: string; pose: Pose; i: number; t: number; ropeY: number | null; you?: boolean }) {
+/** Any colour for a doll (Fishing Derby boats), not only Red / Blue. */
+export type DollColour = { color: string; dark: string };
+export function darker(hex: string, k = 0.7): string {
+  const n = parseInt(hex.replace("#", "").padEnd(6, "0").slice(0, 6), 16);
+  const ch = (v: number) => Math.round(v * k).toString(16).padStart(2, "0");
+  return `#${ch((n >> 16) & 255)}${ch((n >> 8) & 255)}${ch(n & 255)}`;
+}
+
+/**
+ * A wooden peg doll. Pull the Rope: team colour, hands on the rope (ropeY). Fishing Derby (owner, eighth
+ * session: "same like Pull the Rope"): `colour` = the boat's colour, pose "fish", hands on the rod (`handAt`,
+ * a point in the coordinates the doll is drawn in).
+ */
+export function pegDoll(c: CanvasRenderingContext2D, o: { x: number; gy: number; s: number; face: 1 | -1; side?: Side; colour?: DollColour; emoji: string; pose: Pose; i: number; t: number; ropeY: number | null; handAt?: { x: number; y: number }; you?: boolean }) {
   const { s, face, pose, t, i } = o;
-  const col = SIDE_NAME[o.side];
-  let lean = { pull: 0.4, power: 0.6, wet: 0.08, win: 0, stand: 0.05 }[pose];
+  const col = o.colour ?? SIDE_NAME[o.side ?? "red"];
+  let lean = { pull: 0.4, power: 0.6, wet: 0.08, win: 0, stand: 0.05, fish: 0.04 }[pose];
+  if (pose === "fish") lean += Math.sin(t / 700 + i) * 0.03;
   if (pose === "power") lean += Math.sin(t / 36 + i) * 0.025;
   if (pose === "wet") lean += Math.sin(t / 330 + i) * 0.08;
   if (pose === "pull") lean += Math.sin(t / 500 + i) * 0.02;
   const jump = pose === "win" ? -Math.abs(Math.sin(t / 200 + i)) * 16 : 0;
-  if (pose !== "wet") {
+  if (pose !== "wet" && pose !== "fish") {
     c.fillStyle = "rgba(0,0,0,.14)";
     c.beginPath();
     c.ellipse(o.x - face * 6 * s, o.gy + 2, 22 * s, 5 * s, 0, 0, Math.PI * 2);
@@ -87,15 +101,17 @@ export function pegDoll(c: CanvasRenderingContext2D, o: { x: number; gy: number;
   c.scale(face * s, s);
   c.rotate(-lean);
   let hand: [number, number] = [22, -48];
-  if (o.ropeY !== null) {
-    // The rope point in this doll's own (leaning, mirrored) coordinates.
-    const p = c.getTransform().invertSelf().transformPoint(outer.transformPoint(new DOMPoint(o.x + face * 24 * s, o.ropeY)));
+  if (o.handAt || o.ropeY !== null) {
+    // The rope (or rod) point in this doll's own (leaning, mirrored) coordinates.
+    const pt = o.handAt ?? { x: o.x + face * 24 * s, y: o.ropeY as number };
+    const p = c.getTransform().invertSelf().transformPoint(outer.transformPoint(new DOMPoint(pt.x, pt.y)));
     hand = [p.x, p.y];
   }
   let hands: [number, number][];
   if (pose === "win") hands = [[-16 + Math.sin(t / 100) * 3, -100], [16 - Math.sin(t / 100) * 3, -100]];
   else if (pose === "wet") hands = [hand, [-8 + Math.sin(t / 70 + i) * 10, -104]];
   else if (pose === "stand") hands = [[10, -30], [-4, -30]];
+  else if (pose === "fish") hands = [hand, [hand[0] - 6, hand[1] + 7]];
   else hands = [hand, [hand[0] - 7, hand[1] + 3]];
 
   // base and body

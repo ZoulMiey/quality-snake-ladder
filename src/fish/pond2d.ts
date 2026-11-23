@@ -1,5 +1,6 @@
 // The bright cartoon pond (owner's pick, like Snake & Ladder), drawn on a 2D canvas. Used by the projector
 // and by phones that cannot show 3D. Pond units: 1540 × 960, oval pond in the middle.
+import { pegDoll, darker } from "../rope/scene.ts";
 import { boatSpot } from "./rules.ts";
 
 export const PW = 1540;
@@ -212,8 +213,10 @@ export function drawBoat(c: CanvasRenderingContext2D, b: Boat, t: number, look: 
     c.strokeStyle = "rgba(255,255,255,.75)";
     c.lineWidth = 2;
     c.beginPath();
-    c.moveTo(x, y - 6);
-    c.quadraticCurveTo((x + bx) / 2, (y + by) / 2 - 30, bx, by);
+    const hx = x + (bx >= x ? 18 : -18) * k;
+    const hy = y - 34 * k;
+    c.moveTo(hx, hy);
+    c.quadraticCurveTo((hx + bx) / 2, (hy + by) / 2 - 30, bx, by);
     c.stroke();
     c.fillStyle = "#ef4444";
     c.beginPath();
@@ -250,18 +253,11 @@ export function drawBoat(c: CanvasRenderingContext2D, b: Boat, t: number, look: 
   c.save();
   c.globalAlpha = look.snapped || look.dim ? 0.55 : 1;
   const r = 26 * k;
-  c.fillStyle = "#fff";
-  c.beginPath();
-  c.arc(x, y - 4, r, 0, 7);
-  c.fill();
-  c.strokeStyle = b.color;
-  c.lineWidth = 5 * Math.max(0.7, k);
-  c.stroke();
-  c.font = `${r * 1.2}px ${EMO}`;
-  c.textAlign = "center";
-  c.textBaseline = "middle";
-  c.fillStyle = "#000";
-  c.fillText(b.emoji, x, y - 2);
+  // The fisher: a wooden peg doll like Pull the Rope (owner, eighth session) in the boat's colour, facing its
+  // bobber, hands on the rod (the white line starts at its hands).
+  const face: 1 | -1 = b.bx >= x ? 1 : -1;
+  const hand = { x: x + face * 18 * k, y: y - 34 * k };
+  pegDoll(c, { x, gy: y + 12 * k, s: 0.74 * k, face, colour: { color: b.color, dark: darker(b.color) }, emoji: "", pose: "fish", i: b.i, t, ropeY: null, handAt: hand });
   if (look.tags !== false) {
     c.font = `700 ${16 * Math.max(0.85, k)}px ${BODY}`;
     const w = c.measureText(b.name).width + 12;
