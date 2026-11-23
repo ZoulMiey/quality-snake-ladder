@@ -185,6 +185,67 @@ body.land .pile { transform: scale(.85); transform-origin: 50% 100%; margin-top:
 body.four .games { grid-template-columns: repeat(4, 1fr); }
 body.land .name b { font-size: 25px; white-space: nowrap; }
 body.four.land .games { width: 1400px; }
+
+/* Two groups (owner, 23 Nov): E-Games (6) and Physical Game (1) */
+.gamezone { display: grid; gap: 22px; width: 1150px; margin-top: 30px; }
+.sect-h { display: flex; align-items: baseline; justify-content: center; gap: 14px; margin-bottom: 12px; }
+.sect-h b { font-family: "Orbitron"; font-weight: 900; font-size: 30px; letter-spacing: 2px; color: var(--gold2); text-shadow: 0 0 14px rgba(255,190,60,.5); }
+.sect-h small { font-weight: 600; font-size: 20px; color: var(--ice); }
+.gamezone .games { margin-top: 0; width: auto; }
+.egames .games { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.egames .tile .in { flex-direction: row; padding: 14px 14px; gap: 14px; align-items: center; }
+.egames .icon { width: 104px; height: 104px; flex: none; }
+.egames .name { margin: 0; padding: 0; border: 0; background: none; text-align: left; }
+.egames .name b { font-size: 25px; }
+.egames .name small { font-size: 18px; }
+.phys .games { grid-template-columns: 1fr; }
+.phys .tile { background: linear-gradient(160deg, #ffe27a, #d99a1e 45%, #8a5a0c 75%, #ffe27a); box-shadow: 0 0 26px rgba(255,190,60,.55); }
+.phys .tile .in { flex-direction: row; padding: 14px 24px; gap: 22px; align-items: center; justify-content: center; }
+.phys .icon { width: 120px; height: 120px; flex: none; }
+.phys .name { margin: 0; padding: 0; border: 0; background: none; text-align: left; width: auto; }
+.phys .name b { font-size: 34px; }
+.phys .name small { font-size: 22px; }
+.pdesc { display: block; margin-top: 6px; font-size: 18px; color: #e6eeff; line-height: 1.3; }
+.pdesc i { color: var(--ice); }
+.tag { margin-top: 18px; }
+.tag .goldtxt { font-size: 42px; }
+.how { margin-top: 26px; }
+/* Wide: E-Games 6 in a row with the physical game beside them */
+body.land .gamezone { width: 1800px; grid-template-columns: minmax(0, 1fr) 300px; gap: 26px; margin-top: 22px; }
+body.land .egames .games { grid-template-columns: repeat(6, 1fr); gap: 14px; }
+body.land .egames .tile .in, body.land .phys .tile .in { flex-direction: column; padding: 14px 6px 0; gap: 0; }
+body.land .egames .icon { width: 112px; height: 112px; }
+body.land .phys .icon { width: 112px; height: 112px; }
+body.land .egames .name, body.land .phys .name { margin-top: 12px; padding: 10px 4px 12px; text-align: center; border-top: 2px solid rgba(120,200,255,.6); width: 100%; }
+body.land .egames .name b, body.land .phys .name b { font-size: 21px; white-space: nowrap; }
+body.land .egames .name small, body.land .phys .name small { font-size: 15px; }
+body.land .phys .tile .in { padding-bottom: 0; }
+body.land .pdesc { display: none; }
+body.land .sect-h b { font-size: 24px; }
+body.land .sect-h small { font-size: 16px; }
+body.land .sect-h { margin-bottom: 8px; }
+
+/* fit fixes */
+body:not(.land) .tag { display: none; }
+body:not(.land) .details { flex-direction: row; width: auto; gap: 10px; margin-top: 22px; }
+body:not(.land) .info div { padding: 10px 30px !important; gap: 10px; }
+body:not(.land) .info .ic { font-size: 34px; }
+body:not(.land) .info b { font-size: 27px; }
+body:not(.land) .info small { font-size: 15px; letter-spacing: 2px; }
+body:not(.land) .gamezone { margin-top: 26px; }
+body:not(.land) .prize.left, body:not(.land) .prize.right { top: auto; bottom: 150px; }
+body.land .gamezone { width: 1780px; grid-template-columns: minmax(0, 1fr) 250px; }
+body.land .egames .games { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+body.land .phys .sect-h { flex-direction: column; align-items: center; gap: 0; }
+body.land .phys .sect-h b { font-size: 20px; }
+body.land .phys .name b { font-size: 19px; }
+body.land .egames .sect-h { min-height: 50px; align-items: center; }
+body.land .gamezone .games { width: auto; margin-top: 0; }
+body:not(.land) .gamezone { width: 1170px; }
+body:not(.land) .egames .icon { width: 116px; height: 116px; }
+body:not(.land) .egames .name b { font-size: 27px; }
+body:not(.land) .details { margin-top: 28px; }
+body:not(.land) .how { margin-top: 32px; }
 </style>
 </head>
 <body>
@@ -420,12 +481,24 @@ body.four.land .games { width: 1400px; }
 
     <div class="tag"><span class="goldtxt">PLAY · ANSWER · WIN!</span><small>MAIN · JAWAB · MENANG!</small></div>
 
-    <div class="games">
-      <div class="tile"><div class="in"><div class="icon" data-g="snake"></div><div class="name"><b>Snake &amp; Ladder</b><small>Ular &amp; Tangga</small></div></div></div>
-      <div class="tile"><div class="in"><div class="icon" data-g="fish"></div><div class="name"><b>Fishing Derby</b><small>Pertandingan Memancing</small></div></div></div>
-      <div class="tile"><div class="in"><div class="icon" data-g="rope"></div><div class="name"><b>Pull the Rope</b><small>Tarik Tali</small></div></div></div>
-      <div class="tile t-spin"><div class="in"><div class="icon" data-g="spin"></div><div class="name"><b>Quality Spin</b><small>Putaran Kualiti</small></div></div></div>
-      <div class="tile"><div class="in"><div class="icon" data-g="memory"></div><div class="name"><b>Do You Remember?</b><small>Ingat ke Tak?</small></div></div></div>
+    <div class="gamezone">
+      <div class="sect egames">
+        <div class="sect-h"><b>📱 E-GAMES</b><small>Permainan Elektronik · play on your phone</small></div>
+        <div class="games">
+          <div class="tile"><div class="in"><div class="icon" data-g="snake"></div><div class="name"><b>Snake &amp; Ladder</b><small>Ular &amp; Tangga</small></div></div></div>
+          <div class="tile"><div class="in"><div class="icon" data-g="kart"></div><div class="name"><b>Quality Cart</b><small>Kart Kualiti</small></div></div></div>
+          <div class="tile"><div class="in"><div class="icon" data-g="clash"></div><div class="name"><b>Quality Clash</b><small>Pertempuran Kualiti</small></div></div></div>
+          <div class="tile"><div class="in"><div class="icon" data-g="fish"></div><div class="name"><b>Fishing Derby</b><small>Pertandingan Memancing</small></div></div></div>
+          <div class="tile"><div class="in"><div class="icon" data-g="rope"></div><div class="name"><b>Pull the Rope</b><small>Tarik Tali</small></div></div></div>
+          <div class="tile"><div class="in"><div class="icon" data-g="spin"></div><div class="name"><b>Quality Spin</b><small>Putaran Kualiti</small></div></div></div>
+        </div>
+      </div>
+      <div class="sect phys">
+        <div class="sect-h"><b>🤸 PHYSICAL GAME</b><small>Permainan Fizikal</small></div>
+        <div class="games">
+          <div class="tile"><div class="in"><div class="icon" data-g="memory"></div><div class="name"><b>Do You Remember?</b><small>Ingat ke Tak?</small><span class="pdesc">Look, remember, then put it back in the right place!<br><i>Lihat, ingat, susun semula!</i></span></div></div></div>
+        </div>
+      </div>
     </div>
 
     <div class="how">
@@ -452,8 +525,6 @@ if (land) document.body.classList.add("land");
 const pics = opts.includes("pics");
 if (pics) document.body.classList.add("pics");
 const ID = { snake: "iSnake", kart: "iKart", clash: "iClash", fish: "iFish", rope: "iRope", spin: "iSpin", memory: "iMemory" };
-// "#…,nospin": the version without Quality Spin (4 games).
-if (opts.includes("nospin")) { document.querySelector(".t-spin")?.remove(); document.body.classList.add("four"); }
 document.querySelectorAll(".icon[data-g]").forEach((el) => {
   const g = el.dataset.g;
   el.innerHTML = pics ? `<img src="g-${g}.jpg" alt="">` : `<svg viewBox="0 0 200 200"><use href="#${ID[g]}"/></svg>`;
