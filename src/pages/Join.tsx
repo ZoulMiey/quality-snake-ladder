@@ -12,7 +12,7 @@ import RopePhone from "../rope/RopePhone.tsx";
 import { RopePick } from "../rope/RopeLobby.tsx";
 import SpinPhone from "../spin/SpinPhone.tsx";
 import { SpinPick } from "../spin/SpinLobby.tsx";
-import { MAX_PLAYERS, hasPiece, tokenById } from "../lib/tokens.ts";
+import { MAX_PLAYERS } from "../lib/tokens.ts";
 import { unlockAudio } from "../lib/sound.ts";
 import { fixState, type Game, type GameMode, type Player, type PlayerState } from "../lib/types.ts";
 import Header, { GAME_NAMES } from "../components/Header.tsx";
@@ -184,13 +184,9 @@ export default function Join() {
 
 /** 🏠 Home during or after a game: the phone waits for the host's next game (the player stays in the list). */
 function HomeWait({ me, game, onBack }: { me: Player; game: Game; onBack?: () => void }) {
-  const t = tokenById(me.token);
   return (
     <div className="card center lobby-me">
       <LobbyPreview />
-      <div className="me-piece" style={{ ["--c" as string]: t.color }}>
-        {t.emoji}
-      </div>
       <h2>{me.name}</h2>
       <Bi en="Waiting for the host to start the next game…" ms="Menunggu hos memulakan permainan seterusnya…" />
       <p className="muted">
@@ -251,7 +247,6 @@ function JoinForm({ count }: { count: number }) {
         <span>Your name / Nama anda</span>
         <input id="name" value={name} maxLength={20} autoComplete="given-name" onChange={(e) => setName(e.target.value)} placeholder="e.g. Aina" />
       </label>
-      <p className="muted small-note">You get a random piece when the game starts. / Anda akan diberi buah secara rawak apabila permainan bermula.</p>
       {msg && <p className="error">{msg}</p>}
       <button className="big-btn" disabled={busy}>
         {busy ? "Joining…" : "Join / Sertai"}
@@ -260,20 +255,16 @@ function JoinForm({ count }: { count: number }) {
   );
 }
 
+// Owner (eighth session): no piece on the waiting page. Pieces are for Snake & Ladder only and are shown when
+// the game starts ("You are 🦊 Fox" in the countdown); every other game shows only the player's name.
 function Lobby({ uid, me, mode, variant }: { uid: string; me: Player; mode?: GameMode; variant?: string }) {
-  const got = hasPiece(me.token);
-  const t = tokenById(me.token);
   async function leave() {
     await remove(ref(db, `players/${uid}`)).catch(() => {});
   }
   return (
     <div className="card center lobby-me">
       <LobbyPreview mode={mode} />
-      <div className={`me-piece ${got ? "" : "unknown"}`} style={{ ["--c" as string]: t.color }}>
-        {t.emoji}
-      </div>
       <h2>{me.name}</h2>
-      {!got && <Bi en="Your piece is given at random when the game starts." ms="Buah anda diberi secara rawak apabila permainan bermula." className="piece-note" />}
       {mode ? (
         <>
           <Bi en="You're in! Watch the big screen. The game starts soon." ms="Anda sudah masuk! Lihat skrin besar. Permainan akan bermula." />

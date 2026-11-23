@@ -78,7 +78,7 @@ export default function RaidPhone({ uid, me, game, onExit }: { uid: string; me: 
       </div>
     ) : null;
   } else if (counting && game.goAt) {
-    center = <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="phone-cd"  you={me.token} />;
+    center = <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="phone-cd" />;
   } else if (!mine) {
     sheet = <Bi className="cph-note" en="You are watching this raid. Cheer on the big screen!" ms="Anda menonton serangan ini. Sorak di skrin besar!" />;
   } else if (st === "out") {

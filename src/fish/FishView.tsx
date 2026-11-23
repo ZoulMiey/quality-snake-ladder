@@ -43,7 +43,7 @@ export default function FishView({ game, players, feed, onAgain }: { game: Game;
       layoutBoats(
         boatOrder(players).map((uid) => {
           const t = tokenById(players[uid]?.token);
-          return { uid, emoji: t.emoji, color: t.color, name: players[uid]?.name ?? "Player" };
+          return { uid, emoji: "🎣", color: t.color, name: players[uid]?.name ?? "Player" }; // no pieces outside Snake & Ladder
         }),
       ),
     [players],
@@ -220,7 +220,6 @@ export default function FishView({ game, players, feed, onAgain }: { game: Game;
           <div className="m-cards">
             {cards.map((e, i) => {
               const p = players[e.uid];
-              const t = tokenById(p?.token);
               return (
                 <div key={`${e.uid}-${e.at}`} className={`m-card fish-card ${e.kind} ${i ? "compact" : ""}`}>
                   <div className="m-card-head">
@@ -228,7 +227,7 @@ export default function FishView({ game, players, feed, onAgain }: { game: Game;
                     <small>{e.kind === "gold" ? "IKAN EMAS SUPER BESAR!" : "IKAN BESAR!"}</small>
                   </div>
                   <div className="m-card-who">
-                    {t.emoji} {p?.name ?? "Player"}
+                    {p?.name ?? "Player"}
                   </div>
                   <div className="m-card-res">
                     <b>
@@ -252,7 +251,6 @@ export default function FishView({ game, players, feed, onAgain }: { game: Game;
               return (
                 <li key={uid} style={{ ["--c" as string]: t.color }}>
                   <span className="r-pos">{i + 1}</span>
-                  <span className="r-emoji">{t.emoji}</span>
                   <span className="r-name">{p?.name}</span>
                   <span className="r-streak">{st.gold ? `✨${st.gold}` : st.big ? `🐠${st.big}` : ""}</span>
                   <span className="r-box">{st.kg.toFixed(1)} kg</span>
@@ -343,21 +341,16 @@ function zoomBanner(c: CanvasRenderingContext2D, e: Fx, b: Boat, u: number) {
 
 function FishPodium({ order, players, onAgain }: { order: [string, FishState][]; players: Record<string, Player>; onAgain: () => void }) {
   const so = shoutOuts(order);
-  const who = (uid: string) => {
-    const t = tokenById(players[uid]?.token);
-    return `${t.emoji} ${players[uid]?.name ?? "Player"}`;
-  };
+  const who = (uid: string) => players[uid]?.name ?? "Player";
   return (
     <div className="podium-overlay">
       <div className="podium">
         <h2>🏆 Winners / Pemenang</h2>
         <ol>
           {order.slice(0, 3).map(([uid, st], i) => {
-            const t = tokenById(players[uid]?.token);
             return (
               <li key={uid} className={`place p${i + 1}`}>
                 <span className="pl-rank">#{i + 1}</span>
-                <span className="pl-emoji">{t.emoji}</span>
                 <span className="pl-name">{players[uid]?.name ?? "Player"}</span>
                 <span className="pl-box">{st.kg.toFixed(1)} kg</span>
               </li>

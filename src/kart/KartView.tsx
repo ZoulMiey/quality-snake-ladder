@@ -334,11 +334,9 @@ export default function KartView({ game, players, feed, onAgain }: { game: Game;
               <ol>
                 {results.slice(0, 5).map((r, i) => {
                   const p = players[r.uid];
-                  const t = tokenById(p?.token);
                   return (
                     <li key={r.uid} className={`place p${i + 1}`}>
                       <span className="pl-rank">#{i + 1}</span>
-                      <span className="pl-emoji">{t.emoji}</span>
                       <span className="pl-name">{p?.name ?? "Player"}</span>
                       <span className="pl-box">{r.finished ? fmt(r.time) : `Lap ${r.lap}`}</span>
                     </li>
@@ -363,7 +361,6 @@ export default function KartView({ game, players, feed, onAgain }: { game: Game;
               return (
                 <li key={uid} style={{ ["--c" as string]: t.color }}>
                   <span className="r-pos">{m.rank}</span>
-                  <span className="r-emoji">{t.emoji}</span>
                   <span className="r-name">{p.name}</span>
                   <span className="r-item">{m.item ? ITEMS[m.item as keyof typeof ITEMS]?.icon : ""}</span>
                   <span className="r-box">{m.finished ? "🏁" : `L${m.lap}`}</span>

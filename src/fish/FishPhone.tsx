@@ -75,7 +75,7 @@ export default function FishPhone({ uid, me, game, onExit }: { uid: string; me: 
     pond.current.setBoats(
       boatOrder(players).map((u) => {
         const t = tokenById(players[u]?.token);
-        return { uid: u, emoji: t.emoji, color: t.color, name: players[u]?.name ?? "" };
+        return { uid: u, emoji: "🎣", color: t.color, name: players[u]?.name ?? "" }; // no pieces outside Snake & Ladder
       }),
       uid,
     );
@@ -171,7 +171,6 @@ export default function FishPhone({ uid, me, game, onExit }: { uid: string; me: 
   return (
     <div className="slp-stage fish-phone">
       <div className="status-strip fp-strip" style={{ ["--c" as string]: t.color }}>
-        <span className="me-mini">{t.emoji}</span>
         <span className="me-name">
           {rank ? <b>#{rank} </b> : null}
           {me.name}
@@ -227,7 +226,7 @@ export default function FishPhone({ uid, me, game, onExit }: { uid: string; me: 
       </div>
       {game.goAt && serverNow() < game.goAt + 900 && (
         <div className="slp-overlay">
-          <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="slp-cd" you={me.token} />
+          <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="slp-cd" />
         </div>
       )}
       {showAlert && (showAlert.kind === "big" || showAlert.kind === "gold") && <FishAlert a={showAlert} />}
@@ -371,13 +370,10 @@ function FishQuestion({ uid, st, paused, pausedAt }: { uid: string; st: FishStat
 }
 
 function FishEnded({ me, st, rank, total, onExit }: { me: Player; st: FishState; rank: number | null | undefined; total: number; onExit: () => void }) {
-  const t = tokenById(me.token);
   return (
     <>
       <div className="card center fish-ended">
-        <div className="me-piece" style={{ ["--c" as string]: t.color }}>
-          {t.emoji}
-        </div>
+        <h2>{me.name}</h2>
         <Bi en="Time's up! Thank you for fishing." ms="Masa tamat! Terima kasih kerana memancing." className="title" />
         {rank ? (
           <div className="fe-rank">

@@ -201,7 +201,7 @@ export default function ClashPhone({ uid, me, game, onExit }: { uid: string; me:
       </div>
     );
   } else if (counting && game.goAt) {
-    center = <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="phone-cd"  you={me.token} />;
+    center = <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="phone-cd" />;
   } else if (!side) {
     sheet = <Bi className="cph-note" en="You are watching this battle. Cheer on the big screen!" ms="Anda menonton pertempuran ini. Sorak untuk pasukan anda!" />;
   } else if (!isAlive(b, uid)) {

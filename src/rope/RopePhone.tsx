@@ -6,7 +6,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ref, set } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
-import { tokenById } from "../lib/tokens.ts";
 import { sfx, unlockAudio } from "../lib/sound.ts";
 import Countdown from "../components/Countdown.tsx";
 import type { FeedItem, Game, Player } from "../lib/types.ts";
@@ -79,8 +78,7 @@ export default function RopePhone({ uid, me, game, onExit }: { uid: string; me: 
       }
       const c = canvas.getContext("2d")!;
       c.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const emojiOf: Record<string, string> = {};
-      for (const [u, p] of Object.entries(players)) emojiOf[u] = tokenById(p.token).emoji;
+      const emojiOf: Record<string, string> = {}; // no pieces outside Snake & Ladder: plain peg dolls
       const order = { red: rope.order.red.filter((u) => players[u]), blue: rope.order.blue.filter((u) => players[u]) };
       const over = rope.phase !== "play" && rope.last && rope.last.win !== "draw" ? { win: rope.last.win as Side, at: rope.last.at } : null;
       const clk = ropeClock(game, rope);
@@ -264,7 +262,7 @@ export default function RopePhone({ uid, me, game, onExit }: { uid: string; me: 
       </div>
       {game.goAt && serverNow() < game.goAt + 900 && (
         <div className="slp-overlay">
-          <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="slp-cd" you={me.token} />
+          <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="slp-cd" />
           <div className={`rp-youteam ${mySide}`}>
             Your team / Pasukan anda: <b>{col.en.toUpperCase()} · {col.ms.toUpperCase()}</b>
           </div>
@@ -461,7 +459,6 @@ function RopeQuestion({ uid, st, paused, pausedAt }: { uid: string; st: RopeStat
 
 function RopeEnded({ uid, me, st, game, players, onExit }: { uid: string; me: Player; st: RopeState; game: Game; players: Record<string, Player>; onExit: () => void }) {
   const rope = fixRope(game.rope);
-  const t = tokenById(me.token);
   const champ = rope?.champion;
   const won = champ === st.side;
   const mvpUid = game.winners?.[0];
@@ -469,9 +466,7 @@ function RopeEnded({ uid, me, st, game, players, onExit }: { uid: string; me: Pl
   return (
     <>
       <div className={`card center fish-ended rope-ended ${won ? "won" : ""}`}>
-        <div className="me-piece" style={{ ["--c" as string]: SIDE_NAME[st.side].color }}>
-          {t.emoji}
-        </div>
+        <h2>{me.name}</h2>
         <Bi
           en={champ === "draw" ? "It's a draw!" : won ? "Your team wins! 🎉" : `${SIDE_NAME[champ ?? other(st.side)].en} wins. Good effort!`}
           ms={champ === "draw" ? "Seri!" : won ? "Pasukan anda menang!" : `${SIDE_NAME[champ ?? other(st.side)].ms} menang. Usaha yang baik!`}
@@ -489,7 +484,7 @@ function RopeEnded({ uid, me, st, game, players, onExit }: { uid: string; me: Pl
         </ul>
         {mvp && (
           <p>
-            ⭐ MVP: <b>{tokenById(mvp.token).emoji} {mvp.name}</b>
+            ⭐ MVP: <b>{mvp.name}</b>
             {mvpUid === uid ? " (you! / anda!)" : ""}
           </p>
         )}

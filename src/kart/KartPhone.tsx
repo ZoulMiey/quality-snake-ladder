@@ -187,7 +187,6 @@ export default function KartPhone({ uid, me, game, onExit, onHome }: { uid: stri
     return (
       <div className="cart-phone">
         <div className="status-strip" style={{ ["--c" as string]: t.color }}>
-          <span className="me-mini">{t.emoji}</span>
           <span className="me-name">{me.name}</span>
           <span className="box-pill">{cart ? `${ordinal(cart.rank)}/${cart.of}` : "—"}</span>
           <span className="lap-pill">Lap {cart ? Math.min(cart.lap, LAPS) : 1}/{LAPS}</span>
@@ -270,7 +269,7 @@ export default function KartPhone({ uid, me, game, onExit, onHome }: { uid: stri
       {warnSecs > 0 && <QuestionSoon secs={warnSecs} />}
       {counting && game.goAt && (
         <div className="kr-center">
-          <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="kr-cd"  you={me.token} />
+          <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="kr-cd" />
         </div>
       )}
       {tilt.state !== "on" && tilt.state !== "checking" && (

@@ -6,7 +6,6 @@ import { get, onValue, ref, set, update } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
 import { readAll } from "../lib/readAll.ts";
 import { pickQuestion, shuffleOptions } from "../lib/rules.ts";
-import { tokenById } from "../lib/tokens.ts";
 import type { FeedItem, Game, Player, Question } from "../lib/types.ts";
 import { COUNTDOWN_MS } from "../lib/engine.ts";
 import { ITEMS, SUPER_STREAK, answerEffect, effectOf, lapOf, newWorld, standings, step, useItem, type RaceEvent, type World } from "./sim.ts";
@@ -284,7 +283,7 @@ export class KartEngine {
 
   private name(uid: string) {
     const p = this.players[uid];
-    return `${tokenById(p?.token).emoji} ${p?.name ?? "Player"}`;
+    return p?.name ?? "Player"; // names only (pieces are for Snake & Ladder)
   }
 
   private pushFeed(text: string, tone: FeedItem["tone"] = "info") {

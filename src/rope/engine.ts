@@ -9,7 +9,6 @@ import { db, serverNow } from "../lib/firebase.ts";
 import { readAll } from "../lib/readAll.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";
 import { pickQuestion, shuffleOptions } from "../lib/rules.ts";
-import { tokenById } from "../lib/tokens.ts";
 import { COUNTDOWN_MS } from "../lib/engine.ts";
 import type { FeedItem, Game, Player, Question, RopeGame } from "../lib/types.ts";
 import {
@@ -443,7 +442,7 @@ export class RopeEngine {
   }
 
   private who(uid: string) {
-    return `${tokenById(this.players[uid]?.token).emoji} ${this.players[uid]?.name ?? "Player"}`;
+    return this.players[uid]?.name ?? "Player";
   }
 
   private async endRound(how: "bank" | "time") {

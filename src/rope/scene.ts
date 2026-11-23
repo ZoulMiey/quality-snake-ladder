@@ -120,8 +120,11 @@ export function pegDoll(c: CanvasRenderingContext2D, o: { x: number; gy: number;
   c.fill();
   c.fillStyle = col.dark;
   c.fillRect(-10, -20, 20, 3);
-  circ(c, 1, -36, 8.5, "#fff");
-  emoji(c, o.emoji, 1, -36, 11.5, face);
+  // The badge on the belly: no pieces outside Snake & Ladder (owner, eighth session), so it is left off when empty.
+  if (o.emoji) {
+    circ(c, 1, -36, 8.5, "#fff");
+    emoji(c, o.emoji, 1, -36, 11.5, face);
+  }
   for (const h of hands) {
     line(c, [0, -52], h, 5, "#d9b277");
     circ(c, h[0], h[1], 3.5, WOOD);

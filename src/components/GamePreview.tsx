@@ -228,7 +228,7 @@ function clash(c: CanvasRenderingContext2D, t: number) {
 }
 
 // ---------- Fishing Derby: boats bob, fish leap in, now and then a golden one ----------
-const FISH_PEOPLE = ["🦁", "🐼", "🦊", "🐳", "🐸", "🚀", "⭐", "🦆"].map((emoji, i) => ({ uid: String(i), emoji, color: ["#f59e0b", "#64748b", "#c2410c", "#2563eb", "#65a30d", "#6366f1", "#eab308", "#0d9488"][i], name: "" }));
+const FISH_PEOPLE = ["🎣", "🎣", "🎣", "🎣", "🎣", "🎣", "🎣", "🎣"].map((emoji, i) => ({ uid: String(i), emoji, color: ["#f59e0b", "#64748b", "#c2410c", "#2563eb", "#65a30d", "#6366f1", "#eab308", "#0d9488"][i], name: "" }));
 const FISH_BOATS = layoutBoats(FISH_PEOPLE);
 function fish(c: CanvasRenderingContext2D, t: number) {
   const k = Math.max(W / PW, H / PH) * 1.05;
@@ -252,7 +252,6 @@ function fish(c: CanvasRenderingContext2D, t: number) {
 }
 
 // ---------- Pull the Rope: the flag swings, a front player slips in with a splash ----------
-const ROPE_PIECES = { red: ["🦁", "🐼", "🦊", "🐸"], blue: ["🐳", "🚀", "⭐", "🐧"] };
 function rope(c: CanvasRenderingContext2D, t: number) {
   // Closer than the projector: the players and the river fill the picture.
   const k = (W / SW) * 1.55;
@@ -276,7 +275,7 @@ function rope(c: CanvasRenderingContext2D, t: number) {
       px += dir * s > 0 ? s * 0.3 : s;
       const inRiver = px > RIVER_L + 8 && px < RIVER_R - 8;
       const pose: Pose = inRiver ? "wet" : heave && i % 2 === 0 ? "power" : "pull";
-      pegDoll(c, { x: px, gy: inRiver ? WATER_Y + 30 : sp.gy, s: sp.s * 1.15, face: team === "red" ? 1 : -1, side: team, emoji: ROPE_PIECES[team][i], pose, i, t: ms, ropeY: ROPE_Y });
+      pegDoll(c, { x: px, gy: inRiver ? WATER_Y + 30 : sp.gy, s: sp.s * 1.15, face: team === "red" ? 1 : -1, side: team, emoji: "", pose, i, t: ms, ropeY: ROPE_Y });
     });
   }
   drawFlag(c, CX + s, ROPE_Y + 2);

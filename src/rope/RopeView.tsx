@@ -5,7 +5,6 @@ import EndButtons from "../components/EndButtons.tsx";
 import { useEffect, useMemo, useRef } from "react";
 import { serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
-import { tokenById } from "../lib/tokens.ts";
 import { sfx } from "../lib/sound.ts";
 import Countdown from "../components/Countdown.tsx";
 import type { FeedItem, Game, Player, RopeGame } from "../lib/types.ts";
@@ -204,7 +203,7 @@ export default function RopeView({ game, players, feed, onAgain, onStartRound }:
           const d = wet[sp.uid];
           if (d > 0.05) pose = "wet";
           const p = players[sp.uid];
-          figs.push({ uid: sp.uid, side, row: sp.row, x, gy: sp.gy + (WATER_Y + 26 * sp.s - sp.gy) * d, s: sp.s, pose, i: idx, emoji: tokenById(p?.token).emoji, name: p?.name ?? "", wet: d > 0.05 });
+          figs.push({ uid: sp.uid, side, row: sp.row, x, gy: sp.gy + (WATER_Y + 26 * sp.s - sp.gy) * d, s: sp.s, pose, i: idx, emoji: "", name: p?.name ?? "", wet: d > 0.05 });
         });
       }
       const maxRow = Math.max(0, ...figs.map((f) => f.row));
@@ -359,11 +358,9 @@ export default function RopeView({ game, players, feed, onAgain, onStartRound }:
           <ul className={`ranking fish-ranking rope-ranking ${order.length > 10 ? "many" : ""}`}>
             {order.slice(0, LIST_MAX).map(([uid, st], i) => {
               const p = players[uid];
-              const tk = tokenById(p?.token);
               return (
                 <li key={uid} style={{ ["--c" as string]: SIDE_NAME[st.side].color }}>
                   <span className="r-pos">{i + 1}</span>
-                  <span className="r-emoji">{tk.emoji}</span>
                   <span className="r-name">{p?.name}</span>
                   <span className="r-streak">{st.streak >= 2 ? `🔥${st.streak}` : ""}</span>
                   <span className="r-box">✔ {st.correct}</span>
@@ -478,10 +475,7 @@ function RopePodium({ rope, states, players, onAgain }: { rope: RopeGame; states
   const mvp = mvpOrder(list);
   const so = shoutOuts(list);
   const champ = rope.champion;
-  const who = (uid: string) => {
-    const t = tokenById(players[uid]?.token);
-    return `${t.emoji} ${players[uid]?.name ?? "Player"}`;
-  };
+  const who = (uid: string) => players[uid]?.name ?? "Player";
   const teamTop = (side: Side) => mvp.find(([, s]) => s.side === side);
   return (
     <div className="podium-overlay rope-podium">
@@ -500,7 +494,6 @@ function RopePodium({ rope, states, players, onAgain }: { rope: RopeGame; states
           <ol>
             <li className="place p1">
               <span className="pl-rank">MVP</span>
-              <span className="pl-emoji">{tokenById(players[mvp[0][0]]?.token).emoji}</span>
               <span className="pl-name">{players[mvp[0][0]]?.name ?? "Player"}</span>
               <span className="pl-box">✔ {mvp[0][1].correct}</span>
             </li>

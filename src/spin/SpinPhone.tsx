@@ -5,7 +5,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ref, set } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
 import { useNow } from "../lib/useDb.ts";
-import { tokenById } from "../lib/tokens.ts";
 import { sfx, unlockAudio } from "../lib/sound.ts";
 import Countdown from "../components/Countdown.tsx";
 import type { Game, Player } from "../lib/types.ts";
@@ -120,7 +119,7 @@ export default function SpinPhone({ uid, me, game, onExit }: { uid: string; me: 
       {game.paused && <div className="paused-bar">Paused by host / Dihentikan seketika</div>}
       {counting ? (
         <div className="sp-count">
-          <Countdown goAt={game.goAt!} frozenAt={game.paused ? game.pausedAt : null} className="slp-cd" you={me.token} />
+          <Countdown goAt={game.goAt!} frozenAt={game.paused ? game.pausedAt : null} className="slp-cd" />
           {t && (
             <div className={`rp-youteam ${t.side}`}>
               Your team / Pasukan anda: <b>{SIDE_NAME[t.side].en.toUpperCase()}</b>
@@ -537,13 +536,10 @@ function WatchScreen({ spin }: { spin: NonNullable<ReturnType<typeof fixSpin>> }
 function SpinEnded({ uid, me, spin, mySide, onExit }: { uid: string; me: Player; spin: NonNullable<ReturnType<typeof fixSpin>>; mySide: Side | null; players: Record<string, Player>; onExit: () => void }) {
   const champ = spin.champion;
   const won = !!mySide && champ === mySide;
-  const t = tokenById(me.token);
   return (
     <>
       <div className={`card center fish-ended spin-ended ${won ? "won" : ""}`}>
-        <div className="me-piece" style={{ ["--c" as string]: mySide ? SIDE_NAME[mySide].color : t.color }}>
-          {t.emoji}
-        </div>
+        <h2>{me.name}</h2>
         <Bi
           en={champ === "draw" ? "It's a draw!" : won ? "Your team wins! 🎉" : mySide ? `${SIDE_NAME[other(mySide)].en} wins. Good effort!` : `${SIDE_NAME[champ ?? "red"].en} wins!`}
           ms={champ === "draw" ? "Seri!" : won ? "Pasukan anda menang!" : mySide ? `${SIDE_NAME[other(mySide)].ms} menang. Usaha yang baik!` : `${SIDE_NAME[champ ?? "red"].ms} menang!`}

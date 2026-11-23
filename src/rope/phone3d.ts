@@ -330,14 +330,17 @@ function drawPeg(
   const mx = base.x + ax * 0.55;
   const my = base.y + ay * 0.55;
   const br = Math.max(4, 0.12 * k);
-  c.beginPath();
-  c.arc(mx, my, br, 0, Math.PI * 2);
-  c.fillStyle = "#fff";
-  c.fill();
-  c.font = `${br * 1.4}px ${EMO}`;
-  c.textAlign = "center";
-  c.textBaseline = "middle";
-  c.fillText(sc.emoji[fg.uid] ?? "❔", mx, my + br * 0.07);
+  const badge = sc.emoji[fg.uid];
+  if (badge) {
+    c.beginPath();
+    c.arc(mx, my, br, 0, Math.PI * 2);
+    c.fillStyle = "#fff";
+    c.fill();
+    c.font = `${br * 1.4}px ${EMO}`;
+    c.textAlign = "center";
+    c.textBaseline = "middle";
+    c.fillText(badge, mx, my + br * 0.07);
+  }
   if (front) arm();
   // head
   const hr = Math.max(3, 0.2 * head.k);

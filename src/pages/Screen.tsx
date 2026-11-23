@@ -240,8 +240,10 @@ function HostScreen() {
     setMsg("");
     const e = makeEngine(game?.mode, tabId, game?.clashFormat);
     try {
-      // Everyone gets a different random piece (players who already have one keep it).
-      const pieces = assignPieces(players ?? {});
+      // A new random piece for everyone at every Start, Play again too (owner, eighth session: players find out
+      // in the countdown; only Snake & Ladder shows pieces, Quality Cart uses their colours for the carts).
+      const fresh = Object.fromEntries(Object.entries(players ?? {}).map(([uid, p]) => [uid, { ...p, token: "" }]));
+      const pieces = assignPieces(fresh);
       if (Object.keys(pieces).length) await update(ref(db), Object.fromEntries(Object.entries(pieces).map(([uid, id]) => [`players/${uid}/token`, id])));
       engine.current = e;
       await e.start();
@@ -636,10 +638,9 @@ function LobbyView({
         {mode !== "rope" && mode !== "clash" && mode !== "spin" && (
           <ul className="lobby-players">
             {list.map(([uid, p]) => {
-              const t = tokenById(p.token);
+              // Names only before the game starts (pieces are given at Start, Snake & Ladder only).
               return (
-                <li key={uid} style={{ ["--c" as string]: t.color }}>
-                  <span className="lp-emoji">{t.emoji}</span>
+                <li key={uid}>
                   <span className="lp-name">{p.name}</span>
                   <button className="x" aria-label={`Remove ${p.name}`} onClick={() => removePlayer(uid)}>
                     ×

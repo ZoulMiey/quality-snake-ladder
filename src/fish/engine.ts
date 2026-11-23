@@ -9,7 +9,6 @@ import { db, serverNow } from "../lib/firebase.ts";
 import { readAll } from "../lib/readAll.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";
 import { pickQuestion, shuffleOptions } from "../lib/rules.ts";
-import { tokenById } from "../lib/tokens.ts";
 import { COUNTDOWN_MS } from "../lib/engine.ts";
 import type { FeedItem, Game, Player, Question } from "../lib/types.ts";
 import { GAME_MS, QUESTION_MS, RESULT_MS, addCatch, catchFor, fixFishState, frenzyAt, newFishState, rankFishers, type Catch, type FishState } from "./rules.ts";
@@ -275,7 +274,7 @@ export class FishEngine {
       st.phase = "result";
       st.until = now + RESULT_MS[result.kind];
       await update(ref(db), { [`answers/${uid}`]: null, [`state/${uid}`]: st });
-      const who = `${tokenById(this.players[uid]?.token).emoji} ${this.players[uid]?.name ?? "Player"}`;
+      const who = this.players[uid]?.name ?? "Player";
       await this.pushFeed(feedFor(now, uid, who, result));
       this.onEvent?.({ type: "catch", uid, result });
     } finally {

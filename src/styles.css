@@ -399,7 +399,7 @@ button:disabled { cursor: default; }
 .race-canvas { display: block; width: 100%; height: 100%; }
 .race-legend { position: absolute; left: 12px; bottom: 10px; display: flex; gap: 10px; flex-wrap: wrap; font-size: 13px; font-weight: 600; }
 .race-legend span { background: rgba(0,0,0,.45); padding: 2px 8px; border-radius: 999px; }
-.cart-ranking li { grid-template-columns: 22px 22px minmax(0, 1fr) 22px 34px; }
+.cart-ranking li { grid-template-columns: 22px minmax(0, 1fr) 22px 34px; /* no piece column (names only outside Snake & Ladder) */ }
 .r-pos { font-family: var(--display); font-weight: 800; font-size: 15px; text-align: center; }
 .r-item { font-size: 15px; text-align: center; }
 
@@ -959,7 +959,7 @@ button:disabled { cursor: default; }
 .fish-shout b { font-family: var(--display); font-size: 20px; color: var(--gold); }
 .fish-shout span { font-weight: 700; font-size: 18px; }
 .fish-shout small { opacity: .75; }
-.fish-ranking li { grid-template-columns: 22px 24px minmax(0, 1fr) auto 76px; }
+.fish-ranking li { grid-template-columns: 22px minmax(0, 1fr) auto 76px; }
 
 /* Fishing Derby: phone */
 .fp-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; border-radius: 12px; }
@@ -1051,7 +1051,7 @@ button:disabled { cursor: default; }
 .rs-team small { grid-column: 1; opacity: .85; font-size: 12px; }
 .rs-team .rs-wins { grid-column: 2; grid-row: 1 / span 2; font-family: var(--display); font-weight: 800; font-size: 40px; line-height: 1; }
 .rs-team .rs-meta { grid-column: 1 / span 2; font-size: 12px; font-weight: 700; opacity: .9; }
-.rope-ranking li { grid-template-columns: 22px 24px minmax(0, 1fr) auto 52px; }
+.rope-ranking li { grid-template-columns: 22px minmax(0, 1fr) auto 52px; }
 .rope-podium h2 small { display: block; font-size: 26px; opacity: .85; }
 .rope-podium h2.rp-champ.red { color: #ff8a8d; } .rope-podium h2.rp-champ.blue { color: #8cc6ff; }
 .rope-podium .fish-shout b { color: var(--gold); }
@@ -1533,3 +1533,5 @@ button:disabled { cursor: default; }
 .card.bye { display: grid; gap: 12px; }
 .card.bye .trophy { margin-bottom: 0; }
 .card.bye .small-note { margin: 4px 0 0; }
+/* Podium rows without a piece (every game except Snake & Ladder): rank | name | score. */
+.place:not(:has(.pl-emoji)) { grid-template-columns: 70px 1fr auto; }
