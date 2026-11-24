@@ -1,4 +1,5 @@
 // Draws a Boss Raid frame: "wide" for the projector (16:9), "tall" for phones (9:16, from one player's view).
+import type { Stage3D } from "./stage3d.ts";
 import type { Game, Player } from "../lib/types.ts";
 import { ELEMENTS, creatureById } from "./creatures.ts";
 import { sprite } from "./sprites.ts";
@@ -357,24 +358,44 @@ function defeatCountdown(c: Ctx, cx: number, cy: number, size: number, endAge: n
   c.restore();
 }
 
-function drawTitan(c: Ctx, V: View, r: RaidBoard, cx: number, feet: number, scale: number, t: number, endAge: number) {
+function drawTitan(c: Ctx, V: View, r: RaidBoard, cx: number, feet: number, scale: number, t: number, endAge: number, S3: Stage3D | null = null) {
   const w = 64 * scale;
   let y = feet - 63 * scale;
   if (V.warn >= 0) y -= (1 - V.warn / 3) * 14;
   if (V.counter) y -= 10;
   if (r.winner === "players") {
     // Owner: the defeated Titan breaks, then explodes with a boom and fire.
-    if (endAge >= DEFEAT.boom) return explosion(c, cx, y + w * 0.5, feet, w, endAge - DEFEAT.boom, t);
+    if (endAge >= DEFEAT.boom) {
+      // 3D: the Titan's blocks fly apart under the 2D fireball and smoke
+      if (S3) S3.titan(cx, feet, w, { boom: endAge - DEFEAT.boom });
+      return explosion(c, cx, y + w * 0.5, feet, w, endAge - DEFEAT.boom, t);
+    }
     const k = endAge / DEFEAT.boom;
     const shake = 2 + k * k * 12;
     const dx = (Math.random() - 0.5) * shake;
     const dy = (Math.random() - 0.5) * shake;
-    c.imageSmoothingEnabled = false;
-    c.drawImage(titan(Math.floor(endAge * (6 + k * 14)) % 2 === 0 ? "white" : "red"), cx - w / 2 + dx, y + dy, w, w);
+    const white = Math.floor(endAge * (6 + k * 14)) % 2 === 0;
+    if (S3) S3.titan(cx, feet, w, { flash: white, red: white ? 0 : 0.7, jitter: shake, lift: feet - 63 * scale - y - dy });
+    else {
+      c.imageSmoothingEnabled = false;
+      c.drawImage(titan(white ? "white" : "red"), cx - w / 2 + dx, y + dy, w, w);
+    }
     cracks(c, cx + dx, y + w * 0.45 + dy, w, k);
     return;
   }
   y += Math.sin(t * 2) * 2;
+  if (S3) {
+    const blink = V.warn >= 0 && Math.floor(t * 6) % 2 === 0;
+    const raging = r.titan.rage;
+    S3.titan(cx, feet, w, { flash: V.titanFlash, red: (raging ? !blink : blink) ? 0.55 + (raging ? 0.15 * Math.sin(t * 5) : 0) : 0, rage: raging, lift: feet - 63 * scale - y });
+    if (V.titanSh > 0.5) S3.bubble("titan", 0.4 + 0.15 * Math.sin(t * 6));
+    if (V.stompAge >= 0)
+      for (let k = 0; k < 3; k++) {
+        const a = V.stompAge - k * 0.15;
+        if (a >= 0) S3.ring(cx, feet, 60 + a * 520, Math.max(0, 1 - a / 1.2));
+      }
+    return;
+  }
   c.fillStyle = "#2a2440";
   c.beginPath();
   c.ellipse(cx, feet, w * 0.7, w * 0.14, 0, 0, 7);
@@ -452,10 +473,15 @@ function shot(c: Ctx, from: [number, number], to: [number, number], type: string
   }
 }
 
-function raider(c: Ctx, V: View, x: Raider, px: number, feet: number, scale: number, t: number, stunned: boolean, players: Record<string, Player>, opts: { me?: boolean; label?: boolean }) {
+function raider(c: Ctx, V: View, x: Raider, px: number, feet: number, scale: number, t: number, stunned: boolean, players: Record<string, Player>, opts: { me?: boolean; label?: boolean }, S3: Stage3D | null = null) {
   const w = 40 * scale;
   const dead = V.down[x.uid];
   let y = feet - 37 * scale - (V.hop[x.uid] ?? 0) * 10 + Math.sin(t * 3 + x.slot) * 1;
+  if (S3) {
+    // 3D: fainted or out = grey and see-through, like the 2D picture
+    S3.monster(x.uid, x.c, true, px, feet, w, { flash: V.flash[x.uid], grey: dead ? 1 : 0, alpha: dead ? 0.6 : 1, lift: feet - 37 * scale - y - (dead ? 4 * scale : 0) });
+    if (dead) y += 4 * scale;
+  } else {
   c.fillStyle = "rgba(0,0,0,.25)";
   c.beginPath();
   c.ellipse(px, feet, w * 0.3, w * 0.07, 0, 0, 7);
@@ -470,6 +496,7 @@ function raider(c: Ctx, V: View, x: Raider, px: number, feet: number, scale: num
   }
   c.drawImage(sprite(x.c, true, V.flash[x.uid] ? "white" : ""), px - w / 2, y, w, w);
   c.restore();
+  }
   if (dead) txt(c, "💫", px, y + 6 * scale, 9 * scale, "#fff", "center", BODY);
   if (stunned && !dead)
     for (let k = 0; k < 3; k++) {
@@ -694,7 +721,7 @@ function wideSpots(n: number): { x: number; feet: number; scale: number }[] {
   });
 }
 
-export function drawRaidWide(c: Ctx, r: RaidBoard, events: RaidEvent[], players: Record<string, Player>, game: Game, now: number) {
+export function drawRaidWide(c: Ctx, r: RaidBoard, events: RaidEvent[], players: Record<string, Player>, game: Game, now: number, S3: Stage3D | null = null) {
   const W = 960;
   const H = 540;
   const V = view(r, events, players, game, now);
@@ -704,23 +731,26 @@ export function drawRaidWide(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
   c.clearRect(0, 0, W, H);
   const shake = V.shake + defeatShake(r, endAge);
   if (shake) c.translate((Math.random() - 0.5) * shake * 2, (Math.random() - 0.5) * shake * 2);
-  floor(c, W, H, 170);
+  S3?.shake(shake);
+  if (!S3) floor(c, W, H, 170);
   const TX = 360;
   const list = Object.values(r.raiders).sort((a, b) => a.slot - b.slot);
   const roomy = list.length > ROOMY;
   const huge = list.length > HUGE;
   const TF = huge ? 238 : roomy ? 262 : 300;
-  drawTitan(c, V, r, TX, TF, huge ? 2.55 : roomy ? 2.85 : 3.4, t, endAge);
+  drawTitan(c, V, r, TX, TF, huge ? 2.55 : roomy ? 2.85 : 3.4, t, endAge, S3);
   const spots = wideSpots(list.length);
   const at: Record<string, { x: number; feet: number; scale: number }> = {};
   list.forEach((x, i) => (at[x.uid] = spots[i]));
-  for (const s of V.shots) {
-    const p = at[s.uid];
-    if (p) shot(c, [p.x, p.feet - 20 * p.scale], [TX, 190], creatureById(r.raiders[s.uid]?.c).type, s.age, s.sup ? 2 : 1, t);
-  }
+  if (!S3)
+    for (const s of V.shots) {
+      const p = at[s.uid];
+      if (p) shot(c, [p.x, p.feet - 20 * p.scale], [TX, 190], creatureById(r.raiders[s.uid]?.c).type, s.age, s.sup ? 2 : 1, t);
+    }
   const stun = r.stun ?? {};
   // Front rows last, so they overlap the rows behind them.
-  for (const x of [...list].sort((a, b) => at[a.uid].feet - at[b.uid].feet)) raider(c, V, x, at[x.uid].x, at[x.uid].feet, at[x.uid].scale, t, (stun[x.uid] ?? 0) > now, players, { label: true });
+  for (const x of [...list].sort((a, b) => at[a.uid].feet - at[b.uid].feet)) raider(c, V, x, at[x.uid].x, at[x.uid].feet, at[x.uid].scale, t, (stun[x.uid] ?? 0) > now, players, { label: true }, S3);
+  if (S3) for (const s of V.shots) S3.shot(s.uid, "titan", creatureById(r.raiders[s.uid]?.c).type, (s.age - 0.1) / 0.6, s.sup ? 2 : 1, Math.floor(now / 1000 - s.age) * 7 + r.raiders[s.uid]?.slot);
   // Owner: like Fishing Derby, show the room who answered wrong: a red circle and a tag on every stunned raider.
   for (const x of list) {
     const until = stun[x.uid] ?? 0;
@@ -767,7 +797,7 @@ export function drawRaidWide(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
   c.setTransform(1, 0, 0, 1, 0, 0);
 }
 
-export function drawRaidTall(c: Ctx, r: RaidBoard, events: RaidEvent[], players: Record<string, Player>, game: Game, now: number, me: string) {
+export function drawRaidTall(c: Ctx, r: RaidBoard, events: RaidEvent[], players: Record<string, Player>, game: Game, now: number, me: string, S3: Stage3D | null = null) {
   const W = 540;
   const H = 960;
   const V = view(r, events, players, game, now);
@@ -777,11 +807,12 @@ export function drawRaidTall(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
   c.clearRect(0, 0, W, H);
   const shake = V.shake + defeatShake(r, endAge);
   if (shake) c.translate((Math.random() - 0.5) * shake * 2, (Math.random() - 0.5) * shake * 2);
-  floor(c, W, H, 200);
+  S3?.shake(shake);
+  if (!S3) floor(c, W, H, 200);
   // Everything important sits in the top ~45%, so the question card never hides it.
   const TX = 270;
   const TF = 288;
-  drawTitan(c, V, r, TX, TF, 2.4, t, endAge);
+  drawTitan(c, V, r, TX, TF, 2.4, t, endAge, S3);
   const mine = r.raiders[me];
   const all = Object.values(r.raiders).sort((a, b) => a.slot - b.slot);
   // Owner: with up to 30 raiders the phone shows only you and your nearest neighbours (the raiders who
@@ -812,13 +843,15 @@ export function drawRaidTall(c: Ctx, r: RaidBoard, events: RaidEvent[], players:
   });
   const myX = 270;
   const myFeet = 398;
-  for (const s of V.shots) {
-    const p = s.uid === me ? [myX, 340] : pos[s.uid] ? [pos[s.uid][0], pos[s.uid][1] - 18] : null;
-    if (p) shot(c, p as [number, number], [TX, 200], creatureById(r.raiders[s.uid]?.c).type, s.age, s.sup ? 2 : 1, t);
-  }
+  if (!S3)
+    for (const s of V.shots) {
+      const p = s.uid === me ? [myX, 340] : pos[s.uid] ? [pos[s.uid][0], pos[s.uid][1] - 18] : null;
+      if (p) shot(c, p as [number, number], [TX, 200], creatureById(r.raiders[s.uid]?.c).type, s.age, s.sup ? 2 : 1, t);
+    }
   const stun = r.stun ?? {};
-  for (const x of others) raider(c, V, x, pos[x.uid][0], pos[x.uid][1], pos[x.uid][2], t, (stun[x.uid] ?? 0) > now, players, {});
-  if (mine) raider(c, V, mine, myX, myFeet, 2.3, t, (stun[me] ?? 0) > now, players, { me: true });
+  for (const x of others) raider(c, V, x, pos[x.uid][0], pos[x.uid][1], pos[x.uid][2], t, (stun[x.uid] ?? 0) > now, players, {}, S3);
+  if (mine) raider(c, V, mine, myX, myFeet, 2.3, t, (stun[me] ?? 0) > now, players, { me: true }, S3);
+  if (S3) for (const s of V.shots) S3.shot(s.uid, "titan", creatureById(r.raiders[s.uid]?.c).type, (s.age - 0.1) / 0.6, s.sup ? 2 : 1, Math.floor(now / 1000 - s.age) * 7 + r.raiders[s.uid]?.slot);
   if (hidden > 0) {
     const tag = `+ ${hidden} raiders · penyerang`;
     c.font = `700 12px ${BODY}`;

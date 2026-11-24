@@ -20,11 +20,14 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
   const rec = await get("/clash/records");
   await fetch(DB, { method: "DELETE", headers: { Authorization: "Bearer owner" } });
   if (rec) await fetch(DB.replace(".json", "/clash/records.json"), { method: "PUT", headers: { Authorization: "Bearer owner" }, body: JSON.stringify(rec) });
-  const browser = await chromium.launch({ args: ["--no-proxy-server"] });
+  // 3D (Clash look A, 24 Nov 2026): SwiftShader gives headless windows WebGL, but drawing 3D in software is slow, so only
+  // the projector and the first phone draw 3D; the other phones have no WebGL and fall back to the 2D arena.
+  const browser = await chromium.launch({ args: ["--no-proxy-server", "--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+  const flat = await chromium.launch({ args: ["--no-proxy-server", "--disable-gpu", "--disable-webgl", "--disable-3d-apis"] });
   const errors = [];
   const watch = (page, who) => {
     page.on("pageerror", (e) => errors.push(`${who}: ${e.message}`));
-    page.on("console", (m) => m.type() === "error" && !/TUNNEL|fonts\.g|AudioContext/.test(m.text()) && errors.push(`${who} console: ${m.text()}`));
+    page.on("console", (m) => ((m.type() === "error" && !/TUNNEL|fonts\.g|AudioContext/.test(m.text())) || /3D arena stopped/.test(m.text())) && errors.push(`${who} console: ${m.text()}`));
   };
   const proj = await (await browser.newContext({ viewport: { width: 1920, height: 1080 } })).newPage();
   watch(proj, "projector");
@@ -39,7 +42,7 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
 
   const phones = [];
   for (let i = 0; i < N; i++) {
-    const p = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: i === 0 ? 2 : 1 })).newPage();
+    const p = await (await (i === 0 ? browser : flat).newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: i === 0 ? 2 : 1 })).newPage();
     watch(p, NAMES[i]);
     await p.goto(BASE + "/join");
     await p.locator("#name").fill(NAMES[i]);
@@ -110,6 +113,7 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
       await snap(phones[0].p, `${OUT}/${TAG}-phone-warn.png`);
     }
     if (shots === 0 && t > 18) {
+      log("3D arena: projector", (await proj.locator("canvas.c3d").count()) ? "yes" : "no (2D)", "| phone", (await phones[0].p.locator("canvas.c3d").count()) ? "yes" : "no (2D)");
       await snap(proj, `${OUT}/${TAG}-raid.png`);
       await snap(phones[0].p, `${OUT}/${TAG}-phone-q.png`);
       shots++;
@@ -130,6 +134,7 @@ const get = async (p = "") => (await fetch(DB.replace(".json", p + ".json"), { h
   await snap(phones[0].p, `${OUT}/${TAG}-phone-end.png`);
   log("errors:", errors.length ? errors.slice(0, 8) : "none");
   await browser.close();
+  await flat.close();
   if (errors.length || all.game?.status !== "ended") process.exit(1);
 })().catch((e) => {
   console.error("FAILED", e);

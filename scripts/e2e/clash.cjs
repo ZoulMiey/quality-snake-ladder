@@ -39,11 +39,14 @@ const PLAYERS =
 
 (async () => {
   await fetch(DB, { method: "DELETE", headers: { Authorization: "Bearer owner" } });
-  const browser = await chromium.launch({ args: ["--no-proxy-server"] });
+  // 3D (Clash look A, 24 Nov 2026): SwiftShader gives headless windows WebGL, but drawing 3D in software is slow, so only
+  // the projector and the first phone draw 3D; the other phones have no WebGL and fall back to the 2D arena.
+  const browser = await chromium.launch({ args: ["--no-proxy-server", "--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+  const flat = await chromium.launch({ args: ["--no-proxy-server", "--disable-gpu", "--disable-webgl", "--disable-3d-apis"] });
   const errors = [];
   const watch = (page, who) => {
     page.on("pageerror", (e) => errors.push(`${who}: ${e.message}`));
-    page.on("console", (m) => m.type() === "error" && !/TUNNEL|fonts\.g/.test(m.text()) && errors.push(`${who} console: ${m.text()}`));
+    page.on("console", (m) => ((m.type() === "error" && !/TUNNEL|fonts\.g/.test(m.text())) || /3D arena stopped/.test(m.text())) && errors.push(`${who} console: ${m.text()}`));
   };
   const proj = await (await browser.newContext({ viewport: { width: 1920, height: 1080 } })).newPage();
   watch(proj, "projector");
@@ -58,7 +61,7 @@ const PLAYERS =
 
   const phones = [];
   for (const [name, side, mons] of PLAYERS) {
-    const p = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })).newPage();
+    const p = await (await (phones.length === 0 ? browser : flat).newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })).newPage();
     watch(p, name);
     await p.goto(BASE + "/join");
     await p.locator("#name").fill(name);
@@ -121,6 +124,7 @@ const PLAYERS =
     );
     const t = (Date.now() - start) / 1000;
     if (shots === 0 && t > 12) {
+      console.log("3D arena: projector", (await proj.locator("canvas.c3d").count()) ? "yes" : "no (2D)", "| phone", (await phones[0].p.locator("canvas.c3d").count()) ? "yes" : "no (2D)");
       await proj.screenshot({ path: `${OUT}/clash-${MODE}-battle.png` });
       await phones[0].p.screenshot({ path: `${OUT}/clash-${MODE}-phone-q.png` });
       shots++;
@@ -145,6 +149,7 @@ const PLAYERS =
   await phones[0].p.screenshot({ path: `${OUT}/clash-${MODE}-phone-end.png` });
   log("errors:", errors.length ? errors.slice(0, 8) : "none");
   await browser.close();
+  await flat.close();
   if (errors.length || all.game?.status !== "ended") process.exit(1);
 })().catch((e) => {
   console.error("FAILED", e);

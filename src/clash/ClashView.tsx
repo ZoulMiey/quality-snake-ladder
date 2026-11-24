@@ -1,7 +1,8 @@
 // Projector screen for Quality Clash: Blue on top facing the room, Red at the bottom seen from behind.
 // Drawn on a canvas from the battle state and the recent events in the database.
 import EndButtons from "../components/EndButtons.tsx";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Stage3D } from "./stage3d.ts";
 import { serverNow } from "../lib/firebase.ts";
 import { useDbValue } from "../lib/useDb.ts";
 import { sfx } from "../lib/sound.ts";
@@ -50,9 +51,52 @@ function slotOf(f: Fighter, count: number): Slot {
   return { x, y: row.y, s: row.s * k, k, back: !top, top };
 }
 
-/** The battle drawn on a canvas, kept in step with the database. */
+/**
+ * The 3D stage under a 2D canvas (owner, 24 Nov 2026: look A, voxel). Loads three.js only when a battle shows;
+ * null while loading, or for good when the phone cannot draw 3D (the 2D canvas then draws everything as before).
+ */
+export function useStage3D(cv3: React.RefObject<HTMLCanvasElement | null>, VWv: number, VHv: number, wallPx: number, theme: "clash" | "raid") {
+  const stage = useRef<Stage3D | null>(null);
+  const [mode, setMode] = useState<"loading" | "3d" | "2d">("loading");
+  useEffect(() => {
+    let dead = false;
+    let made: Stage3D | null = null;
+    const fail = () => {
+      stage.current = null;
+      if (!dead) setMode("2d");
+    };
+    const lost = (e: Event) => {
+      e.preventDefault();
+      fail();
+    };
+    import("./stage3d.ts")
+      .then((m) => {
+        const c = cv3.current;
+        if (dead || !c || !m.webgl3dOK()) return fail();
+        made = new m.Stage3D(c, VWv, VHv, wallPx, theme);
+        stage.current = made;
+        if (import.meta.env.DEV) (window as unknown as { __qslStage?: unknown }).__qslStage = made; // tests only
+        c.addEventListener("webglcontextlost", lost);
+        setMode("3d");
+      })
+      .catch(fail);
+    return () => {
+      dead = true;
+      cv3.current?.removeEventListener("webglcontextlost", lost);
+      stage.current = null;
+      made?.dispose();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [VWv, VHv]);
+  return { stage, mode };
+}
+
+/** The battle drawn on a canvas, kept in step with the database (3D underneath when the device can). */
 export function ArenaCanvas({ b, events, game, players, tall = false, bottom = "red", me = "", className }: { b: ClashBoard | null; events: ClashEvent[]; game: Game; players: Record<string, Player>; tall?: boolean; bottom?: Side; me?: string; className?: string }) {
   const cv = useRef<HTMLCanvasElement>(null);
+  const cv3 = useRef<HTMLCanvasElement>(null);
+  const lay = tall ? TALL : WIDE;
+  const { stage, mode } = useStage3D(cv3, lay.VW, lay.VH, lay.wall, "clash");
   const live = useRef({ b, events, game, players, tall, bottom, me });
   live.current = { b, events, game, players, tall, bottom, me };
   useEffect(() => {
@@ -67,15 +111,30 @@ export function ArenaCanvas({ b, events, game, players, tall = false, bottom = "
         BOTTOM = v.bottom;
         ME = v.me;
         const now = v.game.paused && v.game.pausedAt ? v.game.pausedAt : serverNow();
-        draw(ctx, v.b, v.events, v.game, v.players, now);
+        const st = stage.current;
+        try {
+          st?.begin();
+          draw(ctx, v.b, v.events, v.game, v.players, now, st);
+          st?.end();
+        } catch (err) {
+          // anything wrong with 3D: carry on in 2D
+          if (st) {
+            console.warn("3D arena stopped, using 2D:", err);
+            stage.current = null;
+          }
+        }
       }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, []);
-  const lay = tall ? TALL : WIDE;
-  return <canvas ref={cv} width={lay.VW * 2} height={lay.VH * 2} className={className} aria-label="Quality Clash battle" />;
+  }, [stage]);
+  return (
+    <>
+      {mode !== "2d" && <canvas ref={cv3} width={lay.VW * (tall ? 1.5 : 2)} height={lay.VH * (tall ? 1.5 : 2)} className={`${className ?? ""} c3d`} aria-hidden="true" />}
+      <canvas ref={cv} width={lay.VW * 2} height={lay.VH * 2} className={`${className ?? ""} ${mode === "2d" ? "" : "hud2d"}`} aria-label="Quality Clash battle" />
+    </>
+  );
 }
 
 export default function ClashView({ game, players, onAgain }: { game: Game; players: Record<string, Player>; onAgain: () => void }) {
@@ -288,12 +347,18 @@ function platform(c: Ctx, s: Slot, side: Side) {
   c.stroke();
 }
 
-function creature(c: Ctx, f: Fighter, s: Slot, L: Look, stunned: boolean, t: number) {
+function creature(c: Ctx, f: Fighter, s: Slot, L: Look, stunned: boolean, t: number, S3: Stage3D | null = null) {
   if (L.faint >= 1) return;
   const w = 40 * s.s;
   const dy = -L.hop * (s.top ? 10 : 14) + Math.sin(t * 3 + s.x) * 1.2;
   let y = s.y - 37 * s.s + dy;
   const x = s.x - w / 2 + L.shake;
+  if (S3) {
+    // 3D: the monster stands on its platform; a fainting one sinks and fades like the 2D picture
+    S3.monster(f.id, f.c, s.back, s.x + L.shake, s.y, w, { flash: L.flash, alpha: 1 - L.faint, grey: stunned ? 0.7 : 0, lift: -dy - L.faint * 30 });
+    if (L.sh > 0.5) S3.bubble(f.id, 0.45 + 0.15 * Math.sin(t * 6));
+    y += L.faint * 30;
+  } else {
   c.save();
   c.imageSmoothingEnabled = false;
   if (L.faint > 0) {
@@ -307,7 +372,8 @@ function creature(c: Ctx, f: Fighter, s: Slot, L: Look, stunned: boolean, t: num
   if (stunned) c.filter = "grayscale(0.7)";
   c.drawImage(sprite(f.c, s.back, L.flash ? "white" : ""), x, y, w, w);
   c.restore();
-  if (L.sh > 0.5) {
+  }
+  if (L.sh > 0.5 && !S3) {
     c.save();
     c.globalAlpha = 0.35 + 0.15 * Math.sin(t * 6);
     c.strokeStyle = "#7ae0ff";
@@ -568,10 +634,11 @@ function message(c: Ctx, b: ClashBoard, events: ClashEvent[], players: Record<st
   txt(c, ms, VW / 2, y + 44, fit(c, ms, w - 24, 16 * Lay.fz, 10, `600 ${BODY}`), "#cfc8f0", "center", `600 ${BODY}`);
 }
 
-function draw(c: Ctx, b: ClashBoard | null, events: ClashEvent[], game: Game, players: Record<string, Player>, now: number) {
+function draw(c: Ctx, b: ClashBoard | null, events: ClashEvent[], game: Game, players: Record<string, Player>, now: number, S3: Stage3D | null = null) {
   c.setTransform(2, 0, 0, 2, 0, 0);
   c.clearRect(0, 0, VW, VH);
-  drawBg(c);
+  // In 3D the stage draws the room, the platforms, the monsters and the shots; this canvas only adds the HUD.
+  if (!S3) drawBg(c);
   if (!b) return;
   const t = now / 1000;
   const all = Object.values(b.fighters);
@@ -585,6 +652,7 @@ function draw(c: Ctx, b: ClashBoard | null, events: ClashEvent[], game: Game, pl
     return s ? [s.x, s.y - 18 * s.s] : [VW / 2, VH / 2];
   };
   // walkway between the platforms
+  if (!S3) {
   c.strokeStyle = "#2a3150";
   c.lineWidth = 16;
   c.lineCap = "round";
@@ -601,7 +669,14 @@ function draw(c: Ctx, b: ClashBoard | null, events: ClashEvent[], game: Game, pl
   c.moveTo(VW / 2, Lay.top.y);
   c.lineTo(VW / 2, Lay.bot.y);
   c.stroke();
-  for (const f of all) platform(c, slots[f.id], f.side);
+  }
+  for (const f of all) {
+    if (!S3) platform(c, slots[f.id], f.side);
+    else {
+      const s = slots[f.id];
+      S3.platform(f.id, s.x, s.y, (s.top ? Lay.top : Lay.bot).plat[0] * s.k, f.side);
+    }
+  }
 
   const recent = events.filter((e) => e.kind === "atk" && now - e.at < 2000) as Extract<ClashEvent, { kind: "atk" }>[];
   const drawShots = (side: Side) => {
@@ -610,14 +685,16 @@ function draw(c: Ctx, b: ClashBoard | null, events: ClashEvent[], game: Game, pl
       const age = (now - e.at) / 1000;
       e.hits.forEach(([a, tg], i) => {
         const f = b.fighters[a];
-        if (f) shot(c, center(a), center(tg), creatureById(f.c).type, age - i * 0.08, e.sup ? 2 : 1, t);
+        if (!f) return;
+        if (S3) S3.shot(a, tg, creatureById(f.c).type, (age - i * 0.08 - 0.15) / 0.6, e.sup ? 2 : 1, e.n * 10 + i);
+        else shot(c, center(a), center(tg), creatureById(f.c).type, age - i * 0.08, e.sup ? 2 : 1, t);
       });
     }
   };
   const TOP = other(BOTTOM);
-  for (const f of all.filter((x) => x.side === TOP)) creature(c, f, slots[f.id], L[f.id], (stun[f.uid] ?? 0) > now && f.hp > 0, t);
+  for (const f of all.filter((x) => x.side === TOP)) creature(c, f, slots[f.id], L[f.id], (stun[f.uid] ?? 0) > now && f.hp > 0, t, S3);
   drawShots(BOTTOM);
-  for (const f of all.filter((x) => x.side === BOTTOM)) creature(c, f, slots[f.id], L[f.id], (stun[f.uid] ?? 0) > now && f.hp > 0, t);
+  for (const f of all.filter((x) => x.side === BOTTOM)) creature(c, f, slots[f.id], L[f.id], (stun[f.uid] ?? 0) > now && f.hp > 0, t, S3);
   drawShots(TOP);
 
   // damage numbers

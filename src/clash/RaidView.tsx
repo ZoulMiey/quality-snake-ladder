@@ -9,10 +9,15 @@ import Countdown from "../components/Countdown.tsx";
 import CreatureImg from "./CreatureImg.tsx";
 import { fixRaid, fixRaidEvents, fixResult, type RaidBoard, type RaidEvent, type RaidResult } from "./bossEngine.ts";
 import { DEFEAT, DEFEAT_RESULTS_MS, clock, drawRaidTall, drawRaidWide, stompWarning } from "./raidDraw.ts";
+import { useStage3D } from "./ClashView.tsx";
 
 /** The raid drawn on a canvas, kept in step with the database. */
 export function RaidCanvas({ r, events, game, players, me, className }: { r: RaidBoard | null; events: RaidEvent[]; game: Game; players: Record<string, Player>; me?: string; className?: string }) {
   const cv = useRef<HTMLCanvasElement>(null);
+  const cv3 = useRef<HTMLCanvasElement>(null);
+  const tall = me !== undefined;
+  // 3D underneath (look A, 24 Nov 2026); the 2D canvas then only draws the HUD.
+  const { stage, mode } = useStage3D(cv3, tall ? 540 : 960, tall ? 960 : 540, tall ? 200 : 170, "raid");
   const live = useRef({ r, events, game, players, me });
   live.current = { r, events, game, players, me };
   useEffect(() => {
@@ -22,16 +27,31 @@ export function RaidCanvas({ r, events, game, players, me, className }: { r: Rai
       const v = live.current;
       if (ctx && v.r) {
         const now = v.game.paused && v.game.pausedAt ? v.game.pausedAt : serverNow();
-        if (v.me !== undefined) drawRaidTall(ctx, v.r, v.events, v.players, v.game, now, v.me);
-        else drawRaidWide(ctx, v.r, v.events, v.players, v.game, now);
+        const st = stage.current;
+        try {
+          st?.begin();
+          if (v.me !== undefined) drawRaidTall(ctx, v.r, v.events, v.players, v.game, now, v.me, st);
+          else drawRaidWide(ctx, v.r, v.events, v.players, v.game, now, st);
+          st?.end();
+        } catch (err) {
+          // anything wrong with 3D: carry on in 2D
+          if (st) {
+            console.warn("3D arena stopped, using 2D:", err);
+            stage.current = null;
+          }
+        }
       }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, []);
-  const tall = me !== undefined;
-  return <canvas ref={cv} width={tall ? 1080 : 1920} height={tall ? 1920 : 1080} className={className} aria-label="Boss Raid battle" />;
+  }, [stage]);
+  return (
+    <>
+      {mode !== "2d" && <canvas ref={cv3} width={tall ? 810 : 1920} height={tall ? 1440 : 1080} className={`${className ?? ""} c3d`} aria-hidden="true" />}
+      <canvas ref={cv} width={tall ? 1080 : 1920} height={tall ? 1920 : 1080} className={`${className ?? ""} ${mode === "2d" ? "" : "hud2d"}`} aria-label="Boss Raid battle" />
+    </>
+  );
 }
 
 export function useRaid() {

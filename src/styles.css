@@ -1613,3 +1613,8 @@ button:disabled { cursor: default; }
 .kf-time { color: var(--muted); font-size: 14px; }
 .kf-thanks { text-align: center; margin: 0; }
 @media (prefers-reduced-motion: reduce) { .kf-confetti i, .kf-cheer, .kf-pod-col.r1 .kf-medal { animation: none; } }
+
+/* Quality Clash 3D (look A, 24 Nov 2026): the three.js stage sits under the 2D canvas, which only draws the HUD. */
+canvas.c3d { position: absolute; inset: 0; image-rendering: auto; }
+canvas.hud2d { z-index: 1; }
+.clash-canvas.hud2d { position: relative; }
