@@ -185,7 +185,7 @@ export class Stage3D {
     wt.repeat.set(6, 1);
     wt.colorSpace = THREE.SRGBColorSpace;
     const wall = new THREE.Mesh(new THREE.PlaneGeometry(600, 80), new THREE.MeshBasicMaterial({ map: wt }));
-    wt.repeat.set(15, 1);
+    wt.repeat.set(40, 1);
     wall.position.set(0, 40, back.z);
     this.scene.add(wall);
     // the floor only shows in front of the wall
@@ -253,7 +253,7 @@ export class Stage3D {
     a.g.position.set(p.x, (look.lift ?? 0) * unit, p.z);
     a.g.scale.setScalar(s);
     // Facing the camera, turned a little towards the middle and swaying gently, so the blocks show their depth.
-    const turn = -((x - this.VW / 2) / this.VW) * 1.1 + Math.sin(performance.now() / 1100 + x * 0.05) * 0.28;
+    const turn = -((x - this.VW / 2) / this.VW) * 1.1 + Math.sin(performance.now() / 1100 + x * 0.05) * (blocks > 40 ? 0.42 : 0.28);
     a.g.rotation.set(0, Math.atan2(this.camera.position.x - p.x, this.camera.position.z - p.z) + turn, 0);
     a.head.set(p.x, a.g.position.y + h * 0.5, p.z);
     a.shadow.visible = (look.alpha ?? 1) > 0.05;
@@ -265,7 +265,11 @@ export class Stage3D {
     const grey = look.grey ?? 0;
     a.mat.color.setRGB(1 - grey * 0.45, 1 - grey * 0.45, 1 - grey * 0.4);
     if (look.flash) a.mat.emissive.setRGB(1, 1, 1);
-    else if (look.red) a.mat.emissive.setRGB(look.red, look.red * 0.05, look.red * 0.1);
+    else if (look.red) {
+      // a red tint that keeps the light and shade on the blocks (a full red glow made the Titan look flat)
+      a.mat.emissive.setRGB(look.red * 0.45, 0, look.red * 0.04);
+      a.mat.color.setRGB(1, 1 - look.red * 0.55, 1 - look.red * 0.55);
+    }
     else a.mat.emissive.setRGB(0, 0, 0);
   }
 

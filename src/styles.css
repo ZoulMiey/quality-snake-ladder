@@ -1615,6 +1615,8 @@ button:disabled { cursor: default; }
 @media (prefers-reduced-motion: reduce) { .kf-confetti i, .kf-cheer, .kf-pod-col.r1 .kf-medal { animation: none; } }
 
 /* Quality Clash 3D (look A, 24 Nov 2026): the three.js stage sits under the 2D canvas, which only draws the HUD. */
-canvas.c3d { position: absolute; inset: 0; image-rendering: auto; }
-canvas.hud2d { z-index: 1; }
+/* No z-index: the HUD canvas comes after the 3D one, so it paints above it, and everything after it on the phone
+   (question card, buttons) stays on top and tappable. Neither canvas takes taps. */
+canvas.c3d { position: absolute; inset: 0; image-rendering: auto; pointer-events: none; }
+canvas.hud2d { pointer-events: none; }
 .clash-canvas.hud2d { position: relative; }
