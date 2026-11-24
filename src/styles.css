@@ -1545,3 +1545,8 @@ button:disabled { cursor: default; }
 .lobby-players, .lobby-players.many, .gd-players .lobby-players { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px; }
 .lobby-players li, .lobby-players.many li, .gd-players .lobby-players li { flex: none; max-width: 220px; gap: 4px; padding: 3px 6px 3px 12px; border-radius: 999px; border-bottom: 0; box-shadow: 0 2px 0 rgba(0,0,0,.25); }
 .lobby-players .lp-name, .lobby-players.many .lp-name, .gd-players .lp-name { flex: 0 1 auto; font-size: 16px; }
+
+/* Quality Cart 3D driver's view (24 Nov): WebGL canvas with a 2D layer on top for the speedometer */
+.kr3d { overflow: hidden; background: #8fd3ff; }
+.kr3d canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.kr3d-hud { pointer-events: none; }

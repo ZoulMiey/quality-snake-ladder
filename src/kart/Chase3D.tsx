@@ -183,7 +183,7 @@ function buildBackground(W: number) {
 }
 
 /** Speedometer dial for the bottom-right corner. */
-function drawSpeedo(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, kmh: number, turbo: boolean) {
+export function drawSpeedo(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, kmh: number, turbo: boolean) {
   ctx.fillStyle = "#ffffff";
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);

@@ -8,7 +8,8 @@ const NAMES = ["Aina", "Bala", "Chong", "Dewi", "Eric", "Farah"];
 
 (async () => {
   await fetch(DB, { method: "DELETE", headers: { Authorization: "Bearer owner" } });
-  const browser = await chromium.launch({ args: ["--no-proxy-server"] });
+  // SwiftShader gives the headless browser WebGL, so the phones draw the 3D view (24 Nov) instead of falling back.
+  const browser = await chromium.launch({ args: ["--no-proxy-server", "--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
   const errors = [];
   const watch = (page, who) => {
     page.on("pageerror", (e) => errors.push(`${who}: ${e.message}`));
@@ -75,7 +76,7 @@ const NAMES = ["Aina", "Bala", "Chong", "Dewi", "Eric", "Farah"];
           if (!seenFx[k] && (await ph.p.locator(sel).count())) {
             seenFx[k] = ph.name;
             await ph.p.screenshot({ path: OUT + `/cart-phone-${k}.png` });
-            log(`seen ${k} on`, ph.name, (await ph.p.locator(sel).first().innerText()).replace(/\n/g, " | "));
+            log(`seen ${k} on`, ph.name, (await ph.p.locator(sel).first().innerText({ timeout: 1000 }).catch(() => "(gone)")).replace(/\n/g, " | "));
           }
         }
         const btns = ph.p.locator(".kr-q button.kr-ans:not([disabled])");
@@ -98,6 +99,7 @@ const NAMES = ["Aina", "Bala", "Chong", "Dewi", "Eric", "Farah"];
     );
     const t = (Date.now() - start) / 1000;
     if (shots === 0 && t > 25) {
+      console.log(new Date().toISOString().slice(11, 19), "phone view:", (await phones[0].p.locator(".kr3d").count()) ? "3D" : "old (fallback)");
       await proj.screenshot({ path: OUT + "/cart-race.png" });
       for (const ph of phones.slice(0, 2)) await ph.p.screenshot({ path: OUT + `/cart-phone-${ph.name}.png` });
       await proj.waitForTimeout(150);

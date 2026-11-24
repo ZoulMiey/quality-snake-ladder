@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ref, set, update } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
@@ -10,6 +10,8 @@ import { ITEMS, type ItemId } from "./sim.ts";
 import { LAPS } from "./track.ts";
 import { CART_QUESTION_MS, type CartMe, type CartQ, type CartResult } from "./engine.ts";
 import Chase3D from "./Chase3D.tsx";
+// The 3D driver's view (owner, 24 Nov) is loaded only when a race starts; the old view shows meanwhile.
+const Kart3D = lazy(() => import("./Kart3D.tsx"));
 import { leaveFullscreen } from "../lib/fullscreen.ts";
 
 type TiltState = "checking" | "need-permission" | "on" | "none";
@@ -226,7 +228,9 @@ export default function KartPhone({ uid, me, game, onExit, onHome }: { uid: stri
 
   return (
     <div className="kr" role="application" aria-label="Quality Cart race">
-      <Chase3D uid={uid} players={players ?? {}} steer={steerNow} />
+      <Suspense fallback={<Chase3D uid={uid} players={players ?? {}} steer={steerNow} />}>
+        <Kart3D uid={uid} players={players ?? {}} steer={steerNow} />
+      </Suspense>
       <div className="kr-hud">
         <div className="kr-rank">
           <span className="kr-big">{cart ? ordinal(cart.rank) : "—"}</span>
