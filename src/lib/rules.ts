@@ -95,6 +95,28 @@ export function pickQuestion<T extends { id: string }>(pool: T[], used: Set<stri
   return { q: fresh[Math.floor(rand() * fresh.length)], reset };
 }
 
+/** Questions each player has had, kept across games: `used/{uid}/{questionId} = true`. */
+export type UsedMap = Record<string, Record<string, true>>;
+
+/**
+ * Pick a question for one player (or a whole Quality Spin team) that none of them has had, in this
+ * game or an earlier one. When they have had every question in the pool, only this pool is forgotten
+ * for them (other sets keep their memory). Marks the question as had for each of them.
+ */
+export function takeQuestion<T extends { id: string }>(pool: T[], used: UsedMap, uids: string[], rand = Math.random): T | null {
+  const seen = new Set<string>();
+  for (const u of uids) for (const id of Object.keys(used[u] ?? {})) seen.add(id);
+  const pick = pickQuestion(pool, seen, rand);
+  if (!pick) return null;
+  for (const u of uids) {
+    const mine = { ...(used[u] ?? {}) };
+    if (pick.reset) for (const q of pool) delete mine[q.id];
+    mine[pick.q.id] = true;
+    used[u] = mine;
+  }
+  return pick.q;
+}
+
 /** Shuffle the options for one player; returns the new order and where the correct answer went. */
 export function shuffleOptions<T>(opts: T[], ans: number, rand = Math.random): { opts: T[]; correctIdx: number } {
   const order = opts.map((_, i) => i);

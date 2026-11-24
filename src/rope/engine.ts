@@ -6,9 +6,9 @@
 import { startTicker } from "../lib/ticker.ts";
 import { ref, get, onValue, update, set } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
-import { readAll } from "../lib/readAll.ts";
+import { readAll, readUsed } from "../lib/readAll.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";
-import { pickQuestion, shuffleOptions } from "../lib/rules.ts";
+import { shuffleOptions, takeQuestion } from "../lib/rules.ts";
 import { COUNTDOWN_MS } from "../lib/engine.ts";
 import type { FeedItem, Game, Player, Question, RopeGame } from "../lib/types.ts";
 import {
@@ -118,7 +118,7 @@ export class RopeEngine {
     const now = serverNow();
     this.states = {};
     this.priv = {};
-    this.used = {};
+    this.used = await readUsed();
     this.feedN = 0;
     this.heaveShown = -1;
     this.x = 0;
@@ -291,11 +291,8 @@ export class RopeEngine {
 
   private ask(uid: string, now: number, updates: Record<string, unknown>) {
     const st = this.states[uid];
-    const pick = pickQuestion(this.pool, new Set(Object.keys(this.used[uid] ?? {})));
-    if (!pick) return;
-    if (pick.reset) this.used[uid] = {};
-    const q = pick.q;
-    (this.used[uid] ??= {})[q.id] = true;
+    const q = takeQuestion(this.pool, this.used, [uid]);
+    if (!q) return;
     const base = q.type === "tf" ? TF_OPTS : q.opts ?? [];
     const shuffled = q.type === "tf" ? { opts: base, correctIdx: q.ans } : shuffleOptions(base, q.ans);
     this.priv[uid] = { qid: q.id, correctIdx: shuffled.correctIdx };

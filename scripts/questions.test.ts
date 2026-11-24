@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { DEFAULT_QUESTIONS } from "../src/lib/defaultQuestions.ts";
 import { MORE_QUESTIONS } from "../src/lib/moreQuestions.ts";
+import { EXTRA_QUESTIONS } from "../src/lib/extraQuestions.ts";
 import { SET_IDS, poolFor, setOf } from "../src/lib/questionSets.ts";
 
 let n = 0;
@@ -10,7 +11,7 @@ const t = (name: string, fn: () => void) => {
   n++;
   console.log("ok -", name);
 };
-const ALL = [...DEFAULT_QUESTIONS, ...MORE_QUESTIONS];
+const ALL = [...DEFAULT_QUESTIONS, ...MORE_QUESTIONS, ...EXTRA_QUESTIONS];
 
 t("every question has a unique id", () => {
   assert.equal(new Set(ALL.map((q) => q.id)).size, ALL.length);
@@ -28,10 +29,10 @@ t("every question is complete in English and Malay, with a valid right answer", 
   }
 });
 
-t("each set has about 80 questions; old questions without a set count as Quality", () => {
+t("each set has 100 questions; old questions without a set count as Quality", () => {
   const count = Object.fromEntries(SET_IDS.map((s) => [s, ALL.filter((q) => setOf(q) === s).length]));
   console.log("  ", JSON.stringify(count));
-  for (const s of SET_IDS) assert.ok(count[s] >= 78 && count[s] <= 90, `${s}: ${count[s]}`);
+  for (const s of SET_IDS) assert.equal(count[s], 100, s);
   assert.equal(setOf({}), "quality");
 });
 

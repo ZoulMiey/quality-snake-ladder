@@ -4,7 +4,8 @@ import { startTicker } from "../lib/ticker.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";
 import { get, onValue, ref, set, update } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
-import { pickQuestion, shuffleOptions } from "../lib/rules.ts";
+import { shuffleOptions, takeQuestion } from "../lib/rules.ts";
+import { readUsed } from "../lib/readAll.ts";
 import { COUNTDOWN_MS } from "../lib/engine.ts";
 import type { FeedItem, Game, Player, Question } from "../lib/types.ts";
 import { FAST_MS, STUN_MS } from "./sim.ts";
@@ -69,7 +70,7 @@ export class BossEngine {
     const now = serverNow();
     const goAt = now + COUNTDOWN_MS;
     this.r = { ...raid, nextStomp: goAt + STOMP_EVERY_MS, stun: {}, pausedMs: 0 };
-    this.used = {};
+    this.used = await readUsed();
     this.qs = Object.fromEntries(Object.keys(raid.raiders).map((u) => [u, blankQ()]));
     this.events = [];
     this.evN = 0;
@@ -86,7 +87,6 @@ export class BossEngine {
       "clash/ev": null,
       answers: null,
       private: null,
-      used: null,
       state: null,
     });
     this.run();
@@ -242,10 +242,9 @@ export class BossEngine {
 
   private ask(uid: string, now: number, updates: Record<string, unknown>, revive: boolean) {
     const q = this.qs[uid];
-    const pick = pickQuestion(this.pool, new Set(Object.keys(this.used[uid] ?? {})));
-    if (!pick) return;
-    if (pick.reset) this.used[uid] = {};
-    (this.used[uid] ??= {})[pick.q.id] = true;
+    const picked = takeQuestion(this.pool, this.used, [uid]);
+    if (!picked) return;
+    const pick = { q: picked };
     const base = pick.q.type === "tf" ? TF_OPTS : pick.q.opts ?? [];
     const sh = pick.q.type === "tf" ? { opts: base, correctIdx: pick.q.ans } : shuffleOptions(base, pick.q.ans);
     Object.assign(q, { open: true, qid: pick.q.id, correctIdx: sh.correctIdx, askedAt: now, deadline: now + CLASH_QUESTION_MS, revive });

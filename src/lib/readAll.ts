@@ -18,3 +18,8 @@ export async function readAll(): Promise<Record<string, any>> {
   });
   return out;
 }
+
+/** The questions every player has had in earlier games (kept across games so they are not asked again soon). */
+export async function readUsed(): Promise<Record<string, Record<string, true>>> {
+  return ((await get(ref(db, "used")).catch(() => null))?.val() ?? {}) as Record<string, Record<string, true>>;
+}

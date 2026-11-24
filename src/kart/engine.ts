@@ -4,8 +4,8 @@ import { startTicker } from "../lib/ticker.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";
 import { get, onValue, ref, set, update } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
-import { readAll } from "../lib/readAll.ts";
-import { pickQuestion, shuffleOptions } from "../lib/rules.ts";
+import { readAll, readUsed } from "../lib/readAll.ts";
+import { shuffleOptions, takeQuestion } from "../lib/rules.ts";
 import type { FeedItem, Game, Player, Question } from "../lib/types.ts";
 import { COUNTDOWN_MS } from "../lib/engine.ts";
 import { ITEMS, SUPER_STREAK, answerEffect, effectOf, lapOf, newWorld, standings, step, useItem, type RaceEvent, type World } from "./sim.ts";
@@ -97,11 +97,11 @@ export class KartEngine {
     if (!uids.length) throw new Error("Nobody has joined yet.");
     const now = serverNow();
     this.world = newWorld(uids);
-    this.used = {};
+    this.used = await readUsed();
     this.qs = Object.fromEntries(uids.map((u) => [u, { open: false, qid: "", correctIdx: 0, deadline: 0, nextAt: 4 + Math.random() * 5, seq: 0 }]));
     this.feed = [{ at: now, uid: "", text: "🏁 The race has started! Good luck everyone.", tone: "info" }];
     this.game = { status: "playing", qset: this.qset, mode: "kart", engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt: now + COUNTDOWN_MS, endedAt: null, winners: [] };
-    await update(ref(db), { game: this.game, feed: this.feed, kart: { ids: this.world.carts.map((c) => c.uid) }, answers: null, private: null, used: null, state: null });
+    await update(ref(db), { game: this.game, feed: this.feed, kart: { ids: this.world.carts.map((c) => c.uid) }, answers: null, private: null, state: null });
     this.run();
   }
 
@@ -321,10 +321,9 @@ export class KartEngine {
 
   private ask(uid: string, now: number, updates: Record<string, unknown>) {
     const q = this.qs[uid];
-    const pick = pickQuestion(this.pool, new Set(Object.keys(this.used[uid] ?? {})));
-    if (!pick) return;
-    if (pick.reset) this.used[uid] = {};
-    (this.used[uid] ??= {})[pick.q.id] = true;
+    const picked = takeQuestion(this.pool, this.used, [uid]);
+    if (!picked) return;
+    const pick = { q: picked };
     const base = pick.q.type === "tf" ? TF_OPTS : pick.q.opts ?? [];
     const sh = pick.q.type === "tf" ? { opts: base, correctIdx: pick.q.ans } : shuffleOptions(base, pick.q.ans);
     q.open = true;

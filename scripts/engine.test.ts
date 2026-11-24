@@ -1,6 +1,6 @@
 // Checks the game rules. Run: npm test
 import assert from "node:assert/strict";
-import { resolve, pickQuestion, shuffleOptions, winnersNeeded } from "../src/lib/rules.ts";
+import { resolve, pickQuestion, shuffleOptions, takeQuestion, winnersNeeded, type UsedMap } from "../src/lib/rules.ts";
 import { SNAKES, LADDERS, LAST_BOX } from "../src/lib/board.ts";
 import { placeSpecials, EVENTS, EVENT_SETS, eventById } from "../src/lib/specials.ts";
 import { resultMs, moveTimeline, PENALTY_MS, VERDICT_MS, WRONG_MS, SLIDE_MS, SHAKE_MS, CLIMB_MS, ZOOM_OUT_MS, SL_ALERT_MS, slAlertMs, QUICK_VERDICT_MS, QUICK_CLIMB_MS } from "../src/lib/phoneTiming.ts";
@@ -150,6 +150,22 @@ t("questions never repeat for a player until all are used", () => {
     used.add(p.q.id);
   }
   assert.equal(pickQuestion(pool, used)!.reset, true);
+});
+t("a player's questions are remembered across games and sets; a team shares its memory", () => {
+  const pool = Array.from({ length: 10 }, (_, i) => ({ id: `q${i}` }));
+  const used: UsedMap = { p1: { w1: true } }; // a question from another set, earlier
+  const seen: string[] = [];
+  // Game 1 asks 6, game 2 (same memory, as the engines now keep it) asks 4: all 10 different.
+  for (let i = 0; i < 10; i++) seen.push(takeQuestion(pool, used, ["p1"])!.id);
+  assert.equal(new Set(seen).size, 10);
+  // The 11th starts the pool again, but the other set's memory is kept.
+  const again = takeQuestion(pool, used, ["p1"])!.id;
+  assert.deepEqual(Object.keys(used.p1).sort(), ["w1", again].sort());
+  // Quality Spin: a question any member has had is skipped, and it is marked for every member.
+  const team: UsedMap = { a: Object.fromEntries(pool.slice(0, 9).map((q) => [q.id, true as const])) };
+  const q = takeQuestion(pool, team, ["a", "b"])!;
+  assert.equal(q.id, "q9");
+  assert.ok(team.a.q9 && team.b.q9);
 });
 t("the game ends after one winner fewer than the players, at most 5", () => {
   assert.deepEqual([1, 2, 3, 4, 5, 6, 7, 10, 20].map(winnersNeeded), [1, 1, 2, 3, 4, 5, 5, 5, 5]);

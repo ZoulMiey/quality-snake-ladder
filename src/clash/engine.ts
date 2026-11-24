@@ -4,7 +4,8 @@ import { startTicker } from "../lib/ticker.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";
 import { get, onValue, ref, set, update } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
-import { pickQuestion, shuffleOptions } from "../lib/rules.ts";
+import { shuffleOptions, takeQuestion } from "../lib/rules.ts";
+import { readUsed } from "../lib/readAll.ts";
 import { COUNTDOWN_MS } from "../lib/engine.ts";
 import type { FeedItem, Game, Player, Question } from "../lib/types.ts";
 import { creatureById } from "./creatures.ts";
@@ -97,7 +98,7 @@ export class ClashEngine {
       throw new Error(format === "solo" ? "1 v 1 needs one player on Red and one on Blue, each with 3 monsters." : "Each team needs at least one player with a monster.");
     const now = serverNow();
     this.b = { ...newBattle(format, fighters, size), stun: {} };
-    this.used = {};
+    this.used = await readUsed();
     this.qs = Object.fromEntries(battlePlayers(this.b).map((u) => [u, { open: false, qid: "", correctIdx: 0, askedAt: 0, deadline: 0, nextAt: 0, seq: 0 }]));
     this.events = [];
     this.evN = 0;
@@ -111,7 +112,6 @@ export class ClashEngine {
       "clash/q": null,
       answers: null,
       private: null,
-      used: null,
       state: null,
     });
     this.run();
@@ -223,10 +223,9 @@ export class ClashEngine {
 
   private ask(uid: string, now: number, updates: Record<string, unknown>) {
     const q = this.qs[uid];
-    const pick = pickQuestion(this.pool, new Set(Object.keys(this.used[uid] ?? {})));
-    if (!pick) return;
-    if (pick.reset) this.used[uid] = {};
-    (this.used[uid] ??= {})[pick.q.id] = true;
+    const picked = takeQuestion(this.pool, this.used, [uid]);
+    if (!picked) return;
+    const pick = { q: picked };
     const base = pick.q.type === "tf" ? TF_OPTS : pick.q.opts ?? [];
     const sh = pick.q.type === "tf" ? { opts: base, correctIdx: pick.q.ans } : shuffleOptions(base, pick.q.ans);
     q.open = true;

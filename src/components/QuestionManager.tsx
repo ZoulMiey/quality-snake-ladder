@@ -4,10 +4,11 @@ import { db } from "../lib/firebase.ts";
 import { useDbValue } from "../lib/useDb.ts";
 import { DEFAULT_QUESTIONS } from "../lib/defaultQuestions.ts";
 import { MORE_QUESTIONS } from "../lib/moreQuestions.ts";
+import { EXTRA_QUESTIONS } from "../lib/extraQuestions.ts";
 import { QSETS, SET_IDS, setOf, type QSet } from "../lib/questionSets.ts";
 
-/** Every question the app comes with: the original 63 Quality questions and the added sets. */
-export const ALL_DEFAULT_QUESTIONS = [...DEFAULT_QUESTIONS, ...MORE_QUESTIONS];
+/** Every question the app comes with: the original 63 Quality questions, the added sets, and the 24 Nov additions (100 a set). */
+export const ALL_DEFAULT_QUESTIONS = [...DEFAULT_QUESTIONS, ...MORE_QUESTIONS, ...EXTRA_QUESTIONS];
 import type { Question, Text } from "../lib/types.ts";
 
 const TF = [
@@ -23,13 +24,20 @@ export async function seedQuestionsIfEmpty(current: Record<string, Question> | n
   if (!current || !Object.keys(current).length) {
     await set(ref(db, "questions"), Object.fromEntries(ALL_DEFAULT_QUESTIONS.map((q) => [q.id, q])));
     await set(ref(db, "setup/qsetsAdded"), true).catch(() => {});
+    await set(ref(db, "setup/q100Added"), true).catch(() => {});
     return;
   }
-  const added = (await get(ref(db, "setup/qsetsAdded")).catch(() => null))?.val();
+  await addOnce(current, "setup/qsetsAdded", MORE_QUESTIONS);
+  await addOnce(current, "setup/q100Added", EXTRA_QUESTIONS);
+}
+
+/** Adds a batch of new default questions once (flag), skipping any the database already has. */
+async function addOnce(current: Record<string, Question>, flag: string, batch: Question[]) {
+  const added = (await get(ref(db, flag)).catch(() => null))?.val();
   if (added) return;
-  const missing = MORE_QUESTIONS.filter((q) => !current[q.id]);
+  const missing = batch.filter((q) => !current[q.id]);
   if (missing.length) await update(ref(db, "questions"), Object.fromEntries(missing.map((q) => [q.id, q])));
-  await set(ref(db, "setup/qsetsAdded"), true);
+  await set(ref(db, flag), true);
 }
 
 export default function QuestionManager({ onClose }: { onClose: () => void }) {

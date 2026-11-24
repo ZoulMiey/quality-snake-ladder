@@ -7,9 +7,9 @@
 import { startTicker } from "../lib/ticker.ts";
 import { ref, get, onValue, update, set } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
-import { readAll } from "../lib/readAll.ts";
+import { readAll, readUsed } from "../lib/readAll.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "../lib/questionSets.ts";
-import { pickQuestion, shuffleOptions } from "../lib/rules.ts";
+import { shuffleOptions, takeQuestion, type UsedMap } from "../lib/rules.ts";
 import { COUNTDOWN_MS } from "../lib/engine.ts";
 import type { Game, Player, Question } from "../lib/types.ts";
 import { PHRASES } from "./phrases.ts";
@@ -75,7 +75,7 @@ export class SpinEngine {
   private game: Game | null = null;
   private spin: SpinGame | null = null;
   private secret: Record<Side, SpinSecret> = { red: { phrase: 0, qid: "", correctIdx: 0, order: [], next: 0 }, blue: { phrase: 0, qid: "", correctIdx: 0, order: [], next: 0 } };
-  private used: Record<Side, Set<string>> = { red: new Set(), blue: new Set() };
+  private used: UsedMap = {};
   private busy = new Set<Side>();
   private stops: (() => void)[] = [];
   private stopTicker: (() => void) | undefined;
@@ -106,7 +106,7 @@ export class SpinEngine {
       red: { phrase: 0, qid: "", correctIdx: 0, order: order.filter((_, i) => i % 2 === 0), next: 0 },
       blue: { phrase: 0, qid: "", correctIdx: 0, order: order.filter((_, i) => i % 2 === 1), next: 0 },
     };
-    this.used = { red: new Set(), blue: new Set() };
+    this.used = await readUsed();
     this.spin = {
       mins,
       red: newTeam("red", teams.red.members, teams.red.captain),
@@ -146,7 +146,7 @@ export class SpinEngine {
       const cap = this.spin[s].captain;
       if (cap && !solo) pickUpdates[`clash/pick/${cap}/c`] = ["spin", "cap"];
     }
-    await update(ref(db), { answers: null, state: null, feed: null, used: null, game: this.game, "private/spin": this.secret, ...pickUpdates });
+    await update(ref(db), { answers: null, state: null, feed: null, game: this.game, "private/spin": this.secret, ...pickUpdates });
     this.run();
   }
 
@@ -155,6 +155,7 @@ export class SpinEngine {
     this.players = all.players ?? {};
     this.qset = (all.game?.qset as QChoice) || "quality";
     this.pool = poolFor(all.questions, this.qset);
+    this.used = all.used ?? {};
     this.spin = fixSpin(all.game?.spin);
     const sec = all.private?.spin ?? {};
     for (const s of SIDES) {
@@ -268,11 +269,10 @@ export class SpinEngine {
   /** A new question for the team; the clock starts at `from` (the end of the countdown at the start). */
   private ask(side: Side, from: number) {
     const t = this.spin![side];
-    const pick = pickQuestion(this.pool, this.used[side]);
-    if (!pick) return;
-    if (pick.reset) this.used[side] = new Set();
-    const q = pick.q;
-    this.used[side].add(q.id);
+    // The whole team sees the question, so it counts as had for every member.
+    const q = takeQuestion(this.pool, this.used, t.members);
+    if (!q) return;
+    for (const u of t.members) if (this.used[u]) void set(ref(db, `used/${u}`), this.used[u]).catch(() => {});
     const base = q.type === "tf" ? TF_OPTS : q.opts ?? [];
     const sh = q.type === "tf" ? { opts: base, correctIdx: q.ans } : shuffleOptions(base, q.ans);
     this.secret[side].qid = q.id;

@@ -4,8 +4,8 @@ import { startTicker } from "./ticker.ts";
 import { noQuestionsMessage, poolFor, type QChoice } from "./questionSets.ts";
 import { ref, get, onValue, update, set, isEvent } from "./store.ts";
 import { db, serverNow } from "./firebase.ts";
-import { readAll } from "./readAll.ts";
-import { resolve, pickQuestion, shuffleOptions, winnersNeeded, MAX_WINNERS } from "./rules.ts";
+import { readAll, readUsed } from "./readAll.ts";
+import { resolve, shuffleOptions, takeQuestion, winnersNeeded, MAX_WINNERS } from "./rules.ts";
 import { LAST_BOX } from "./board.ts";
 import { tokenById } from "./tokens.ts";
 import { eventById, placeSpecials } from "./specials.ts";
@@ -56,14 +56,13 @@ export class Engine {
     const now = serverNow();
     this.states = {};
     this.priv = {};
-    this.used = {};
+    this.used = await readUsed();
     this.feed = [{ at: now, uid: "", text: "Game started! Good luck everyone.", tone: "info" }];
     this.game = { status: "playing", qset: this.qset, mode: "snake", engine: this.tabId, paused: false, pausedAt: null, startedAt: now, goAt: now + COUNTDOWN_MS, endedAt: null, winners: [], specials: placeSpecials(this.qset) };
 
     const updates: Record<string, unknown> = {
       answers: null,
       private: null,
-      used: null,
       state: null,
       feed: this.feed,
       game: this.game,
@@ -181,12 +180,8 @@ export class Engine {
 
   private ask(uid: string, kind: QuestionKind, now: number, updates: Record<string, unknown>) {
     const st = this.states[uid];
-    const used = new Set(Object.keys(this.used[uid] ?? {}));
-    const pick = pickQuestion(this.pool, used);
-    if (!pick) return;
-    if (pick.reset) this.used[uid] = {};
-    const q = pick.q;
-    (this.used[uid] ??= {})[q.id] = true;
+    const q = takeQuestion(this.pool, this.used, [uid]);
+    if (!q) return;
     const base = q.type === "tf" ? TF_OPTS : q.opts ?? [];
     const shuffled = q.type === "tf" ? { opts: base, correctIdx: q.ans } : shuffleOptions(base, q.ans);
     this.priv[uid] = { qid: q.id, correctIdx: shuffled.correctIdx };
@@ -346,7 +341,6 @@ export async function resetGame() {
     tokens: null,
     state: null,
     private: null,
-    used: null,
     answers: null,
     feed: null,
     kart: null,
@@ -366,7 +360,6 @@ export async function playAgain() {
     ...LOBBY_GAME,
     state: null,
     private: null,
-    used: null,
     answers: null,
     feed: null,
     kart: null,
