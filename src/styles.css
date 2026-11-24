@@ -1550,3 +1550,66 @@ button:disabled { cursor: default; }
 .kr3d { overflow: hidden; background: #8fd3ff; }
 .kr3d canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .kr3d-hud { pointer-events: none; }
+
+/* Quality Cart race over (24 Nov 2026): podium celebration → 3, 2, 1 → winners dashboard (KartFinale.tsx) */
+.kf-show { position: fixed; inset: 0; z-index: 60; background: #8fd3ff; overflow: hidden; container-type: size; }
+.kf-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.kf-title { position: absolute; top: 4cqh; left: 0; right: 0; text-align: center; font-family: var(--display); font-weight: 800; color: #fff; text-shadow: 0 3px 0 #b8901f, 0 0 18px rgba(0,0,0,.35); pointer-events: none; }
+.kf-title .en { font-size: min(11cqh, 9cqw); line-height: 1; color: var(--gold); text-shadow: 0 4px 0 #8a6a12, 0 0 20px rgba(0,0,0,.4); }
+.kf-title .ms { font-size: min(5cqh, 4.5cqw); }
+.kf-you { position: absolute; bottom: 4cqh; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--gold-ink); font-family: var(--display); font-weight: 800; font-size: min(5.5cqh, 4.6cqw); padding: .6cqh 3cqh; border-radius: 99px; box-shadow: 0 4px 0 #b8901f; white-space: nowrap; animation: kf-pop .5s ease-out; }
+.kf-count { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; background: rgba(10,20,40,.45); color: #fff; font-family: var(--display); font-weight: 800; }
+.kf-num { font-size: min(42cqh, 36cqw); line-height: 1; color: var(--gold); text-shadow: 0 6px 0 #8a6a12, 0 0 30px rgba(0,0,0,.5); animation: kf-pop .45s ease-out; }
+.kf-cap { font-size: min(6cqh, 5cqw); letter-spacing: .08em; }
+.kf-cap.ms { font-size: min(4.5cqh, 4cqw); color: #ffe9a8; letter-spacing: 0; }
+@keyframes kf-pop { from { transform: scale(.4); opacity: 0; } 70% { transform: scale(1.12); } to { transform: scale(1); opacity: 1; } }
+.kf-you { animation-name: kf-pop-c; }
+@keyframes kf-pop-c { from { transform: translateX(-50%) scale(.4); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
+
+/* 2D podium when the phone cannot draw 3D */
+.kf-flat { position: absolute; inset: 0; background: linear-gradient(#8fd3ff 0 62%, #4caf50 62%); }
+.kf-confetti i { position: absolute; top: -4cqh; width: 1.6cqh; height: 1cqh; animation: kf-fall 2.6s linear infinite; }
+@keyframes kf-fall { to { transform: translateY(110cqh) rotate(720deg); } }
+.kf-blocks { position: absolute; left: 0; right: 0; bottom: 12cqh; display: flex; justify-content: center; align-items: flex-end; gap: 2cqh; }
+.kf-block { display: flex; flex-direction: column; align-items: center; width: min(30cqw, 34cqh); }
+.kf-cheer { font-size: 12cqh; animation: bounce .6s ease-in-out infinite; }
+.kf-block.r1 .kf-cheer { animation-duration: .45s; }
+.kf-bname { color: #fff; font-weight: 800; padding: .5cqh 2cqh; border-radius: 99px; font-size: 4.5cqh; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: .5cqh 0; }
+.kf-step { width: 100%; display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 9cqh; color: rgba(0,0,0,.5); border-radius: 1cqh 1cqh 0 0; }
+.kf-block.r1 .kf-step { height: 30cqh; background: #f5c542; }
+.kf-block.r2 .kf-step { height: 21cqh; background: #cfd8e3; }
+.kf-block.r3 .kf-step { height: 14cqh; background: #d08a4a; }
+
+/* Winners dashboard */
+.kf-dash { display: flex; flex-direction: column; gap: 10px; padding: 10px 12px 14px; }
+.kf-dash-head { text-align: center; font-family: var(--display); font-weight: 800; }
+.kf-dash-head .en { font-size: 26px; line-height: 1.1; }
+.kf-dash-head .ms { color: var(--muted); font-size: 15px; }
+.kf-dash-body { display: grid; gap: 10px; }
+@media (orientation: landscape) and (min-width: 560px) { .kf-dash-body { grid-template-columns: 1fr 1fr; align-items: start; } .kf-list { max-height: 58vh; } }
+.kf-pod { display: flex; justify-content: center; align-items: flex-end; gap: 8px; background: linear-gradient(#0d3b2c, #12503b); border-radius: 16px; padding: 14px 10px 0; }
+.kf-pod-col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; color: #fff; text-align: center; }
+.kf-medal { font-size: 30px; line-height: 1; }
+.kf-pod-col.r1 .kf-medal { font-size: 40px; animation: bounce 1s ease-in-out infinite; }
+.kf-pod-name { font-weight: 800; font-size: 15px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kf-pod-time { font-size: 13px; color: #ffe9a8; font-variant-numeric: tabular-nums; margin-bottom: 4px; }
+.kf-pod-step { width: 100%; display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 26px; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.35); border-radius: 10px 10px 0 0; }
+.kf-pod-col.r1 .kf-pod-step { height: 74px; }
+.kf-pod-col.r2 .kf-pod-step { height: 52px; }
+.kf-pod-col.r3 .kf-pod-step { height: 38px; }
+.kf-pod-col.me .kf-pod-name { color: var(--gold); }
+.kf-mine { margin-top: 10px; text-align: center; background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 8px; }
+.kf-mine .en { font-weight: 800; font-size: 18px; font-variant-numeric: tabular-nums; }
+.kf-mine .ms { color: var(--muted); font-size: 14px; }
+.kf-mine.top { background: var(--gold); border-color: #b8901f; color: var(--gold-ink); }
+.kf-mine.top .ms { color: var(--gold-ink); }
+.kf-list { list-style: none; margin: 0; padding: 0; background: #fff; border: 2px solid var(--line); border-radius: 14px; overflow-y: auto; max-height: 46vh; }
+.kf-list li { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.kf-list li:last-child { border-bottom: 0; }
+.kf-list li.me { background: #fff6d6; font-weight: 800; }
+.kf-rank { width: 28px; text-align: center; font-weight: 800; }
+.kf-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.kf-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kf-time { color: var(--muted); font-size: 14px; }
+.kf-thanks { text-align: center; margin: 0; }
+@media (prefers-reduced-motion: reduce) { .kf-confetti i, .kf-cheer, .kf-pod-col.r1 .kf-medal { animation: none; } }

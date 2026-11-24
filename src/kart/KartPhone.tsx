@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { ref, set, update } from "../lib/store.ts";
+import { isLocal, ref, set, update } from "../lib/store.ts";
 import { db, serverNow } from "../lib/firebase.ts";
 import { useDbValue, useNow } from "../lib/useDb.ts";
 import { tokenById } from "../lib/tokens.ts";
@@ -13,6 +13,7 @@ import Chase3D from "./Chase3D.tsx";
 // The 3D driver's view (owner, 24 Nov) is loaded only when a race starts; the old view shows meanwhile.
 const Kart3D = lazy(() => import("./Kart3D.tsx"));
 import { leaveFullscreen } from "../lib/fullscreen.ts";
+import KartFinale from "./KartFinale.tsx";
 
 type TiltState = "checking" | "need-permission" | "on" | "none";
 
@@ -183,6 +184,10 @@ export default function KartPhone({ uid, me, game, onExit, onHome }: { uid: stri
       L.at = clock;
     }
   }
+
+  // Race over (event and rooms): podium celebration, 3-2-1, then the winners dashboard. Solo keeps its own result page.
+  if (ended && game.endedAt && !isLocal())
+    return <KartFinale uid={uid} results={results ?? null} players={players ?? {}} endedAt={game.endedAt} onExit={onExit} />;
 
   if (ended || cart?.finished)
     return (

@@ -58,6 +58,7 @@ const NAMES = ["Aina", "Bala", "Chong", "Dewi", "Eric", "Farah"];
   while (Date.now() - start < 6 * 60 * 1000) {
     if (errors.length) break;
     if (await proj.locator(".podium").count()) break;
+    if (await phones[0].p.locator(".kf-show").count()) break;
     const all = await (await fetch(DB, { headers: { Authorization: "Bearer owner" } })).json();
     const byName = Object.fromEntries(Object.entries(all.players || {}).map(([u, v]) => [v.name, u]));
     await Promise.all(
@@ -115,7 +116,23 @@ const NAMES = ["Aina", "Bala", "Chong", "Dewi", "Eric", "Farah"];
     }
     await proj.waitForTimeout(350);
   }
-  const all = await (await fetch(DB, { headers: { Authorization: "Bearer owner" } })).json();
+  let all = await (await fetch(DB, { headers: { Authorization: "Bearer owner" } })).json();
+  for (let i = 0; i < 10 && !(all.kart?.results || []).length; i++) {
+    await proj.waitForTimeout(200);
+    all = await (await fetch(DB, { headers: { Authorization: "Bearer owner" } })).json();
+  }
+  // Race over on the phones (24 Nov 2026): podium celebration → 3, 2, 1 → winners dashboard.
+  const winner = phones.find((ph) => all.players[(all.kart?.results || [])[0]?.uid]?.name === ph.name) || phones[0];
+  const sideways = phones.filter((ph) => !ph.upright);
+  const at = async (label) => {
+    for (const ph of [...new Set([winner, sideways[sideways.length - 1], phones[phones.length - 1]])]) await ph.p.screenshot({ path: OUT + `/cart-phone-${label}-${ph.name}.png` });
+  };
+  log("phone 1 sees:", (await phones[0].p.locator(".kf-show, .kf-dash").first().innerText().catch(() => "?")).replace(/\n/g, " | ").slice(0, 80), "| podium view:", (await phones[0].p.locator(".kf-gl").count()) ? "3D" : "2D");
+  await phones[0].p.screenshot({ path: OUT + "/cart-phone-celebrate.png" });
+  // 3D screenshots are slow in the headless browser, so the 3, 2, 1 (3 s) may pass before we look: wait for the dashboard.
+  await phones[0].p.locator(".kf-dash").waitFor({ timeout: 15000 });
+  log("dashboard:", (await phones[0].p.locator(".kf-mine").innerText()).replace(/\n/g, " | "), "| rows:", await phones[0].p.locator(".kf-list li").count());
+  await at("dashboard");
   log("screens seen:", JSON.stringify(seenFx));
   log("time:", Math.round((Date.now() - start) / 1000) + "s", "answers:", answered, "items used:", items);
   log("tilt seen on phone 1:", JSON.stringify(all.kart?.input?.[Object.keys(all.players)[0]]));
@@ -123,7 +140,7 @@ const NAMES = ["Aina", "Bala", "Chong", "Dewi", "Eric", "Farah"];
   log("feed:", (all.feed || []).slice(-6).map((f) => f.text).join(" | "));
   await proj.waitForTimeout(1500);
   await proj.screenshot({ path: OUT + "/cart-end.png" });
-  await phones[0].p.screenshot({ path: OUT + "/cart-phone-end.png" });
+
   log("errors:", errors.length ? errors.slice(0, 8) : "none");
   await browser.close();
 })().catch((e) => {

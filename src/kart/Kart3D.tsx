@@ -93,7 +93,7 @@ function ribbon(off0: number, off1: number, y: number, colour: (i: number, s: nu
   return new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
 }
 
-type Kart = { g: THREE.Group; paint: THREE.MeshLambertMaterial; wheels: THREE.Mesh[]; steerers: THREE.Group[]; flames: THREE.Mesh[]; shield: THREE.Mesh; tag: THREE.Sprite | null; tagFor: string; colour: string };
+type Kart = { g: THREE.Group; paint: THREE.MeshLambertMaterial; wheels: THREE.Mesh[]; steerers: THREE.Group[]; arms: THREE.Group[]; flames: THREE.Mesh[]; shield: THREE.Mesh; tag: THREE.Sprite | null; tagFor: string; colour: string };
 
 function buildWorld(scene: THREE.Scene) {
   const SKY = new THREE.Color("#8fd3ff");
@@ -337,6 +337,21 @@ function buildKart(scene: THREE.Scene, shadow: THREE.Texture): Kart {
   add(new THREE.BoxGeometry(4.6, 1.6, 1), new THREE.MeshLambertMaterial({ color: 0x0f172a }), 0, 15.6, 2.2);
   add(new THREE.BoxGeometry(14, 1, 3), paint, 0, 10, -10);
   for (const sx of [-1, 1]) add(new THREE.BoxGeometry(1, 5, 1), dark, sx * 5, 7.5, -10);
+  // Arms on shoulder pivots: reaching for the wheel while racing, raised to cheer on the podium (setArms).
+  const skin = new THREE.MeshLambertMaterial({ color: 0xf1c27d });
+  const shirt = new THREE.MeshLambertMaterial({ color: 0xf8fafc });
+  const arms: THREE.Group[] = [];
+  for (const sx of [-1, 1]) {
+    const pivot = new THREE.Group();
+    pivot.position.set(sx * 4, 12, -1);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(1.9, 6.5, 1.9), shirt);
+    arm.position.y = -3.2;
+    const hand = new THREE.Mesh(new THREE.BoxGeometry(2.1, 2.1, 2.1), skin);
+    hand.position.y = -7;
+    pivot.add(arm, hand);
+    g.add(pivot);
+    arms.push(pivot);
+  }
   const wheels: THREE.Mesh[] = [];
   const steerers: THREE.Group[] = []; // front wheels turn left and right on these
   for (const [x, z, r] of [[-8, 8, 3], [8, 8, 3], [-8.5, -7, 3.6], [8.5, -7, 3.6]]) {
@@ -371,7 +386,18 @@ function buildKart(scene: THREE.Scene, shadow: THREE.Texture): Kart {
   shield.visible = false;
   g.add(shield);
   scene.add(g);
-  return { g, paint, wheels, steerers, flames, shield, tag: null, tagFor: "", colour: "" };
+  const k: Kart = { g, paint, wheels, steerers, arms, flames, shield, tag: null, tagFor: "", colour: "" };
+  setArms(k, 0, 0);
+  return k;
+}
+
+/** cheer 0 = hands on the wheel, 1 = both arms straight up; wave swings them side to side (radians). */
+function setArms(k: Kart, cheer: number, wave: number) {
+  k.arms.forEach((a, i) => {
+    const out = i === 0 ? -1 : 1;
+    // Down is -y. Rotating about x by a negative angle swings the arm forward (+z); by -PI it points up.
+    a.rotation.set(-1.15 - cheer * 1.95, 0, (cheer * 0.42 + wave) * out);
+  });
 }
 
 function setTag(k: Kart, name: string, colour: string) {
@@ -722,4 +748,177 @@ export default function Kart3D(props: { uid: string; players: Record<string, Pla
   const fail = useRef(() => setFailed(true)).current;
   const old = <Chase3D {...props} />;
   return failed ? old : <Guard fallback={old}><Kart3DView {...props} onFail={fail} /></Guard>;
+}
+
+// ---- Race over: the top 3 on a podium, drivers cheering, confetti falling (owner, 24 Nov 2026) ----
+
+export type PodiumKart = { rank: number; name: string; colour: string };
+
+const PODIUM = [
+  { x: 0, h: 24, colour: 0xf5c542 }, // 1st, middle and highest
+  { x: -44, h: 16, colour: 0xcfd8e3 }, // 2nd, left
+  { x: 44, h: 10, colour: 0xd08a4a }, // 3rd, right
+];
+
+function PodiumView({ top, onFail }: { top: PodiumKart[]; onFail: () => void }) {
+  const glRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const cv = glRef.current;
+    if (!cv) return;
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
+    } catch {
+      onFail();
+      return;
+    }
+    renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
+    const scene = new THREE.Scene();
+    const SKY = new THREE.Color("#8fd3ff");
+    scene.background = SKY;
+    scene.fog = new THREE.Fog(SKY, 420, 1000);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x5a8a3a, 1.9));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.4);
+    sun.position.set(60, 120, 90);
+    scene.add(sun);
+    const camera = new THREE.PerspectiveCamera(42, 16 / 9, 1, 1000);
+    const shadow = shadowTex();
+
+    // Ground, a strip of chequered start line behind, and the podium blocks with big numbers on the front
+    const ground = new THREE.Mesh(new THREE.CircleGeometry(600, 48), new THREE.MeshLambertMaterial({ color: 0x4caf50 }));
+    ground.rotation.x = -Math.PI / 2;
+    scene.add(ground);
+    const flag = canvasTex(256, 32, (g, w, h) => {
+      for (let x = 0; x < w; x += 16) for (let y = 0; y < h; y += 16) {
+        g.fillStyle = (x / 16 + y / 16) % 2 ? "#111" : "#fff";
+        g.fillRect(x, y, 16, 16);
+      }
+    });
+    const banner = new THREE.Mesh(new THREE.PlaneGeometry(220, 26), new THREE.MeshBasicMaterial({ map: flag }));
+    banner.position.set(0, 82, -70);
+    scene.add(banner);
+    for (const sx of [-1, 1]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.5, 96, 10), new THREE.MeshLambertMaterial({ color: 0x9ca3af }));
+      post.position.set(sx * 110, 48, -70);
+      scene.add(post);
+    }
+    const karts: { k: Kart; base: number; rank: number }[] = [];
+    top.slice(0, 3).forEach((t) => {
+      const spotP = PODIUM[t.rank - 1];
+      if (!spotP) return;
+      const side = new THREE.MeshLambertMaterial({ color: spotP.colour });
+      const front = new THREE.MeshLambertMaterial({
+        map: canvasTex(128, 128, (g, w, h) => {
+          g.fillStyle = "#" + spotP.colour.toString(16).padStart(6, "0");
+          g.fillRect(0, 0, w, h);
+          g.fillStyle = "rgba(0,0,0,.55)";
+          g.font = "bold 96px Figtree, sans-serif";
+          g.textAlign = "center";
+          g.textBaseline = "middle";
+          g.fillText(String(t.rank), w / 2, h / 2 + 6);
+        }),
+      });
+      const block = new THREE.Mesh(new THREE.BoxGeometry(40, spotP.h, 34), [side, side, side, side, front, side]);
+      block.position.set(spotP.x, spotP.h / 2, 0);
+      scene.add(block);
+      const k = buildKart(scene, shadow);
+      k.paint.color.set(t.colour);
+      setTag(k, t.name, t.colour);
+      k.tag!.position.y = 30;
+      k.g.position.set(spotP.x, spotP.h, 0);
+      karts.push({ k, base: spotP.h, rank: t.rank });
+    });
+
+    // Confetti: small coloured cards, drawn with instancing, falling and fluttering
+    const N = 260;
+    const conf = new THREE.InstancedMesh(new THREE.PlaneGeometry(2.4, 1.4), new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }), N);
+    const COLS = ["#f43f5e", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7", "#facc15", "#ffffff"];
+    const bits = Array.from({ length: N }, (_, i) => {
+      conf.setColorAt(i, new THREE.Color(COLS[i % COLS.length]));
+      return { x: (Math.random() - 0.5) * 200, y: 60 + Math.random() * 140, z: -40 + Math.random() * 110, v: 14 + Math.random() * 16, r: Math.random() * 6, s: 2 + Math.random() * 5, ph: Math.random() * 6 };
+    });
+    scene.add(conf);
+    const m4 = new THREE.Matrix4();
+    const q = new THREE.Quaternion();
+    const e = new THREE.Euler();
+    const one = new THREE.Vector3(1, 1, 1);
+    const pos = new THREE.Vector3();
+
+    const resize = () => {
+      const r = cv.getBoundingClientRect();
+      const w = Math.max(2, Math.round(r.width));
+      const h = Math.max(2, Math.round(r.height));
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      // Stand far enough back that all three podium places (about 150 wide) fit; wider lens on an upright phone.
+      camera.fov = camera.aspect < 1 ? 60 : 42;
+      const halfW = Math.tan(((camera.fov / 2) * Math.PI) / 180) * camera.aspect;
+      camera.position.z = Math.max(104, 80 / halfW);
+      camera.updateProjectionMatrix();
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(cv);
+
+    const t0 = performance.now();
+    let last = t0;
+    let raf = 0;
+    const frame = (now: number) => {
+      raf = requestAnimationFrame(frame);
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      const t = (now - t0) / 1000;
+      const up = Math.min(1, t / 0.6); // arms go up in the first 0.6 s
+      for (const { k, base, rank } of karts) {
+        const hop = rank === 1 ? 4.5 : 2.5;
+        const speed = rank === 1 ? 7 : 5.5;
+        k.g.position.y = base + Math.abs(Math.sin(t * speed + rank)) * hop * up;
+        k.g.rotation.y = Math.sin(t * 1.3 + rank) * 0.25;
+        setArms(k, up, Math.sin(t * 9 + rank) * 0.35 * up);
+      }
+      bits.forEach((b, i) => {
+        b.y -= b.v * dt;
+        if (b.y < 0) b.y += 160;
+        b.r += b.s * dt;
+        pos.set(b.x + Math.sin(t * 1.7 + b.ph) * 6, b.y, b.z);
+        q.setFromEuler(e.set(b.r, b.r * 0.7, b.ph));
+        conf.setMatrixAt(i, m4.compose(pos, q, one));
+      });
+      conf.instanceMatrix.needsUpdate = true;
+      camera.position.x = Math.sin(t * 0.45) * 16;
+      camera.position.y = 40;
+      camera.lookAt(0, 34, 0); // a little above the karts, so their name tags sit below the WINNERS title
+      renderer.render(scene, camera);
+    };
+    raf = requestAnimationFrame(frame);
+    const lost = (ev: Event) => {
+      ev.preventDefault();
+      onFail();
+    };
+    cv.addEventListener("webglcontextlost", lost);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      cv.removeEventListener("webglcontextlost", lost);
+      scene.traverse((o) => {
+        const m = o as THREE.Mesh;
+        m.geometry?.dispose?.();
+        const mat = m.material as THREE.Material | THREE.Material[] | undefined;
+        (Array.isArray(mat) ? mat : mat ? [mat] : []).forEach((x) => {
+          (x as THREE.MeshBasicMaterial).map?.dispose();
+          x.dispose();
+        });
+      });
+      renderer.dispose();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [top.map((t) => t.rank + t.name + t.colour).join("|")]);
+  return <canvas ref={glRef} className="kf-gl" aria-label="The top 3 drivers on the podium" />;
+}
+
+/** The podium scene, or nothing (the caller shows its own 2D podium) on phones that cannot draw 3D. */
+export function Podium3D({ top, fallback }: { top: PodiumKart[]; fallback: ReactNode }) {
+  const [failed, setFailed] = useState(() => !webglOK());
+  const fail = useRef(() => setFailed(true)).current;
+  return failed ? <>{fallback}</> : <Guard fallback={fallback}><PodiumView top={top} onFail={fail} /></Guard>;
 }
