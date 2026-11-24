@@ -10,6 +10,7 @@ import type { Player } from "../lib/types.ts";
 import { BOX_LANES, BOX_ROWS, HAZARDS, HALF, TRACK_LEN, TRACK_W, PATH_POINTS } from "./track.ts";
 import { decodePos, type CartPos, type CartPosWire } from "./engine.ts";
 import * as px from "./pixel.ts";
+import { kartSounds } from "./kartSound.ts";
 import { BASE_SPEED } from "./sim.ts";
 
 const H = 540; // the width follows the screen's shape (see resize below)
@@ -274,6 +275,7 @@ export default function Chase3D({ uid, players, steer }: { uid: string; players:
     };
     let pMe = 0;
     let dMe = 0;
+    const sounds = kartSounds();
     let skyX = 0;
     const myCarts = new Map<number, HTMLCanvasElement>();
     const myCart = (lean: number) => {
@@ -321,6 +323,7 @@ export default function Chase3D({ uid, players, steer }: { uid: string; players:
         else pMe += (predicted - pMe) * 0.12;
         if (!spinning && !(flags & 16)) dMe = Math.max(-1, Math.min(1, dMe + steer.current * STEER_RATE * dt));
         dMe += (mine[1] - dMe) * 0.08;
+        sounds.frame(speed, flags, pMe, dMe);
       }
 
       // Camera follows my cart
@@ -485,6 +488,7 @@ export default function Chase3D({ uid, players, steer }: { uid: string; players:
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      sounds.stop();
     };
   }, [uid, steer]);
 

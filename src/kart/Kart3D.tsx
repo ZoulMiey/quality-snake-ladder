@@ -13,6 +13,7 @@ import { BOX_LANES, BOX_ROWS, HAZARDS, HALF, PATH_POINTS, TRACK_LEN, TRACK_W, wr
 import { decodePos, type CartPos, type CartPosWire } from "./engine.ts";
 import { BASE_SPEED } from "./sim.ts";
 import Chase3D, { drawSpeedo } from "./Chase3D.tsx";
+import { kartSounds } from "./kartSound.ts";
 
 const STEER_RATE = 1.7; // same as Chase3D
 const ROAD = TRACK_W;
@@ -92,7 +93,7 @@ function ribbon(off0: number, off1: number, y: number, colour: (i: number, s: nu
   return new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
 }
 
-type Kart = { g: THREE.Group; paint: THREE.MeshLambertMaterial; wheels: THREE.Mesh[]; flames: THREE.Mesh[]; shield: THREE.Mesh; tag: THREE.Sprite | null; tagFor: string; colour: string };
+type Kart = { g: THREE.Group; paint: THREE.MeshLambertMaterial; wheels: THREE.Mesh[]; steerers: THREE.Group[]; flames: THREE.Mesh[]; shield: THREE.Mesh; tag: THREE.Sprite | null; tagFor: string; colour: string };
 
 function buildWorld(scene: THREE.Scene) {
   const SKY = new THREE.Color("#8fd3ff");
@@ -337,9 +338,20 @@ function buildKart(scene: THREE.Scene, shadow: THREE.Texture): Kart {
   add(new THREE.BoxGeometry(14, 1, 3), paint, 0, 10, -10);
   for (const sx of [-1, 1]) add(new THREE.BoxGeometry(1, 5, 1), dark, sx * 5, 7.5, -10);
   const wheels: THREE.Mesh[] = [];
+  const steerers: THREE.Group[] = []; // front wheels turn left and right on these
   for (const [x, z, r] of [[-8, 8, 3], [8, 8, 3], [-8.5, -7, 3.6], [8.5, -7, 3.6]]) {
-    const w = add(new THREE.CylinderGeometry(r, r, 3.2, 14), tyre, x, r, z);
+    const w = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 3.2, 14), tyre);
     w.rotation.z = Math.PI / 2;
+    if (z > 0) {
+      const pivot = new THREE.Group();
+      pivot.position.set(x, r, z);
+      pivot.add(w);
+      g.add(pivot);
+      steerers.push(pivot);
+    } else {
+      w.position.set(x, r, z);
+      g.add(w);
+    }
     wheels.push(w);
   }
   const sh = new THREE.Mesh(new THREE.PlaneGeometry(26, 32), new THREE.MeshBasicMaterial({ map: shadow, transparent: true, depthWrite: false }));
@@ -359,7 +371,7 @@ function buildKart(scene: THREE.Scene, shadow: THREE.Texture): Kart {
   shield.visible = false;
   g.add(shield);
   scene.add(g);
-  return { g, paint, wheels, flames, shield, tag: null, tagFor: "", colour: "" };
+  return { g, paint, wheels, steerers, flames, shield, tag: null, tagFor: "", colour: "" };
 }
 
 function setTag(k: Kart, name: string, colour: string) {
@@ -390,12 +402,41 @@ function setTag(k: Kart, name: string, colour: string) {
   k.tag = s;
 }
 
-/** Puts a kart on the road at s, d (and turns it to face along the road). */
-function placeKart(k: Kart, s: number, d: number) {
+/** How fast the road bends to the driver's right at s (radians per unit of road; negative = to the left). */
+function bendAt(s: number) {
+  const a = spot(s - 12);
+  const b = spot(s + 12);
+  return ((b.tx - a.tx) * a.nx + (b.tz - a.tz) * a.nz) / 24;
+}
+
+/** How a kart sits on the road, smoothed from frame to frame so it really turns instead of sliding sideways. */
+type Pose = { d: number; yaw: number; roll: number; wheel: number };
+const newPose = (d: number): Pose => ({ d, yaw: 0, roll: 0, wheel: 0 });
+const clamp = (v: number, m: number) => Math.max(-m, Math.min(m, v));
+
+/**
+ * Puts a kart on the road at s, d, facing along the road, then turns it the way it is really going:
+ * the nose points where the kart moves (sideways moves from steering included) and a little into bends,
+ * the front wheels steer, and the body leans out of the turn. `steer` (-1..1) is the driver's input (own cart only).
+ */
+function placeKart(k: Kart, pose: Pose, s: number, d: number, speed: number, dt: number, steer = 0) {
   const a = spot(s, d);
   const b = spot(s + 14, d);
   k.g.position.set(a.x, 0, a.z);
   k.g.lookAt(b.x, 0, b.z);
+  const fwd = Math.max(25, speed);
+  const side = dt > 0 ? ((d - pose.d) / dt) * HALF : 0; // sideways speed, + = to the right
+  pose.d = d;
+  const bend = bendAt(s);
+  // + yaw = nose to the driver's right (rotateY turns the nose left, hence the minus below)
+  const yawTo = clamp(Math.atan2(side, fwd) * 0.7 + bend * fwd * 0.22 + steer * 0.1, 0.5);
+  const f = Math.min(1, dt * 9);
+  pose.yaw += (yawTo - pose.yaw) * f;
+  pose.wheel += (clamp(yawTo * 1.5 + bend * 18 + steer * 0.25, 0.6) - pose.wheel) * Math.min(1, dt * 14);
+  pose.roll += (clamp(bend * fwd * fwd * 0.0032 + pose.yaw * 0.12, 0.16) - pose.roll) * Math.min(1, dt * 6);
+  k.g.rotateY(-pose.yaw);
+  k.g.rotateZ(-pose.roll); // lean out of the turn
+  for (const w of k.steerers) w.rotation.y = -pose.wheel;
 }
 
 function Kart3DView({ uid, players, steer, onFail }: { uid: string; players: Record<string, Player>; steer: MutableRefObject<number>; onFail: () => void }) {
@@ -472,7 +513,10 @@ function Kart3DView({ uid, players, steer, onFail }: { uid: string; players: Rec
     let snap = true;
     let pMe = 0;
     let dMe = 0;
-    let lean = 0;
+    const myPose = newPose(0);
+    const poses = new Map<string, Pose>(); // other carts, by player
+    const sounds = kartSounds();
+    let camHead = 0; // the camera's direction (radians on the map), follows the kart a little late
     let last = performance.now();
     let raf = 0;
 
@@ -494,6 +538,7 @@ function Kart3DView({ uid, players, steer, onFail }: { uid: string; players: Rec
         else pMe += (predicted - pMe) * 0.12;
         if (!spinning && !(flags & 16)) dMe = Math.max(-1, Math.min(1, dMe + steer.current * STEER_RATE * dt));
         dMe += (mine[1] - dMe) * 0.08;
+        sounds.frame(speed, flags, pMe, dMe);
       }
 
       // My cart
@@ -502,11 +547,9 @@ function Kart3DView({ uid, players, steer, onFail }: { uid: string; players: Rec
         me.paint.color.set(myColour);
         me.colour = myColour;
       }
-      placeKart(me, pMe, dMe);
       const st = steer.current;
-      lean += (st - lean) * Math.min(1, dt * 6);
+      placeKart(me, myPose, pMe, dMe, speed, dt, spinning ? 0 : st);
       if (spinning) me.g.rotateY(((now / 1000) * 9) % (Math.PI * 2));
-      me.g.rotateZ(-lean * 0.08);
       for (const w of me.wheels) w.rotation.x += (speed * dt) / 3.3;
       const turbo = (flags & 2) !== 0;
       const sup = (flags & 32) !== 0;
@@ -524,12 +567,20 @@ function Kart3DView({ uid, players, steer, onFail }: { uid: string; players: Rec
         const prev = shown.get(u);
         const s = prev === undefined || Math.abs(target - prev) > 150 ? target : prev + c[2] * dt + (target - prev) * 0.15;
         shown.set(u, s);
+        // Sides arrive 5 times a second: glide towards the latest one so other carts do not jump across.
+        let pose = poses.get(u);
+        if (!pose) poses.set(u, (pose = newPose(c[1])));
         let gap = wrap(s) - wrap(pMe);
         if (gap > TRACK_LEN / 2) gap -= TRACK_LEN;
         if (gap < -TRACK_LEN / 2) gap += TRACK_LEN;
         // A cart on top of yours (start grid, passing) would hide your own cart: leave it out until it is clear.
-        if (Math.abs(gap) < 22 && Math.abs(c[1] - dMe) < 0.4) continue;
-        if (gap > -40 && gap < 650) near.push([u, s, c[1], gap]);
+        const dShown = pose.d + (c[1] - pose.d) * Math.min(1, dt * 7);
+        if (Math.abs(gap) < 22 && Math.abs(dShown - dMe) < 0.4) {
+          pose.d = dShown;
+          continue;
+        }
+        if (gap > -40 && gap < 650) near.push([u, s, dShown, gap]);
+        else pose.d = dShown;
       }
       near.sort((a, b) => Math.abs(a[3]) - Math.abs(b[3]));
       pool.forEach((k, i) => {
@@ -547,12 +598,14 @@ function Kart3DView({ uid, players, steer, onFail }: { uid: string; players: Rec
         }
         setTag(k, playersRef.current[u]?.name ?? "", col);
         k.g.visible = true;
-        placeKart(k, s, d);
+        placeKart(k, poses.get(u)!, s, d, live!.pos.c[u][2] ?? 0, dt);
         if (fl & 1) k.g.rotateY(((now / 1000) * 9) % (Math.PI * 2));
         for (const w of k.wheels) w.rotation.x += ((live!.pos.c[u][2] ?? 0) * dt) / 3.3;
         for (const f of k.flames) f.visible = (fl & 34) !== 0;
         k.shield.visible = (fl & 4) !== 0;
       });
+
+      for (const n of near.slice(pool.length)) poses.get(n[0])!.d = n[2];
 
       // Q boxes spin; taken ones are hidden until they come back
       const hidden = new Set(live?.pos.b ?? []);
@@ -562,17 +615,28 @@ function Kart3DView({ uid, players, steer, onFail }: { uid: string; players: Rec
         b.rotation.x += dt * 0.6;
       });
 
-      // Camera A: behind and above, looking ahead; smooth follow
-      const behind = spot(pMe - CAM_BACK, dMe * 0.85);
-      const look = spot(pMe + CAM_AHEAD, dMe * 0.6);
+      // Camera A: behind and above your kart, looking ahead. It turns with the kart a little late,
+      // so you see the kart swing into a bend or a lane change before the view follows it.
+      const here = spot(pMe, dMe);
+      const roadHead = Math.atan2(here.tz, here.tx);
+      const headTo = roadHead + (spinning ? 0 : myPose.yaw * 0.5);
+      if (snap) camHead = headTo;
+      let dh = headTo - camHead;
+      while (dh > Math.PI) dh -= 2 * Math.PI;
+      while (dh < -Math.PI) dh += 2 * Math.PI;
+      camHead += dh * Math.min(1, dt * 3.2);
+      const cx = Math.cos(camHead);
+      const cz = Math.sin(camHead);
+      const behind = new THREE.Vector3(here.x - cx * CAM_BACK, CAM_UP, here.z - cz * CAM_BACK);
+      const look = new THREE.Vector3(here.x + cx * CAM_AHEAD, 4, here.z + cz * CAM_AHEAD);
       if (snap) {
-        camPos.set(behind.x, CAM_UP, behind.z);
-        camLook.set(look.x, 4, look.z);
+        camPos.copy(behind);
+        camLook.copy(look);
         snap = false;
       }
-      const k = Math.min(1, dt * 6);
-      camPos.lerp(new THREE.Vector3(behind.x, CAM_UP, behind.z), k);
-      camLook.lerp(new THREE.Vector3(look.x, 4, look.z), k);
+      const k = Math.min(1, dt * 8);
+      camPos.lerp(behind, k);
+      camLook.lerp(look, k);
       camera.position.copy(camPos);
       camera.lookAt(camLook);
       // Cones between the camera and your cart would block the view: hide the ones right by the camera.
@@ -613,6 +677,7 @@ function Kart3DView({ uid, players, steer, onFail }: { uid: string; players: Rec
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      sounds.stop();
       cv.removeEventListener("webglcontextlost", lost);
       scene.traverse((o) => {
         const m = o as THREE.Mesh;

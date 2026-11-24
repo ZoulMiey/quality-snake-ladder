@@ -133,8 +133,7 @@ export default function KartPhone({ uid, me, game, onExit, onHome }: { uid: stri
   useEffect(() => {
     const fx = cart?.fx ?? null;
     if (fx && fx !== lastFx.current) {
-      if (fx === "spin") sfx.wrong();
-      if (fx === "turbo" || fx === "super") sfx.ladder();
+      // Spin-out, boost and shield sounds play in the race view (kartSound.ts), which knows what was hit.
       try {
         navigator.vibrate?.(fx === "spin" ? 300 : 80);
       } catch {}
