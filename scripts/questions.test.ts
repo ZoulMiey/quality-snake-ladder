@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { DEFAULT_QUESTIONS } from "../src/lib/defaultQuestions.ts";
 import { MORE_QUESTIONS } from "../src/lib/moreQuestions.ts";
 import { EXTRA_QUESTIONS } from "../src/lib/extraQuestions.ts";
+import { MFG_QUESTIONS } from "../src/lib/mfgQuestions.ts";
 import { SET_IDS, poolFor, setOf } from "../src/lib/questionSets.ts";
 
 let n = 0;
@@ -11,7 +12,7 @@ const t = (name: string, fn: () => void) => {
   n++;
   console.log("ok -", name);
 };
-const ALL = [...DEFAULT_QUESTIONS, ...MORE_QUESTIONS, ...EXTRA_QUESTIONS];
+const ALL = [...DEFAULT_QUESTIONS, ...MORE_QUESTIONS, ...EXTRA_QUESTIONS, ...MFG_QUESTIONS];
 
 t("every question has a unique id", () => {
   assert.equal(new Set(ALL.map((q) => q.id)).size, ALL.length);
@@ -36,14 +37,17 @@ t("each set has 100 questions; old questions without a set count as Quality", ()
   assert.equal(setOf({}), "quality");
 });
 
-t("a game asks only switched-on questions from its set; Mix is every set except Quality", () => {
+t("a game asks only switched-on questions from its set; Mix is every set except Quality and Manufacturing", () => {
   const bank = Object.fromEntries(ALL.map((q) => [q.id, { ...q }]));
   bank.w01.enabled = false;
   const world = poolFor(bank, "world");
   assert.ok(world.every((q) => q.set === "world" && q.enabled));
   assert.ok(!world.some((q) => q.id === "w01"));
   const mix = poolFor(bank, "mix");
-  assert.ok(mix.length > 300 && mix.every((q) => setOf(q) !== "quality"));
+  assert.ok(mix.length === 399 && mix.every((q) => setOf(q) !== "quality" && setOf(q) !== "manufacturing"));
+  const mfg = poolFor(bank, "manufacturing");
+  assert.equal(mfg.length, 100);
+  assert.ok(mfg.every((q) => q.set === "manufacturing"));
   assert.ok(poolFor(bank, null).every((q) => setOf(q) === "quality"), "no choice = Quality");
 });
 

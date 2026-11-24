@@ -562,7 +562,7 @@ function LobbyView({
                 <span className="en">
                   {s.icon} {s.id === "mix" ? "Mix" : s.en} · {qsetCounts[s.id] ?? 0}
                 </span>
-                <span className="ms">{s.id === "mix" ? "All except Quality / Campuran" : s.ms}</span>
+                <span className="ms">{s.id === "mix" ? "Not Quality or Manufacturing / Campuran" : s.ms}</span>
               </button>
             ))}
           </div>

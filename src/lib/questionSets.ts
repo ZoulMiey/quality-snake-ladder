@@ -1,8 +1,8 @@
 // Question sets: the host picks one in the lobby, and the game only asks questions from it.
 import type { Question } from "./types.ts";
 
-export type QSet = "quality" | "world" | "logo" | "malaysia" | "general";
-/** "mix" = every set except Quality. */
+export type QSet = "quality" | "world" | "logo" | "malaysia" | "general" | "manufacturing";
+/** "mix" = every set except Quality and Manufacturing (owner, 24 Nov 2026). */
 export type QChoice = QSet | "mix";
 
 export const QSETS: { id: QChoice; en: string; ms: string; icon: string }[] = [
@@ -11,13 +11,16 @@ export const QSETS: { id: QChoice; en: string; ms: string; icon: string }[] = [
   { id: "logo", en: "Logo", ms: "Logo", icon: "🏷️" },
   { id: "malaysia", en: "Malaysia", ms: "Malaysia", icon: "🇲🇾" },
   { id: "general", en: "General Knowledge", ms: "Pengetahuan Am", icon: "💡" },
-  { id: "mix", en: "Mix (all except Quality)", ms: "Campuran (semua kecuali Kualiti)", icon: "🎲" },
+  { id: "manufacturing", en: "Manufacturing", ms: "Pembuatan", icon: "🏭" },
+  { id: "mix", en: "Mix (all except Quality & Manufacturing)", ms: "Campuran (semua kecuali Kualiti & Pembuatan)", icon: "🎲" },
 ];
-export const SET_IDS: QSet[] = ["quality", "world", "logo", "malaysia", "general"];
+export const SET_IDS: QSet[] = ["quality", "world", "logo", "malaysia", "general", "manufacturing"];
+/** Sets that are not part of Mix. */
+const NOT_IN_MIX: QSet[] = ["quality", "manufacturing"];
 
 /** Questions saved before sets existed belong to Quality. */
 export const setOf = (q: { set?: string }): QSet => (SET_IDS.includes(q.set as QSet) ? (q.set as QSet) : "quality");
-export const inChoice = (q: { set?: string }, choice: QChoice | undefined | null) => (choice === "mix" ? setOf(q) !== "quality" : setOf(q) === (choice || "quality"));
+export const inChoice = (q: { set?: string }, choice: QChoice | undefined | null) => (choice === "mix" ? !NOT_IN_MIX.includes(setOf(q)) : setOf(q) === (choice || "quality"));
 export const choiceName = (choice: QChoice | undefined | null) => QSETS.find((s) => s.id === (choice || "quality"))!;
 
 /** The questions a game may ask: switched on and in the chosen set. */
