@@ -82,6 +82,7 @@ Last updated **24 Nov 2026, end of the ninth session** (Kajang event day: **Wed 
    - **Subang online games poster (final, sent):** `poster/poster-subang.html` → `poster/out/poster-{A4,wide}-subang.{png,gif,mp4}`. See "Event poster".
    - **Subang physical games poster (draft only):** `poster/poster-subang-physical.html`, drafts `poster/out/subang-physical-draft-{A4,wide}.png`. Waiting for the owner (see Open items).
    - **Do You Remember? letter cards (owner: "yes please", at least 12 words; no projector screen, the game is played physically):** `poster/letter-cards.html` → `poster/out/do-you-remember-letter-cards.pdf` (render `node cards.cjs "$PWD"` in `poster/`). See "Event poster".
+   - **Snake & Ladder: harder finish (owner picked option A from 3 drawn on the real board, then tweaked):** 2 new snakes on 95–99 (nothing was there): **99 → 80** and **96 → 76** (owner moved the head from 95 to 96), and the green snake **85 → 82 moved to 84 → 78** so the 96 snake does not cross its head (`SNAKES` in `src/lib/board.ts`; 10 snakes now, colours repeat from the 9th). Simulation (20,000 runs, rough timings): a player's time to 100 goes up only slightly (50% right ~11.1 → ~12.1 min, 70% ~6.0 → ~6.2, 90% unchanged ~3.5) because a snake only bites on a wrong answer; 25% of 50%-right players, 14% of 70% and 4% of 90% slide on a new snake. Checked: `npm test`, `snake-moments.cjs N=3`, `snake-phone.cjs PLAYERS=1` (projector and phone boards drawn right, full game, no errors). Drafts were scratch only (not committed).
 
 ## What this is
 

@@ -23,9 +23,12 @@ export const SNAKES: Record<number, number> = {
   45: 25,
   69: 35,
   79: 57,
-  85: 82,
+  84: 78, // was 85 -> 82; moved so the new 96 snake does not cross its head (owner, 24 Nov)
   93: 88,
   94: 56,
+  // Two more near the finish to make the end harder (owner's option A, 24 Nov): nothing was on 95-99 before.
+  96: 76,
+  99: 80,
 };
 
 /** Column (0 = left) and row (0 = top) of a box on screen. Box 0 = start, shown beside box 1. */
