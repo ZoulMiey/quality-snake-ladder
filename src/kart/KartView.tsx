@@ -2,7 +2,8 @@ import EndButtons from "../components/EndButtons.tsx";
 import { useEffect, useRef } from "react";
 import { onValue, ref } from "../lib/store.ts";
 import { db } from "../lib/firebase.ts";
-import { useDbValue } from "../lib/useDb.ts";
+import { useDbValue, useNow } from "../lib/useDb.ts";
+import { KartCelebration, celebrating } from "./KartFinale.tsx";
 import { tokenById } from "../lib/tokens.ts";
 import type { FeedItem, Game, Player } from "../lib/types.ts";
 import { HAZARDS, LAPS, PATH_POINTS, TRACK_W, WORLD_H, WORLD_W, HALF, place, wrap } from "./track.ts";
@@ -260,6 +261,10 @@ export default function KartView({ game, players, feed, onAgain }: { game: Game;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const me = useDbValue<Record<string, CartMe>>("kart/me");
   const results = useDbValue<CartResult[]>(game.status === "ended" ? "kart/results" : null);
+  // Race over: the same podium celebration and 3, 2, 1 as the phones, full screen, then the winners list + end buttons.
+  const ended = game.status === "ended";
+  useNow(ended ? 250 : 60000);
+  const showing = ended && celebrating(game.endedAt);
   const playersRef = useRef(players);
   playersRef.current = players;
 
@@ -327,7 +332,8 @@ export default function KartView({ game, players, feed, onAgain }: { game: Game;
         </div>
         {game.paused && <div className="paused-overlay">⏸ Paused / Dihentikan seketika</div>}
         {game.status === "playing" && game.goAt && <Countdown goAt={game.goAt} frozenAt={game.paused ? game.pausedAt : null} className="board-cd" />}
-        {game.status === "ended" && results && (
+        {showing && game.endedAt && <KartCelebration results={results ?? null} players={players} endedAt={game.endedAt} />}
+        {ended && !showing && results && (
           <div className="podium-overlay">
             <div className="podium">
               <h2>🏆 Winners / Pemenang</h2>
