@@ -26,7 +26,7 @@ const MODES = APP_GAMES.map((g) => g.m);
 /** What a solo game is, per game (shown on the game's page). */
 const SOLO_WHAT: Record<GameMode, { en: string; ms: string }> = {
   snake: { en: "Race to box 100 alone: as fast as you can.", ms: "Lumba ke petak 100 sendirian, sepantas mungkin." },
-  kart: { en: "Time trial: 3 laps of Factory Block.", ms: "Cubaan masa: 3 pusingan Factory Block." },
+  kart: { en: "Time trial: 3 laps of Coastal Wave.", ms: "Cubaan masa: 3 pusingan Coastal Wave." },
   clash: { en: "Boss Raid alone: defeat the Defect Titan as fast as you can.", ms: "Serangan Bos sendirian: kalahkan Gergasi Kecacatan sepantas mungkin." },
   fish: { en: "5 minutes: catch the heaviest load.", ms: "5 minit: tangkap seberat mungkin." },
   rope: { en: "Beat the current: the river pulls harder each minute. Reach your bank!", ms: "Lawan arus: sungai menarik makin kuat setiap minit. Sampai ke tebing anda!" },

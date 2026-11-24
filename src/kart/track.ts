@@ -1,4 +1,4 @@
-// The Quality Cart race track ("Factory Block"), seen from above.
+// The Quality Cart race track ("Coastal Wave"), seen from above.
 // World units: the track fits in a 1600 x 900 area (the shape of a projector screen).
 
 export const WORLD_W = 1600;
@@ -9,26 +9,25 @@ export const LAPS = 3;
 
 /**
  * Points the centre of the road passes through (a smooth curve is drawn through them).
- * "Factory Block" (owner's pick from 10 drafts, Nov 2026): long top and bottom straights, squarer
- * corners like a street race round a factory, and an S-chicane on the left. Start line top left, driving right.
+ * "Coastal Wave" (owner's pick C from 5 smooth drafts, 24 Nov 2026; replaced "Factory Block", which had
+ * hard 90-degree corners that felt abrupt in the phones' 3D chase camera): the top and bottom roads roll in
+ * long waves with one wide sweep at each end, no corner tighter than a radius of ~168. Start line top left, driving right.
  */
 const CONTROL: [number, number][] = [
-  [250, 170],
-  [800, 170],
-  [1350, 170],
-  [1440, 240],
-  [1450, 420],
-  [1370, 480],
-  [1060, 480],
-  [990, 550],
-  [1000, 700],
-  [920, 770],
-  [600, 770],
-  [300, 770],
-  [200, 690],
-  [190, 470],
-  [300, 380],
-  [200, 270],
+  [260, 200],
+  [520, 150],
+  [800, 230],
+  [1080, 150],
+  [1330, 190],
+  [1450, 330],
+  [1440, 560],
+  [1330, 720],
+  [1100, 770],
+  [800, 720],
+  [500, 780],
+  [280, 740],
+  [170, 600],
+  [160, 380],
 ];
 
 const STEP = 4; // distance between stored points along the road
@@ -108,22 +107,29 @@ export function gap(a: number, b: number) {
 export type HazardKind = "cone" | "pothole" | "oos";
 export type Hazard = { s: number; d: number; kind: HazardKind; len: number; wide: number };
 
-/** Fixed hazards on the road (at fractions of a lap). */
+/** Fixed hazards on the road (at fractions of a lap). Placed by the owner in the layout editor (24 Nov 2026). */
 export const HAZARDS: Hazard[] = (
   [
-  { s: 0.1, d: -0.45, kind: "cone", len: 14, wide: 0.22 },
   { s: 0.1, d: 0.55, kind: "cone", len: 14, wide: 0.22 },
-  { s: 0.2, d: 0.1, kind: "pothole", len: 18, wide: 0.3 },
+  { s: 0.116, d: -0.809, kind: "cone", len: 14, wide: 0.22 },
+  { s: 0.212, d: -0.676, kind: "pothole", len: 18, wide: 0.3 },
+  { s: 0.299, d: 0.613, kind: "pothole", len: 18, wide: 0.3 },
   { s: 0.33, d: -0.55, kind: "oos", len: 70, wide: 0.42 },
-  { s: 0.46, d: 0.45, kind: "cone", len: 14, wide: 0.22 },
-  { s: 0.47, d: -0.3, kind: "pothole", len: 18, wide: 0.3 },
-  { s: 0.6, d: 0.5, kind: "oos", len: 70, wide: 0.42 },
-  { s: 0.71, d: -0.05, kind: "cone", len: 14, wide: 0.22 },
-  { s: 0.83, d: -0.5, kind: "pothole", len: 18, wide: 0.3 },
-  { s: 0.9, d: 0.4, kind: "cone", len: 14, wide: 0.22 },
+  { s: 0.362, d: 0.683, kind: "pothole", len: 18, wide: 0.3 },
+  { s: 0.44, d: -0.666, kind: "pothole", len: 18, wide: 0.3 },
+  { s: 0.471, d: 0.85, kind: "cone", len: 14, wide: 0.22 },
+  { s: 0.499, d: -0.655, kind: "pothole", len: 18, wide: 0.3 },
+  { s: 0.574, d: -0.561, kind: "pothole", len: 18, wide: 0.3 },
+  { s: 0.608, d: 0.481, kind: "oos", len: 70, wide: 0.42 },
+  { s: 0.637, d: -0.743, kind: "pothole", len: 18, wide: 0.3 },
+  { s: 0.705, d: 0.69, kind: "cone", len: 14, wide: 0.22 },
+  { s: 0.738, d: -0.495, kind: "pothole", len: 18, wide: 0.3 },
+  { s: 0.814, d: 0.727, kind: "pothole", len: 18, wide: 0.3 },
+  { s: 0.848, d: -0.461, kind: "pothole", len: 18, wide: 0.3 },
+  { s: 0.939, d: 0.414, kind: "cone", len: 14, wide: 0.22 },
   ] as Hazard[]
 ).map((h) => ({ ...h, s: h.s * TRACK_LEN }));
 
 /** Rows of item boxes (each row has boxes across the road): 8 rows a lap, kept clear of the hazards. */
-export const BOX_ROWS = [0.06, 0.16, 0.26, 0.39, 0.53, 0.66, 0.77, 0.87].map((f) => f * TRACK_LEN);
+export const BOX_ROWS = [0.054, 0.16, 0.26, 0.399, 0.537, 0.669, 0.781, 0.884].map((f) => f * TRACK_LEN);
 export const BOX_LANES = [-0.66, 0, 0.66];
