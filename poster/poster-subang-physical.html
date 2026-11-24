@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quality Games Poster</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+:root {
+  --navy: #020b26; --deep: #041a4d; --blue: #0b4fc4; --glow: #3aa8ff; --ice: #cfe6ff;
+  --gold1: #fff3b0; --gold2: #f5c542; --gold3: #b9811c; --gold4: #6b4708;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--navy); }
+body { font-family: "Exo 2", sans-serif; color: #fff; }
+.poster { position: relative; overflow: hidden; width: 1240px; height: 1754px;
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 46%, rgba(40,130,255,.55), transparent 70%),
+    radial-gradient(ellipse 90% 60% at 50% 30%, #0c3a9a 0%, #062263 45%, var(--navy) 85%);
+}
+body.land .poster { width: 1920px; height: 1080px; }
+
+/* light streaks */
+.streak { position: absolute; height: 3px; border-radius: 3px; background: linear-gradient(90deg, transparent, rgba(120,200,255,.95), #fff, rgba(120,200,255,.9), transparent); filter: blur(.6px); box-shadow: 0 0 18px 4px rgba(60,160,255,.55); opacity: .85; }
+.sky { position: absolute; bottom: 0; opacity: .55; }
+.chart { position: absolute; }
+
+/* floor */
+.floor { position: absolute; left: -20%; right: -20%; bottom: -6%; height: 34%; perspective: 600px; }
+.floor .grid { position: absolute; inset: 0; transform: rotateX(68deg); transform-origin: 50% 0%;
+  background-image: linear-gradient(rgba(70,170,255,.45) 2px, transparent 2px), linear-gradient(90deg, rgba(70,170,255,.45) 2px, transparent 2px);
+  background-size: 80px 80px; -webkit-mask-image: linear-gradient(transparent, #000 30%); mask-image: linear-gradient(transparent, #000 30%); }
+.rings { position: absolute; left: 50%; transform: translateX(-50%); }
+.rings i { position: absolute; left: 50%; top: 50%; border-radius: 50%; transform: translate(-50%, -50%); border: 3px solid rgba(90,190,255,.8); box-shadow: 0 0 24px rgba(60,160,255,.9), inset 0 0 24px rgba(60,160,255,.6); }
+
+.content { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; }
+
+/* header */
+.brand { display: flex; align-items: center; gap: 22px; margin-top: 58px; }
+.brand img { height: 92px; border-radius: 14px; box-shadow: 0 0 22px rgba(120,190,255,.7); }
+.brand span { font-family: "Russo One"; font-size: 46px; letter-spacing: 1px; text-shadow: 0 3px 10px rgba(0,0,0,.6); }
+
+.title { margin-top: 26px; font-family: "Orbitron"; font-weight: 900; font-size: 88px; line-height: 1; letter-spacing: 1px; white-space: nowrap; text-align: center; position: relative; }
+.chrome, .goldtxt { -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-stroke: 2px rgba(255,255,255,.55); filter: drop-shadow(0 4px 0 #062a75) drop-shadow(0 8px 12px rgba(0,0,0,.7)) drop-shadow(0 0 22px rgba(60,160,255,.55)); }
+.chrome { background-image: linear-gradient(180deg, #ffffff 0%, #e3f0ff 35%, #7fb2f0 50%, #2f6fd0 56%, #bfdcff 75%, #ffffff 100%); }
+.goldtxt { background-image: linear-gradient(180deg, #fffbe0 0%, #ffe07a 35%, #e0a52a 52%, #9a6a12 58%, #f5c542 78%, #fff3b0 100%); -webkit-text-stroke: 2px rgba(255,240,180,.6); filter: drop-shadow(0 4px 0 #5a3a05) drop-shadow(0 8px 12px rgba(0,0,0,.7)) drop-shadow(0 0 20px rgba(255,190,60,.45)); }
+
+.plate { position: relative; margin-top: 22px; padding: 12px 64px; font-family: "Exo 2"; font-weight: 800; font-size: 40px; letter-spacing: 2px; color: #3a2400;
+  background: linear-gradient(180deg, var(--gold1), var(--gold2) 45%, var(--gold3) 100%);
+  clip-path: polygon(22px 0, calc(100% - 22px) 0, 100% 50%, calc(100% - 22px) 100%, 22px 100%, 0 50%);
+  filter: drop-shadow(0 0 14px rgba(255,200,80,.6)); }
+
+.hexban { position: relative; margin-top: 46px; padding: 3px; background: linear-gradient(180deg, var(--gold1), var(--gold2) 40%, var(--gold3)); clip-path: polygon(40px 0, calc(100% - 40px) 0, 100% 50%, calc(100% - 40px) 100%, 40px 100%, 0 50%); filter: drop-shadow(0 0 24px rgba(255,190,60,.55)); }
+.hexban div { padding: 16px 110px 14px; text-align: center; background: linear-gradient(180deg, #0f3f9e, #06215e 60%, #0a2f7c); clip-path: polygon(39px 0, calc(100% - 39px) 0, 100% 50%, calc(100% - 39px) 100%, 39px 100%, 0 50%); }
+.hexban b { display: block; font-family: "Exo 2"; font-style: italic; font-weight: 800; font-size: 66px; letter-spacing: 2px; line-height: 1; }
+.hexban small { display: block; margin-top: 6px; font-weight: 600; font-size: 26px; letter-spacing: 4px; color: var(--ice); }
+.wing { position: absolute; top: 50%; height: 4px; width: 230px; background: linear-gradient(90deg, transparent, var(--gold2)); box-shadow: 0 0 12px rgba(255,200,80,.8); }
+
+.tag { margin-top: 28px; font-family: "Orbitron"; font-weight: 900; font-size: 50px; letter-spacing: 3px; text-align: center; }
+.tag small { display: block; margin-top: 8px; font-family: "Exo 2"; font-weight: 600; font-size: 28px; letter-spacing: 3px; color: var(--ice); }
+
+/* game tiles */
+.games { display: grid; grid-template-columns: repeat(5, 1fr); gap: 22px; width: 1130px; margin-top: 40px; }
+.tile { position: relative; padding: 3px; border-radius: 18px; background: linear-gradient(160deg, #9fd8ff, #2a7de0 40%, #0b3d9e 70%, #6cc0ff); box-shadow: 0 0 26px rgba(60,160,255,.55); }
+.tile .in { height: 100%; border-radius: 15px; padding: 22px 8px 0; display: flex; flex-direction: column; align-items: center; background: radial-gradient(circle at 50% 30%, #1d5fd0, #0a2a72 55%, #061a4a); overflow: hidden; }
+.icon { position: relative; width: 140px; height: 140px; display: grid; place-items: center; border-radius: 50%; font-size: 76px; background: radial-gradient(circle at 50% 40%, #2b7cf0, #0a2f80 70%); box-shadow: 0 0 0 5px #0b2e78, 0 0 0 9px var(--gold2), 0 0 26px 10px rgba(80,180,255,.6); }
+.icon .two { font-size: 56px; letter-spacing: -8px; }
+.name { margin-top: 26px; width: 100%; padding: 14px 6px 16px; text-align: center; background: linear-gradient(180deg, rgba(10,40,110,.0), rgba(4,20,60,.85)); border-top: 2px solid rgba(120,200,255,.6); }
+.name b { display: block; font-weight: 800; font-size: 29px; line-height: 1.1; text-transform: uppercase; }
+.name small { display: block; margin-top: 6px; font-weight: 600; font-size: 21px; color: #ffd76a; }
+
+/* how to play */
+.how { display: flex; gap: 18px; margin-top: 34px; }
+.step { display: flex; align-items: center; gap: 14px; padding: 12px 22px 12px 14px; border-radius: 60px; background: rgba(6,30,90,.75); border: 2px solid rgba(90,180,255,.7); box-shadow: 0 0 18px rgba(40,140,255,.35); }
+.step em { font-style: normal; display: grid; place-items: center; width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(180deg, var(--gold1), var(--gold2) 50%, var(--gold3)); color: #3a2400; font-family: "Orbitron"; font-weight: 900; font-size: 26px; flex: none; }
+.step b { display: block; font-weight: 800; font-size: 24px; line-height: 1.1; }
+.step small { display: block; font-weight: 600; font-size: 18px; color: var(--ice); }
+
+/* details */
+.details { display: flex; flex-direction: column; align-items: stretch; gap: 12px; margin-top: 28px; width: 640px; }
+.info div { padding-top: 9px !important; padding-bottom: 9px !important; }
+.info div { justify-content: center; }
+body.land .details { flex-direction: row; width: auto; }
+.info { position: relative; padding: 3px; background: linear-gradient(180deg, var(--gold1), var(--gold2) 40%, var(--gold3)); clip-path: polygon(26px 0, calc(100% - 26px) 0, 100% 50%, calc(100% - 26px) 100%, 26px 100%, 0 50%); filter: drop-shadow(0 0 16px rgba(255,190,60,.5)); }
+.info div { display: flex; align-items: center; gap: 16px; padding: 16px 52px; background: linear-gradient(180deg, #0f3f9e, #051b52); clip-path: polygon(25px 0, calc(100% - 25px) 0, 100% 50%, calc(100% - 25px) 100%, 25px 100%, 0 50%); }
+.info .ic { font-size: 46px; }
+.info small { display: block; font-weight: 600; font-size: 20px; letter-spacing: 3px; color: #ffd76a; text-transform: uppercase; }
+.info b { display: block; font-family: "Exo 2"; font-weight: 800; font-size: 38px; line-height: 1.1; white-space: nowrap; }
+
+.pic { margin-top: 18px; display: flex; flex-direction: column; align-items: center; }
+.pic .p1 { padding: 4px 22px; font-weight: 800; font-size: 18px; letter-spacing: 2px; color: #3a2400; background: linear-gradient(180deg, var(--gold1), var(--gold2)); border-radius: 6px 6px 0 0; }
+.pic .p2 { display: flex; align-items: center; gap: 20px; padding: 8px 46px; font-weight: 800; font-size: 28px; background: #061a4a; border: 2px solid var(--gold2); clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 16px 100%, 0 50%); }
+
+.pic .p2 i { width: 2px; height: 30px; background: var(--gold2); opacity: .8; }
+.pic .p2 .mail { font-weight: 600; font-size: 24px; color: #ffd76a; }
+.foot { margin-top: 22px; text-align: center; font-weight: 800; font-size: 30px; letter-spacing: 3px; text-shadow: 0 0 16px rgba(60,160,255,.9); }
+.foot small { display: block; font-weight: 600; font-size: 22px; color: var(--ice); letter-spacing: 2px; margin-top: 4px; }
+
+/* ---- landscape ---- */
+body.land .brand { margin-top: 34px; }
+body.land .brand img { height: 70px; }
+body.land .brand span { font-size: 36px; }
+body.land .title { margin-top: 14px; font-size: 100px; }
+body.land .plate { margin-top: 14px; font-size: 32px; padding: 9px 56px; }
+body.land .hexban { margin-top: 28px; }
+body.land .hexban div { padding: 10px 90px 10px; }
+body.land .hexban b { font-size: 50px; }
+body.land .hexban small { font-size: 21px; }
+body.land .tag { display: none; }
+body.land .games { width: 1640px; gap: 26px; margin-top: 30px; }
+body.land .icon { width: 120px; height: 120px; font-size: 64px; }
+body.land .icon .two { font-size: 48px; }
+body.land .tile .in { padding-top: 18px; }
+body.land .name { margin-top: 20px; padding: 10px 6px 12px; }
+body.land .name b { font-size: 28px; }
+body.land .how { margin-top: 26px; }
+body.land .step { padding: 9px 20px 9px 12px; }
+body.land .step em { width: 42px; height: 42px; font-size: 22px; }
+body.land .step b { font-size: 22px; }
+body.land .step small { font-size: 16px; }
+body.land .details { margin-top: 26px; }
+body.land .info div { padding: 10px 46px; }
+body.land .info .ic { font-size: 38px; }
+body.land .info b { font-size: 32px; }
+body.land .info small { font-size: 17px; }
+body.land .pic { margin-top: 16px; }
+body.land.pics .brand { margin-top: 26px; }
+body.land.pics .hexban { margin-top: 22px; }
+body.land.pics .games { margin-top: 24px; }
+body.land .foot { margin-top: 12px; font-size: 24px; }
+body.land .foot small { font-size: 17px; }
+
+/* style B: 3D badges */
+.icon svg { width: 90%; height: 90%; overflow: visible; }
+/* style A: game pictures */
+body.pics .icon { width: 100%; height: auto; aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden; background: #000; box-shadow: 0 0 0 3px var(--gold2), 0 0 22px 6px rgba(80,180,255,.55); }
+body.pics .tile .in { padding: 14px 12px 0; }
+body.pics .icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
+body.pics .name { margin-top: 14px; }
+
+/* prizes */
+.prize { position: absolute; z-index: 2; display: flex; flex-direction: column; align-items: center; }
+.prize.left { left: 18px; top: 1225px; }
+.prize.right { right: 18px; top: 1225px; }
+.pile { position: relative; width: 270px; height: 210px; }
+.pile svg { position: absolute; overflow: visible; }
+.g1 { width: 130px; left: 8px; bottom: 0; }
+.g2 { width: 105px; left: 128px; bottom: 0; }
+.g3 { width: 92px; left: 76px; bottom: 92px; }
+.g4 { width: 100px; left: 0; bottom: 0; }
+.g5 { width: 95px; right: 0; bottom: 0; }
+.tro { width: 140px; left: 65px; bottom: 6px; }
+.sp { width: 30px; filter: drop-shadow(0 0 8px #9fd8ff); }
+.s1 { left: 20px; top: 40px; } .s2 { right: 10px; top: 70px; } .s3 { left: 30px; top: 30px; } .s4 { right: 24px; top: 10px; width: 24px; }
+.prize.right .pile { transform: scaleX(-1); }
+body.land .prize.right .pile { transform: scaleX(-1) scale(.85); }
+.prize.right .g1 { animation-delay: -1.2s; } .prize.right .g2 { animation-delay: -.4s; } .prize.right .g3 { animation-delay: -1.2s; }
+.plabel { margin-top: 6px; padding: 6px 22px; text-align: center; border-radius: 12px; background: linear-gradient(180deg, var(--gold1), var(--gold2) 50%, var(--gold3)); color: #3a2400; box-shadow: 0 0 18px rgba(255,190,60,.55); }
+.plabel b { display: block; font-family: "Exo 2"; font-weight: 800; font-size: 22px; letter-spacing: 1px; }
+.plabel small { display: block; font-weight: 700; font-size: 16px; }
+body.land .prize.left { left: 26px; top: 800px; }
+body.land .prize.right { right: 26px; top: 800px; }
+body.land .pile { transform: scale(.85); transform-origin: 50% 100%; margin-top: -30px; }
+
+/* animation (used for the GIF; the PNG is a still frame) */
+@keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes wig { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-4deg); } 75% { transform: rotate(4deg); } }
+@keyframes tw { 0%,100% { transform: scale(.4) rotate(0); opacity: .3; } 50% { transform: scale(1.15) rotate(45deg); opacity: 1; } }
+@keyframes glowp { 0%,100% { filter: drop-shadow(0 0 6px rgba(255,210,90,.4)); } 50% { filter: drop-shadow(0 0 22px rgba(255,210,90,1)); } }
+@keyframes ringp { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+@keyframes sweep { 0% { transform: translateX(-130%) skewX(-20deg); } 60%,100% { transform: translateX(330%) skewX(-20deg); } }
+.g1 { animation: bob 2.4s ease-in-out infinite; } .g2 { animation: bob 2.4s ease-in-out -.8s infinite; } .g3 { animation: wig 2.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.g4 { animation: bob 2.4s ease-in-out -1.2s infinite; } .g5 { animation: wig 2.4s ease-in-out -.6s infinite; transform-origin: 50% 100%; }
+.tro { animation: glowp 2.4s ease-in-out infinite; }
+.s1 { animation: tw 1.2s ease-in-out infinite; } .s2 { animation: tw 1.2s ease-in-out -.6s infinite; } .s3 { animation: tw 1.2s ease-in-out -.3s infinite; } .s4 { animation: tw 1.2s ease-in-out -.9s infinite; }
+.rings i { animation: ringp 2.4s ease-in-out infinite; }
+.rings i:nth-child(2) { animation-delay: -.8s; } .rings i:nth-child(3) { animation-delay: -1.6s; }
+.icon { animation: glowring 2.4s ease-in-out infinite; }
+@keyframes glowring { 0%,100% { box-shadow: 0 0 0 5px #0b2e78, 0 0 0 9px var(--gold2), 0 0 20px 6px rgba(80,180,255,.45); } 50% { box-shadow: 0 0 0 5px #0b2e78, 0 0 0 9px #ffe27a, 0 0 34px 14px rgba(80,180,255,.85); } }
+
+/* background confetti + fireworks (kept soft so the poster stays in front) */
+.fw { position: absolute; overflow: visible; pointer-events: none; opacity: 0; animation: burst 2.4s ease-out infinite; mix-blend-mode: screen; }
+@keyframes burst { 0% { transform: scale(.25); opacity: 0; } 15% { opacity: .5; } 70% { opacity: .32; } 100% { transform: scale(1.08); opacity: 0; } }
+.cf { position: absolute; border-radius: 2px; opacity: .5; animation: flutter 2.4s ease-in-out infinite; }
+@keyframes flutter { 0%,100% { transform: translateY(0) rotate(var(--r)) scaleX(1); } 50% { transform: translateY(14px) rotate(calc(var(--r) + 140deg)) scaleX(.35); } }
+body.four .games { grid-template-columns: repeat(4, 1fr); }
+body.land .name b { font-size: 25px; white-space: nowrap; }
+body.four.land .games { width: 1400px; }
+
+/* Two groups (owner, 23 Nov): E-Games (6) and Physical Game (1) */
+.gamezone { display: grid; gap: 22px; width: 1150px; margin-top: 30px; }
+.sect-h { display: flex; align-items: baseline; justify-content: center; gap: 14px; margin-bottom: 12px; }
+.sect-h b { font-family: "Orbitron"; font-weight: 900; font-size: 30px; letter-spacing: 2px; color: var(--gold2); text-shadow: 0 0 14px rgba(255,190,60,.5); }
+.sect-h small { font-weight: 600; font-size: 20px; color: var(--ice); }
+.gamezone .games { margin-top: 0; width: auto; }
+.egames .games { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.egames .tile .in { flex-direction: row; padding: 14px 14px; gap: 14px; align-items: center; }
+.egames .icon { width: 104px; height: 104px; flex: none; }
+.egames .name { margin: 0; padding: 0; border: 0; background: none; text-align: left; }
+.egames .name b { font-size: 25px; }
+.egames .name small { font-size: 18px; }
+.phys .games { grid-template-columns: 1fr; }
+.phys .tile { background: linear-gradient(160deg, #ffe27a, #d99a1e 45%, #8a5a0c 75%, #ffe27a); box-shadow: 0 0 26px rgba(255,190,60,.55); }
+.phys .tile .in { flex-direction: row; padding: 14px 24px; gap: 22px; align-items: center; justify-content: center; }
+.phys .icon { width: 120px; height: 120px; flex: none; }
+.phys .name { margin: 0; padding: 0; border: 0; background: none; text-align: left; width: auto; }
+.phys .name b { font-size: 34px; }
+.phys .name small { font-size: 22px; }
+.pdesc { display: block; margin-top: 6px; font-size: 18px; color: #e6eeff; line-height: 1.3; }
+.pdesc i { color: var(--ice); }
+.tag { margin-top: 18px; }
+.tag .goldtxt { font-size: 42px; }
+.how { margin-top: 26px; }
+/* Wide: E-Games 6 in a row with the physical game beside them */
+body.land .gamezone { width: 1800px; grid-template-columns: minmax(0, 1fr) 300px; gap: 26px; margin-top: 22px; }
+body.land .egames .games { grid-template-columns: repeat(6, 1fr); gap: 14px; }
+body.land .egames .tile .in, body.land .phys .tile .in { flex-direction: column; padding: 14px 6px 0; gap: 0; }
+body.land .egames .icon { width: 112px; height: 112px; }
+body.land .phys .icon { width: 112px; height: 112px; }
+body.land .egames .name, body.land .phys .name { margin-top: 12px; padding: 10px 4px 12px; text-align: center; border-top: 2px solid rgba(120,200,255,.6); width: 100%; }
+body.land .egames .name b, body.land .phys .name b { font-size: 21px; white-space: nowrap; }
+body.land .egames .name small, body.land .phys .name small { font-size: 15px; }
+body.land .phys .tile .in { padding-bottom: 0; }
+body.land .pdesc { display: none; }
+body.land .sect-h b { font-size: 24px; }
+body.land .sect-h small { font-size: 16px; }
+body.land .sect-h { margin-bottom: 8px; }
+
+/* fit fixes */
+body:not(.land) .tag { display: none; }
+body:not(.land) .details { flex-direction: row; width: auto; gap: 10px; margin-top: 22px; }
+body:not(.land) .info div { padding: 10px 30px !important; gap: 10px; }
+body:not(.land) .info .ic { font-size: 34px; }
+body:not(.land) .info b { font-size: 27px; }
+body:not(.land) .info small { font-size: 15px; letter-spacing: 2px; }
+body:not(.land) .gamezone { margin-top: 26px; }
+body:not(.land) .prize.left, body:not(.land) .prize.right { top: auto; bottom: 150px; }
+body.land .gamezone { width: 1780px; grid-template-columns: minmax(0, 1fr) 250px; }
+body.land .egames .games { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+body.land .phys .sect-h { flex-direction: column; align-items: center; gap: 0; }
+body.land .phys .sect-h b { font-size: 20px; }
+body.land .phys .name b { font-size: 19px; }
+body.land .egames .sect-h { min-height: 50px; align-items: center; }
+body.land .gamezone .games { width: auto; margin-top: 0; }
+body:not(.land) .gamezone { width: 1170px; }
+body:not(.land) .egames .icon { width: 116px; height: 116px; }
+body:not(.land) .egames .name b { font-size: 27px; }
+body:not(.land) .details { margin-top: 28px; }
+body:not(.land) .how { margin-top: 32px; }
+/* 24 Nov update (owner): Physical Game first, 4 E-Games, a format line under each group */
+.sect-h { align-items: center; flex-wrap: wrap; }
+.fmt { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 0 8px; width: fit-content; padding: 4px 18px 4px 12px; text-align: left; border-radius: 999px; background: rgba(10,30,80,.75); border: 2px solid var(--gold2); box-shadow: 0 0 16px rgba(255,190,60,.35); }
+.fmt .fi { font-size: 26px; }
+.fmt b { display: block; font-family: "Russo One"; font-size: 20px; letter-spacing: 1px; color: var(--gold2); line-height: 1.1; }
+.fmt small { display: block; font-size: 14px !important; color: var(--ice); line-height: 1.2; }
+body:not(.land) .egames .tile .in { padding: 16px 16px; }
+body:not(.land) .egames .icon { width: 124px; height: 124px; }
+body:not(.land) .egames .name b { font-size: 29px; }
+body:not(.land) .egames .name small { font-size: 20px; }
+body:not(.land) .phys .tile .in { padding: 16px 24px; }
+body:not(.land) .phys .icon { width: 132px; height: 132px; }
+body:not(.land) .phys .name b { font-size: 38px; }
+body:not(.land) .sect-h { margin-bottom: 12px; }
+body:not(.land) .gamezone { margin-top: 34px; gap: 34px; }
+body:not(.land) .egames .games { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+body:not(.land) .gamezone { gap: 26px; }
+body.land .gamezone { width: 1760px; grid-template-columns: 340px minmax(0, 1fr); gap: 30px; }
+body.land .egames .games { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+body.land .egames .icon { width: 120px; height: 120px; }
+body.land .phys .icon { width: 120px; height: 120px; }
+body.land .egames .name b { font-size: 25px; }
+body.land .phys .name b { font-size: 23px; }
+body.land .phys .sect-h { flex-direction: row; align-items: baseline; gap: 10px; min-height: 50px; }
+body.land .phys .sect-h b { font-size: 24px; }
+/* fit fixes (24 Nov) */
+body:not(.land) .prize.left, body:not(.land) .prize.right { bottom: 40px !important; }
+body:not(.land) .egames .icon { width: 112px; height: 112px; }
+body:not(.land) .phys .icon { width: 120px; height: 120px; }
+body:not(.land) .gamezone { margin-top: 28px; gap: 28px; }
+body.land .gamezone { width: 1720px; grid-template-columns: 300px minmax(0, 1fr); gap: 26px; margin-top: 16px; }
+body.land .egames .icon, body.land .phys .icon { width: 100px; height: 100px; }
+body.land .egames .name, body.land .phys .name { margin-top: 8px; padding: 8px 4px 10px; }
+body.land .egames .name b { font-size: 22px; }
+body.land .phys .name b { font-size: 20px; }
+body.land .phys .sect-h .fmt b { font-family: "Russo One"; font-size: 13px; letter-spacing: 0; white-space: nowrap; text-shadow: none; }
+body.land .phys .sect-h .fmt small { display: block; font-size: 10px !important; white-space: nowrap; }
+body.land .egames .sect-h .fmt b, body:not(.land) .sect-h .fmt b { font-family: "Russo One"; text-shadow: none; }
+body.land .phys .sect-h b { font-size: 21px; }
+body.land .phys .sect-h > small { display: none; }
+body.land .sect-h { flex-direction: row !important; flex-wrap: wrap; align-items: center !important; gap: 6px 10px !important; }
+body.land .fmt { padding: 3px 12px 3px 8px; margin: 0; }
+body.land .fmt b { font-size: 15px; }
+body.land .fmt small { font-size: 11px !important; }
+body.land .fmt .fi { font-size: 20px; }
+/* 23 Nov (owner): English only; the Do You Remember? rule large inside its tile */
+.prule { display: flex; align-items: center; gap: 14px; margin-top: 12px; padding: 10px 20px; border-radius: 14px; background: rgba(10,30,80,.8); border: 2px solid var(--gold2); box-shadow: 0 0 18px rgba(255,190,60,.4); width: fit-content; }
+.prule .pr-ic { font-size: 40px; line-height: 1; }
+.prule b { display: block; font-family: "Russo One"; font-size: 30px; letter-spacing: 1px; color: var(--gold2); line-height: 1.1; }
+.prule em { display: block; font-style: normal; font-weight: 800; font-size: 26px; color: #fff; line-height: 1.2; }
+body:not(.land) .pdesc { font-size: 22px; }
+.fmt { padding: 6px 20px 6px 14px; }
+.fmt b { font-size: 22px !important; }
+body.land .gamezone { grid-template-columns: 410px minmax(0, 1fr) !important; }
+body.land .prule { flex-direction: row; gap: 10px; padding: 6px 14px; margin: 8px auto 0; text-align: left; }
+body.land .prule .pr-ic { font-size: 34px; }
+body.land .prule b { font-size: 24px; }
+body.land .prule em { font-size: 18px; white-space: nowrap; }
+body.land .phys .name b { font-size: 24px !important; }
+body.land .phys .icon { width: 88px; height: 88px; }
+body.land .hexban { transform: scale(.9); margin-top: 0; }
+body.land .gamezone { margin-top: 6px; }
+/* A4 has room now (no Malay lines): bigger text */
+body:not(.land) .prule b { font-size: 38px; }
+body:not(.land) .prule em { font-size: 30px; }
+body:not(.land) .prule .pr-ic { font-size: 48px; }
+body:not(.land) .pdesc { font-size: 24px; }
+body:not(.land) .phys .name b { font-size: 42px; }
+body:not(.land) .egames .name b { font-size: 33px; }
+body:not(.land) .egames .icon { width: 128px; height: 128px; }
+body:not(.land) .step b { font-size: 27px; }
+body:not(.land) .gamezone { gap: 34px; margin-top: 34px; }
+body:not(.land) .how { margin-top: 40px; }
+body.land .egames .sect-h .fmt b { font-size: 17px !important; }
+body.land .phys .name { padding-bottom: 12px; }
+
+/* ===== Neon layout (poster2, owner's reference, 23 Nov) ===== */
+.nz .hexban { margin-top: 26px; }
+.nz .hexban div { padding: 10px 90px 8px; }
+.nz .hexban b { font-size: 50px; }
+.arena { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 1700px; margin-top: 26px; align-items: start; }
+.side { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.neon { display: flex; gap: 18px; padding: 8px 30px; border-radius: 16px; border: 4px solid; font-family: "Orbitron"; font-weight: 900; font-size: 50px; letter-spacing: 3px; line-height: 1.05; background: rgba(4,10,40,.55); animation: neon 2.4s ease-in-out infinite; }
+.neon.pink { color: #ffd1f3; border-color: #ff5fd2; text-shadow: 0 0 4px #fff, 0 0 12px #ff4fd8, 0 0 28px #ff4fd8, 0 0 46px #c026d3; box-shadow: 0 0 14px #ff4fd8, 0 0 34px rgba(255,79,216,.6), inset 0 0 18px rgba(255,79,216,.5); }
+.neon.pink span:last-child { color: #c9fbff; text-shadow: 0 0 4px #fff, 0 0 12px #22d3ee, 0 0 28px #22d3ee, 0 0 46px #0891b2; }
+.neon.cyan { color: #c9fbff; border-color: #22d3ee; text-shadow: 0 0 4px #fff, 0 0 12px #22d3ee, 0 0 28px #22d3ee, 0 0 46px #0891b2; box-shadow: 0 0 14px #22d3ee, 0 0 34px rgba(34,211,238,.6), inset 0 0 18px rgba(34,211,238,.5); }
+@keyframes neon { 0%, 100% { filter: brightness(1); } 46% { filter: brightness(1.18); } 50% { filter: brightness(.82); } 54% { filter: brightness(1.15); } }
+.dyr { width: 100%; padding: 4px; border-radius: 22px; background: linear-gradient(160deg, var(--gold1), var(--gold2) 40%, var(--gold3) 75%, var(--gold1)); box-shadow: 0 0 30px rgba(255,190,60,.55); }
+.dyr-head { padding: 10px 20px 8px; text-align: center; font-family: "Russo One"; font-size: 46px; letter-spacing: 2px; color: #3a2400; border-radius: 18px 18px 0 0; }
+.dyr-body { display: flex; align-items: center; gap: 30px; padding: 24px 30px; border-radius: 0 0 18px 18px; background: radial-gradient(circle at 30% 30%, #1d5fd0, #0a2a72 55%, #061a4a); }
+.dyr .icon { width: 170px; height: 170px; flex: none; }
+.dyr-text p { font-size: 26px; font-weight: 700; line-height: 1.25; color: #e6eeff; }
+.team { margin-top: 14px; padding: 12px 20px; border-radius: 14px; background: rgba(2,10,40,.75); border: 2px solid var(--gold2); }
+.team b { display: block; font-family: "Russo One"; font-size: 34px; letter-spacing: 1px; color: var(--gold2); text-shadow: 0 0 12px rgba(255,190,60,.5); }
+.team ul { list-style: none; margin-top: 4px; }
+.team li { font-weight: 800; font-size: 32px; line-height: 1.3; color: #fff; }
+.team li::before { content: "▸ "; color: var(--gold2); }
+.team em { font-style: normal; color: var(--gold2); font-size: 38px; }
+.egrid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; width: 100%; }
+.gt { display: flex; align-items: center; gap: 18px; padding: 16px 18px; border-radius: 18px; background: radial-gradient(circle at 30% 30%, #1d5fd0, #0a2a72 55%, #061a4a); border: 3px solid #5cb8ff; box-shadow: 0 0 22px rgba(60,160,255,.55); }
+.gt .icon { width: 110px; height: 110px; flex: none; }
+.gt b { font-weight: 800; font-size: 30px; line-height: 1.1; }
+.indiv { padding: 8px 26px; border-radius: 999px; background: rgba(10,30,80,.8); border: 2px solid #5cb8ff; font-family: "Russo One"; font-size: 26px; letter-spacing: 1px; color: #c9fbff; box-shadow: 0 0 16px rgba(60,160,255,.45); }
+.evh { margin-top: 26px; padding: 6px 60px; font-family: "Russo One"; font-size: 30px; letter-spacing: 3px; color: #3a2400; background: linear-gradient(180deg, var(--gold1), var(--gold2) 45%, var(--gold3)); clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 18px 100%, 0 50%); filter: drop-shadow(0 0 12px rgba(255,200,80,.6)); }
+.nz .details { flex-direction: row !important; width: auto !important; gap: 14px !important; margin-top: 14px !important; }
+.nz .info div { padding: 10px 34px !important; }
+.nz .info b { font-size: 34px !important; }
+.nz .info small { font-size: 16px !important; }
+.nz .info .ic { font-size: 38px !important; }
+.nz .pic { margin-top: 16px; }
+.nz .foot { margin-top: 12px; }
+/* wide (1920 × 1080): smaller header, the two sides side by side */
+body.land .nz .brand { margin-top: 22px; }
+body.land .nz .brand img { height: 64px; }
+body.land .nz .brand span { font-size: 34px; }
+body.land .nz .title { margin-top: 10px; font-size: 92px; }
+body.land .nz .plate { margin-top: 10px; font-size: 30px; padding: 8px 56px; }
+body.land .nz .hexban { display: none; }
+body.land .arena { width: 1560px; margin-top: 18px; gap: 36px; }
+body.land .neon { font-size: 38px; padding: 4px 24px; }
+body.land .dyr-head { font-size: 36px; padding: 6px 16px 4px; }
+body.land .dyr-body { padding: 14px 20px; gap: 20px; }
+body.land .dyr .icon { width: 128px; height: 128px; }
+body.land .dyr-text p { font-size: 20px; }
+body.land .team { padding: 8px 16px; margin-top: 8px; }
+body.land .team b { font-size: 26px; }
+body.land .team li { font-size: 24px; }
+body.land .team em { font-size: 28px; }
+body.land .egrid { gap: 12px; }
+body.land .gt { padding: 10px 14px; gap: 14px; }
+body.land .gt .icon { width: 84px; height: 84px; }
+body.land .gt b { font-size: 24px; }
+body.land .indiv { font-size: 20px; padding: 5px 20px; }
+body.land .side { gap: 12px; }
+body.land .evh { margin-top: 16px; font-size: 22px; padding: 4px 46px; }
+body.land .nz .details { margin-top: 10px !important; }
+body.land .nz .info b { font-size: 28px !important; }
+body.land .nz .pic { margin-top: 10px; }
+/* A4: the two sides one under the other */
+body:not(.land) .arena { grid-template-columns: 1fr; width: 1140px; gap: 22px; margin-top: 18px; }
+body:not(.land) .nz .brand { margin-top: 36px; }
+body:not(.land) .nz .title { margin-top: 16px; }
+body:not(.land) .nz .plate { margin-top: 14px; font-size: 34px; padding: 8px 56px; }
+body:not(.land) .nz .hexban { margin-top: 16px; }
+body:not(.land) .side { gap: 12px; }
+body:not(.land) .dyr-body { padding: 16px 26px; }
+body:not(.land) .gt { padding: 10px 16px; }
+body:not(.land) .gt .icon { width: 96px; height: 96px; }
+body:not(.land) .nz .details { flex-wrap: nowrap; justify-content: center; gap: 8px !important; }
+body:not(.land) .nz .info div { padding: 8px 26px !important; gap: 10px; }
+body:not(.land) .nz .info b { font-size: 28px !important; }
+body:not(.land) .nz .info .ic { font-size: 32px !important; }
+body:not(.land) .evh { margin-top: 20px; }
+body:not(.land) .nz .pic { margin-top: 14px; }
+body:not(.land) .nz .pic .p2 { font-size: 26px; }
+body:not(.land) .prize.left, body:not(.land) .prize.right { bottom: 24px !important; transform: scale(.8); transform-origin: bottom center; }
+/* wide: use the room at the bottom */
+body.land .arena { width: 1640px; margin-top: 26px; gap: 44px; }
+body.land .neon { font-size: 44px; }
+body.land .dyr-head { font-size: 42px; }
+body.land .dyr-body { padding: 22px 26px; }
+body.land .dyr .icon { width: 150px; height: 150px; }
+body.land .dyr-text p { font-size: 23px; }
+body.land .team b { font-size: 30px; }
+body.land .team li { font-size: 28px; }
+body.land .team em { font-size: 32px; }
+body.land .gt { padding: 14px 16px; }
+body.land .gt .icon { width: 100px; height: 100px; }
+body.land .gt b { font-size: 27px; }
+body.land .indiv { font-size: 22px; }
+body.land .evh { margin-top: 24px; font-size: 26px; }
+body.land .nz .info b { font-size: 32px !important; }
+body.land .nz .details { margin-top: 12px !important; }
+body.land .nz .pic { margin-top: 14px; }
+/* A cartoon team of 4 beside the PHYSICAL GAME sign (owner, 23 Nov) */
+.signrow { display: flex; align-items: flex-end; gap: 14px; }
+.team4 { width: 190px; height: 124px; flex: none; filter: drop-shadow(0 0 10px rgba(255,79,216,.35)); animation: cheer 1.2s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes cheer { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+body.land .team4 { width: 230px; height: 150px; margin-bottom: -18px; }
+body.land .side.phys2 .signrow { margin-top: -86px; }
+body:not(.land) .team4 { width: 230px; height: 150px; margin-bottom: -16px; }
+body:not(.land) .side.phys2 .signrow { margin-top: -40px; }
+/* Subang physical games (owner, 24 Nov) */
+.psign { margin-top: 26px; }
+.ogrid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; width: 1140px; margin-top: 22px; }
+.og { display: flex; flex-direction: column; }
+.og .dyr-head { font-size: 40px; }
+.og .dyr-body { flex: 1; padding: 20px 24px; gap: 22px; }
+.og .icon { width: 150px; height: 150px; }
+.og .dyr-text p { font-size: 27px; }
+body.land .psign { margin-top: 10px; }
+body.land .ogrid { width: 1500px; gap: 40px; margin-top: 22px; }
+body.land .og .dyr-head { font-size: 42px; }
+body.land .og .icon { width: 160px; height: 160px; }
+body.land .og .dyr-text p { font-size: 30px; }
+body.land .og .dyr-body { padding: 26px 30px; }
+body:not(.land) .ogrid { grid-template-columns: 1fr; gap: 28px; margin-top: 30px; }
+body:not(.land) .og .dyr-head { font-size: 54px; padding-top: 12px; padding-bottom: 10px; }
+body:not(.land) .og .dyr-body { padding: 30px 36px; gap: 36px; }
+body:not(.land) .og .icon { width: 210px; height: 210px; }
+body:not(.land) .og .dyr-text p { font-size: 40px; }
+body:not(.land) .evh { margin-top: 40px; }
+body:not(.land) .psign { margin-top: 30px; }
+body.land .team4 { margin-bottom: -10px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="gGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c4"/><stop offset=".35" stop-color="#ffd54a"/><stop offset=".6" stop-color="#d99a1e"/><stop offset="1" stop-color="#8a5a0c"/></linearGradient>
+    <linearGradient id="gGoldH" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a86f12"/><stop offset=".45" stop-color="#ffe27a"/><stop offset="1" stop-color="#b37816"/></linearGradient>
+    <linearGradient id="gSilver" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#c9d8ee"/><stop offset=".55" stop-color="#7f97ba"/><stop offset="1" stop-color="#e9f1ff"/></linearGradient>
+    <linearGradient id="gGreen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b6ff7a"/><stop offset=".5" stop-color="#34c24a"/><stop offset="1" stop-color="#0f6b2a"/></linearGradient>
+    <linearGradient id="gRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9a8a"/><stop offset=".45" stop-color="#ef2b2b"/><stop offset="1" stop-color="#8f0d16"/></linearGradient>
+    <linearGradient id="gBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9fdcff"/><stop offset=".5" stop-color="#2f86f0"/><stop offset="1" stop-color="#0b3a99"/></linearGradient>
+    <linearGradient id="gPurple" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e3b8ff"/><stop offset=".5" stop-color="#9b4dff"/><stop offset="1" stop-color="#4b1597"/></linearGradient>
+    <linearGradient id="gRope" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe6a8"/><stop offset=".5" stop-color="#d9a14b"/><stop offset="1" stop-color="#7a4a14"/></linearGradient>
+    <linearGradient id="gWater" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fe3ff"/><stop offset="1" stop-color="#0a5fc4"/></linearGradient>
+    <radialGradient id="gShine" cx=".35" cy=".25" r=".6"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <filter id="fDrop" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#000" flood-opacity=".55"/></filter>
+    <filter id="fGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <pattern id="pCheck" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#fff"/><rect width="8" height="8" fill="#111"/><rect x="8" y="8" width="8" height="8" fill="#111"/></pattern>
+  </defs>
+
+  <!-- Snake & Ladder: gold ladder with a green snake wrapped round it, and a die -->
+  <symbol id="iSnake" viewBox="0 0 200 200">
+    <g filter="url(#fDrop)">
+      <g transform="rotate(-18 100 100)">
+        <rect x="58" y="22" width="13" height="156" rx="6" fill="url(#gGoldH)" stroke="#6b4708" stroke-width="2"/>
+        <rect x="118" y="22" width="13" height="156" rx="6" fill="url(#gGoldH)" stroke="#6b4708" stroke-width="2"/>
+        <g fill="url(#gGold)" stroke="#6b4708" stroke-width="2">
+          <rect x="66" y="40" width="58" height="10" rx="4"/><rect x="66" y="72" width="58" height="10" rx="4"/>
+          <rect x="66" y="104" width="58" height="10" rx="4"/><rect x="66" y="136" width="58" height="10" rx="4"/>
+        </g>
+      </g>
+      <path d="M34 160 C 70 175, 150 150, 120 118 S 40 96, 70 70 S 150 52, 150 36" fill="none" stroke="#0b4a1d" stroke-width="24" stroke-linecap="round"/>
+      <path d="M34 160 C 70 175, 150 150, 120 118 S 40 96, 70 70 S 150 52, 150 36" fill="none" stroke="url(#gGreen)" stroke-width="19" stroke-linecap="round"/>
+      <path d="M34 160 C 70 175, 150 150, 120 118 S 40 96, 70 70 S 150 52, 150 36" fill="none" stroke="#e6ff9a" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 12" opacity=".9"/>
+      <ellipse cx="156" cy="32" rx="20" ry="15" fill="url(#gGreen)" stroke="#0b4a1d" stroke-width="3"/>
+      <circle cx="150" cy="27" r="4.5" fill="#fff"/><circle cx="151" cy="27" r="2.3" fill="#111"/>
+      <circle cx="163" cy="26" r="4.5" fill="#fff"/><circle cx="164" cy="26" r="2.3" fill="#111"/>
+      <path d="M172 38 l12 4 m-12 -4 l10 10" stroke="#ff3b4e" stroke-width="3" stroke-linecap="round"/>
+      <g transform="translate(140 132) rotate(14)">
+        <rect x="0" y="0" width="44" height="44" rx="9" fill="url(#gSilver)" stroke="#33507a" stroke-width="2.5"/>
+        <circle cx="11" cy="11" r="4.5" fill="#d1182b"/><circle cx="33" cy="33" r="4.5" fill="#d1182b"/><circle cx="22" cy="22" r="4.5" fill="#d1182b"/>
+        <circle cx="33" cy="11" r="4.5" fill="#d1182b"/><circle cx="11" cy="33" r="4.5" fill="#d1182b"/>
+      </g>
+    </g>
+  </symbol>
+
+  <!-- Quality Cart: red race kart with checkered flag and speed lines -->
+  <symbol id="iKart" viewBox="0 0 200 200">
+    <g filter="url(#fDrop)">
+      <g transform="translate(120 18) rotate(12)">
+        <rect x="0" y="0" width="5" height="70" rx="2" fill="url(#gSilver)"/>
+        <path d="M5 2 Q 30 -6 54 4 L 54 40 Q 30 30 5 38 Z" fill="url(#pCheck)" stroke="#222" stroke-width="2"/>
+      </g>
+      <g stroke="#7fd0ff" stroke-width="5" stroke-linecap="round" opacity=".9"><path d="M8 104 h34"/><path d="M14 124 h26"/><path d="M4 144 h36"/></g>
+      <ellipse cx="108" cy="168" rx="74" ry="10" fill="#000" opacity=".35"/>
+      <path d="M44 140 L 60 108 Q 70 96 92 96 L 128 96 Q 140 96 148 108 L 176 132 Q 184 142 176 152 L 52 156 Q 40 154 44 140 Z" fill="url(#gRed)" stroke="#5a0710" stroke-width="3"/>
+      <path d="M86 96 Q 96 74 120 76 Q 134 78 138 96 Z" fill="url(#gBlue)" stroke="#0b2a66" stroke-width="3"/>
+      <path d="M94 92 Q 102 82 116 82" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" opacity=".8"/>
+      <rect x="40" y="104" width="12" height="34" rx="3" fill="#1b1b1b"/><rect x="30" y="100" width="30" height="8" rx="3" fill="url(#gRed)" stroke="#5a0710" stroke-width="2"/>
+      <rect x="98" y="112" width="40" height="22" rx="5" fill="#fff"/><text x="118" y="129" text-anchor="middle" font-family="Orbitron" font-weight="900" font-size="18" fill="#c1121f">Q1</text>
+      <g><circle cx="74" cy="154" r="20" fill="#1a1a1a" stroke="#000" stroke-width="2"/><circle cx="74" cy="154" r="9" fill="url(#gSilver)"/></g>
+      <g><circle cx="152" cy="154" r="20" fill="#1a1a1a" stroke="#000" stroke-width="2"/><circle cx="152" cy="154" r="9" fill="url(#gSilver)"/></g>
+      <path d="M62 116 Q 70 104 90 102" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".55"/>
+    </g>
+  </symbol>
+
+  <!-- Quality Clash: crossed swords over a shield with a monster face -->
+  <symbol id="iClash" viewBox="0 0 200 200">
+    <g filter="url(#fDrop)">
+      <g transform="rotate(40 100 100)">
+        <rect x="94" y="8" width="12" height="130" rx="3" fill="url(#gSilver)" stroke="#33507a" stroke-width="2"/>
+        <path d="M94 8 L100 -6 L106 8 Z" fill="url(#gSilver)" stroke="#33507a" stroke-width="2"/>
+        <rect x="76" y="136" width="48" height="10" rx="4" fill="url(#gGold)" stroke="#6b4708" stroke-width="2"/>
+        <rect x="95" y="146" width="10" height="34" rx="3" fill="#5a2d0c"/><circle cx="100" cy="184" r="7" fill="url(#gGold)" stroke="#6b4708" stroke-width="2"/>
+      </g>
+      <g transform="rotate(-40 100 100)">
+        <rect x="94" y="8" width="12" height="130" rx="3" fill="url(#gSilver)" stroke="#33507a" stroke-width="2"/>
+        <path d="M94 8 L100 -6 L106 8 Z" fill="url(#gSilver)" stroke="#33507a" stroke-width="2"/>
+        <rect x="76" y="136" width="48" height="10" rx="4" fill="url(#gGold)" stroke="#6b4708" stroke-width="2"/>
+        <rect x="95" y="146" width="10" height="34" rx="3" fill="#5a2d0c"/><circle cx="100" cy="184" r="7" fill="url(#gGold)" stroke="#6b4708" stroke-width="2"/>
+      </g>
+      <path d="M100 42 L 152 58 Q 154 120 100 160 Q 46 120 48 58 Z" fill="url(#gGold)" stroke="#6b4708" stroke-width="3"/>
+      <path d="M100 54 L 141 66 Q 142 114 100 146 Q 58 114 59 66 Z" fill="url(#gPurple)" stroke="#2b0a5a" stroke-width="2"/>
+      <path d="M72 74 l-8 -16 l18 10 Z M128 74 l8 -16 l-18 10 Z" fill="url(#gGold)" stroke="#6b4708" stroke-width="2"/>
+      <ellipse cx="86" cy="94" rx="10" ry="11" fill="#fff"/><ellipse cx="114" cy="94" rx="10" ry="11" fill="#fff"/>
+      <circle cx="88" cy="96" r="5" fill="#111"/><circle cx="112" cy="96" r="5" fill="#111"/>
+      <path d="M80 82 l14 6 M120 82 l-14 6" stroke="#2b0a5a" stroke-width="4" stroke-linecap="round"/>
+      <path d="M84 118 Q 100 130 116 118 L 112 116 L 108 122 L 104 116 L 100 123 L 96 116 L 92 122 L 88 116 Z" fill="#fff" stroke="#2b0a5a" stroke-width="2"/>
+      <path d="M66 66 Q 74 60 92 58" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" opacity=".6"/>
+    </g>
+  </symbol>
+
+  <!-- Fishing Derby: golden fish leaping from the water on a hook line -->
+  <symbol id="iFish" viewBox="0 0 200 200">
+    <g filter="url(#fDrop)">
+      <path d="M150 6 Q 156 50 132 70" stroke="#e8f2ff" stroke-width="2.5" fill="none"/>
+      <path d="M20 150 Q 50 136 80 150 T 140 150 T 190 148 L 190 190 L 20 190 Z" fill="url(#gWater)" stroke="#0b3a99" stroke-width="3"/>
+      <path d="M30 160 Q 56 150 80 160" stroke="#bff0ff" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <g fill="#bff0ff"><circle cx="60" cy="132" r="6"/><circle cx="44" cy="120" r="4"/><circle cx="150" cy="128" r="5"/><circle cx="166" cy="116" r="3.5"/></g>
+      <g transform="rotate(-28 100 100)">
+        <path d="M44 104 Q 80 56 132 84 Q 150 94 160 104 Q 150 114 132 124 Q 80 152 44 104 Z" fill="url(#gGold)" stroke="#6b4708" stroke-width="3"/>
+        <path d="M44 104 L 14 78 Q 24 104 14 130 Z" fill="url(#gGold)" stroke="#6b4708" stroke-width="3"/>
+        <path d="M84 80 Q 96 60 116 74 Q 104 78 96 88 Z" fill="url(#gGoldH)" stroke="#6b4708" stroke-width="2"/>
+        <path d="M84 118 Q 100 112 110 120" stroke="#6b4708" stroke-width="2.5" fill="none"/>
+        <path d="M70 104 Q 80 92 92 104 Q 80 116 70 104 Z M96 104 Q 106 92 118 104 Q 106 116 96 104 Z" fill="#ffe680" opacity=".8"/>
+        <circle cx="140" cy="98" r="7" fill="#fff" stroke="#6b4708" stroke-width="2"/><circle cx="142" cy="98" r="3.5" fill="#111"/>
+        <path d="M60 96 Q 80 80 108 84" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".7"/>
+      </g>
+      <path d="M132 70 q 6 10 -2 14" stroke="url(#gSilver)" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <g fill="#fff" filter="url(#fGlow)"><path d="M168 40 l4 10 l10 4 l-10 4 l-4 10 l-4 -10 l-10 -4 l10 -4 Z"/><path d="M40 52 l3 7 l7 3 l-7 3 l-3 7 l-3 -7 l-7 -3 l7 -3 Z"/></g>
+    </g>
+  </symbol>
+
+  <!-- Pull the Rope: thick rope, red and blue ends, centre flag and a splash -->
+  <symbol id="iRope" viewBox="0 0 200 200">
+    <g filter="url(#fDrop)">
+      <path d="M74 150 Q 100 134 126 150 L 126 176 L 74 176 Z" fill="url(#gWater)" stroke="#0b3a99" stroke-width="3"/>
+      <g fill="#bff0ff"><circle cx="86" cy="134" r="5"/><circle cx="112" cy="128" r="6"/><circle cx="100" cy="118" r="4"/></g>
+      <path d="M14 112 Q 100 80 186 112" stroke="#5a3a0c" stroke-width="22" fill="none" stroke-linecap="round"/>
+      <path d="M14 112 Q 100 80 186 112" stroke="url(#gRope)" stroke-width="17" fill="none" stroke-linecap="round"/>
+      <path d="M14 112 Q 100 80 186 112" stroke="#7a4a14" stroke-width="17" fill="none" stroke-dasharray="3 9" opacity=".7"/>
+      <g transform="translate(14 112)"><circle r="20" fill="url(#gRed)" stroke="#5a0710" stroke-width="3"/><path d="M-8 -6 h16 M-8 0 h16 M-8 6 h16" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/></g>
+      <g transform="translate(186 112)"><circle r="20" fill="url(#gBlue)" stroke="#0b2a66" stroke-width="3"/><path d="M-8 -6 h16 M-8 0 h16 M-8 6 h16" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/></g>
+      <rect x="97" y="40" width="6" height="58" rx="2" fill="url(#gSilver)" stroke="#33507a" stroke-width="1.5"/>
+      <path d="M103 42 Q 130 36 150 48 Q 130 58 103 64 Z" fill="url(#gGold)" stroke="#6b4708" stroke-width="2.5"/>
+      <circle cx="100" cy="38" r="6" fill="url(#gGold)" stroke="#6b4708" stroke-width="2"/>
+      <path d="M40 46 l12 -6 M50 62 l14 -2 M160 64 l-14 -2 M150 76 l-12 -4" stroke="#ffd54a" stroke-width="4" stroke-linecap="round"/>
+    </g>
+  </symbol>
+
+  <!-- gift box: colours come from CSS variables on the <use> -->
+  <symbol id="iGift" viewBox="0 0 120 120">
+    <g filter="url(#fDrop)">
+      <rect x="10" y="50" width="100" height="64" rx="6" fill="var(--box1)" stroke="var(--box3)" stroke-width="3"/>
+      <rect x="10" y="50" width="100" height="64" rx="6" fill="url(#gShine)" opacity=".55"/>
+      <rect x="4" y="34" width="112" height="22" rx="5" fill="var(--box2)" stroke="var(--box3)" stroke-width="3"/>
+      <rect x="50" y="34" width="20" height="80" fill="url(#gGoldH)" stroke="#6b4708" stroke-width="2"/>
+      <path d="M60 34 C 40 4, 14 14, 26 30 C 32 38, 50 36, 60 34 Z" fill="url(#gGold)" stroke="#6b4708" stroke-width="2.5"/>
+      <path d="M60 34 C 80 4, 106 14, 94 30 C 88 38, 70 36, 60 34 Z" fill="url(#gGold)" stroke="#6b4708" stroke-width="2.5"/>
+      <circle cx="60" cy="33" r="7" fill="url(#gGold)" stroke="#6b4708" stroke-width="2"/>
+      <path d="M18 60 h18" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".7"/>
+    </g>
+  </symbol>
+  <symbol id="iTrophy" viewBox="0 0 140 160">
+    <g filter="url(#fDrop)">
+      <path d="M30 24 C 4 24, 4 64, 40 70" fill="none" stroke="url(#gGoldH)" stroke-width="9" stroke-linecap="round"/>
+      <path d="M110 24 C 136 24, 136 64, 100 70" fill="none" stroke="url(#gGoldH)" stroke-width="9" stroke-linecap="round"/>
+      <path d="M28 12 H 112 Q 112 82 70 96 Q 28 82 28 12 Z" fill="url(#gGold)" stroke="#6b4708" stroke-width="3"/>
+      <path d="M40 20 Q 42 66 64 84" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round" opacity=".6"/>
+      <rect x="60" y="94" width="20" height="22" fill="url(#gGoldH)" stroke="#6b4708" stroke-width="2.5"/>
+      <rect x="36" y="114" width="68" height="14" rx="4" fill="url(#gGold)" stroke="#6b4708" stroke-width="2.5"/>
+      <rect x="26" y="126" width="88" height="24" rx="5" fill="#0b2e78" stroke="var(--gold2)" stroke-width="3"/>
+      <path d="M70 30 l6 13 l14 2 l-10 10 l3 14 l-13 -7 l-13 7 l3 -14 l-10 -10 l14 -2 Z" fill="#fff6c4" stroke="#b9811c" stroke-width="2"/>
+      <text x="70" y="144" text-anchor="middle" font-family="Orbitron" font-weight="900" font-size="15" fill="#ffd76a">No.1</text>
+    </g>
+  </symbol>
+  <!-- Quality Spin: the prize wheel with a gold pointer -->
+  <symbol id="iSpin" viewBox="0 0 200 200">
+    <g filter="url(#fDrop)">
+      <circle cx="100" cy="108" r="76" fill="url(#gGold)" stroke="#6b4708" stroke-width="3"/>
+      <g transform="translate(100 108)">
+        <path d="M0 0 L0 -66 A66 66 0 0 1 46.7 -46.7 Z" fill="#e3263a"/>
+        <path d="M0 0 L46.7 -46.7 A66 66 0 0 1 66 0 Z" fill="#1d7bf0"/>
+        <path d="M0 0 L66 0 A66 66 0 0 1 46.7 46.7 Z" fill="#11b5a5"/>
+        <path d="M0 0 L46.7 46.7 A66 66 0 0 1 0 66 Z" fill="#7c3aed"/>
+        <path d="M0 0 L0 66 A66 66 0 0 1 -46.7 46.7 Z" fill="#e8a317"/>
+        <path d="M0 0 L-46.7 46.7 A66 66 0 0 1 -66 0 Z" fill="#c1121f"/>
+        <path d="M0 0 L-66 0 A66 66 0 0 1 -46.7 -46.7 Z" fill="#0a8a5a"/>
+        <path d="M0 0 L-46.7 -46.7 A66 66 0 0 1 0 -66 Z" fill="#1d7bf0"/>
+        <g stroke="#fff" stroke-width="2" opacity=".85"><path d="M0 -66V66M-66 0H66M-46.7 -46.7L46.7 46.7M46.7 -46.7L-46.7 46.7"/></g>
+        <circle r="66" fill="url(#gShine)" opacity=".35"/>
+        <circle r="16" fill="url(#gGold)" stroke="#6b4708" stroke-width="3"/>
+        <text y="6" text-anchor="middle" font-family="Orbitron" font-weight="900" font-size="15" fill="#3a2400">Q</text>
+      </g>
+      <g fill="#fff8d6"><circle cx="100" cy="36" r="3"/><circle cx="166" cy="72" r="3"/><circle cx="166" cy="144" r="3"/><circle cx="100" cy="180" r="3"/><circle cx="34" cy="144" r="3"/><circle cx="34" cy="72" r="3"/></g>
+      <path d="M86 18 H114 L100 46 Z" fill="url(#gGold)" stroke="#6b4708" stroke-width="3" stroke-linejoin="round"/>
+    </g>
+  </symbol>
+  <!-- Do you remember? (Ingat ke Tak?): the cardboard box with drinks and a banknote, and a big gold "?" -->
+  <linearGradient id="shR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a8a"/><stop offset="1" stop-color="#b91c1c"/></linearGradient>
+<linearGradient id="shP" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0aaff"/><stop offset="1" stop-color="#7e22ce"/></linearGradient>
+<linearGradient id="shG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#86efac"/><stop offset="1" stop-color="#15803d"/></linearGradient>
+<linearGradient id="shB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#93c5fd"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient>
+<symbol id="iTeam" viewBox="0 0 260 170"><ellipse cx="130" cy="160" rx="120" ry="9" fill="rgba(0,0,0,.35)"/><g transform="translate(48 160) scale(-1.0 1.0)"><rect x="-13" y="-38" width="11" height="38" rx="5" fill="#1e293b"/><rect x="2" y="-38" width="11" height="38" rx="5" fill="#273449"/><ellipse cx="-8" cy="-1" rx="9" ry="4" fill="#0f172a"/><ellipse cx="8" cy="-1" rx="9" ry="4" fill="#0f172a"/><path d="M16 -82 L32 -110" stroke="#ef4444" stroke-width="11" stroke-linecap="round"/><circle cx="33" cy="-113" r="7" fill="#f2c79b"/><path d="M-16 -80 L-26 -60 L-16 -50" stroke="#ef4444" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M-20 -88 Q0 -96 20 -88 L18 -36 Q0 -32 -18 -36 Z" fill="url(#shR)"/><path d="M-8 -90 Q0 -84 8 -90" stroke="#fff" stroke-width="2.5" fill="none" opacity=".8"/><circle cx="0" cy="-110" r="19" fill="#f2c79b"/><path d="M-19 -112 Q-18 -134 0 -133 Q18 -134 19 -112 Q12 -124 0 -123 Q-12 -124 -19 -112 Z" fill="#3b2314"/><circle cx="-7" cy="-111" r="2.6" fill="#1f2937"/><circle cx="7" cy="-111" r="2.6" fill="#1f2937"/><path d="M-8 -102 Q0 -94 8 -102" stroke="#1f2937" stroke-width="2.6" fill="#fff" stroke-linecap="round"/><circle cx="-12" cy="-104" r="3" fill="#fb7185" opacity=".45"/><circle cx="12" cy="-104" r="3" fill="#fb7185" opacity=".45"/></g><g transform="translate(104 163) scale(1.08)"><rect x="-13" y="-38" width="11" height="38" rx="5" fill="#1e293b"/><rect x="2" y="-38" width="11" height="38" rx="5" fill="#273449"/><ellipse cx="-8" cy="-1" rx="9" ry="4" fill="#0f172a"/><ellipse cx="8" cy="-1" rx="9" ry="4" fill="#0f172a"/><path d="M-16 -82 L-30 -112" stroke="#a855f7" stroke-width="11" stroke-linecap="round"/><circle cx="-31" cy="-115" r="7" fill="#c98b5a"/><path d="M16 -82 L30 -112" stroke="#a855f7" stroke-width="11" stroke-linecap="round"/><circle cx="31" cy="-115" r="7" fill="#c98b5a"/><path d="M-20 -88 Q0 -96 20 -88 L18 -36 Q0 -32 -18 -36 Z" fill="url(#shP)"/><path d="M-8 -90 Q0 -84 8 -90" stroke="#fff" stroke-width="2.5" fill="none" opacity=".8"/><circle cx="0" cy="-110" r="19" fill="#c98b5a"/><path d="M-24 -96 Q-26 -138 0 -136 Q26 -138 24 -96 Q26 -84 14 -86 Q16 -104 0 -106 Q-16 -104 -14 -86 Q-26 -84 -24 -96 Z" fill="#5b21b6"/><circle cx="-7" cy="-111" r="2.6" fill="#1f2937"/><circle cx="7" cy="-111" r="2.6" fill="#1f2937"/><path d="M-8 -102 Q0 -94 8 -102" stroke="#1f2937" stroke-width="2.6" fill="#fff" stroke-linecap="round"/><circle cx="-12" cy="-104" r="3" fill="#fb7185" opacity=".45"/><circle cx="12" cy="-104" r="3" fill="#fb7185" opacity=".45"/></g><g transform="translate(160 163) scale(1.08)"><rect x="-13" y="-38" width="11" height="38" rx="5" fill="#1e293b"/><rect x="2" y="-38" width="11" height="38" rx="5" fill="#273449"/><ellipse cx="-8" cy="-1" rx="9" ry="4" fill="#0f172a"/><ellipse cx="8" cy="-1" rx="9" ry="4" fill="#0f172a"/><path d="M-16 -82 L-30 -112" stroke="#22c55e" stroke-width="11" stroke-linecap="round"/><circle cx="-31" cy="-115" r="7" fill="#e9b98d"/><path d="M16 -82 L30 -112" stroke="#22c55e" stroke-width="11" stroke-linecap="round"/><circle cx="31" cy="-115" r="7" fill="#e9b98d"/><path d="M-20 -88 Q0 -96 20 -88 L18 -36 Q0 -32 -18 -36 Z" fill="url(#shG)"/><path d="M-8 -90 Q0 -84 8 -90" stroke="#fff" stroke-width="2.5" fill="none" opacity=".8"/><circle cx="0" cy="-110" r="19" fill="#e9b98d"/><path d="M-19 -114 L-15 -132 L-7 -124 L0 -136 L7 -124 L15 -132 L19 -114 Q10 -122 0 -121 Q-10 -122 -19 -114 Z" fill="#111827"/><circle cx="-7" cy="-111" r="2.6" fill="#1f2937"/><circle cx="7" cy="-111" r="2.6" fill="#1f2937"/><path d="M-8 -102 Q0 -94 8 -102" stroke="#1f2937" stroke-width="2.6" fill="#fff" stroke-linecap="round"/><circle cx="-12" cy="-104" r="3" fill="#fb7185" opacity=".45"/><circle cx="12" cy="-104" r="3" fill="#fb7185" opacity=".45"/></g><g transform="translate(214 160) scale(1.0)"><rect x="-13" y="-38" width="11" height="38" rx="5" fill="#1e293b"/><rect x="2" y="-38" width="11" height="38" rx="5" fill="#273449"/><ellipse cx="-8" cy="-1" rx="9" ry="4" fill="#0f172a"/><ellipse cx="8" cy="-1" rx="9" ry="4" fill="#0f172a"/><path d="M16 -82 L32 -110" stroke="#3b82f6" stroke-width="11" stroke-linecap="round"/><circle cx="33" cy="-113" r="7" fill="#8d5a3b"/><path d="M-16 -80 L-26 -60 L-16 -50" stroke="#3b82f6" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M-20 -88 Q0 -96 20 -88 L18 -36 Q0 -32 -18 -36 Z" fill="url(#shB)"/><path d="M-8 -90 Q0 -84 8 -90" stroke="#fff" stroke-width="2.5" fill="none" opacity=".8"/><circle cx="0" cy="-110" r="19" fill="#8d5a3b"/><path d="M-21 -100 Q-24 -136 0 -134 Q24 -136 21 -100 L17 -100 Q16 -120 0 -122 Q-16 -120 -17 -100 Z" fill="#1f2937"/><circle cx="-7" cy="-111" r="2.6" fill="#1f2937"/><circle cx="7" cy="-111" r="2.6" fill="#1f2937"/><path d="M-8 -102 Q0 -94 8 -102" stroke="#1f2937" stroke-width="2.6" fill="#fff" stroke-linecap="round"/><circle cx="-12" cy="-104" r="3" fill="#fb7185" opacity=".45"/><circle cx="12" cy="-104" r="3" fill="#fb7185" opacity=".45"/></g></symbol>
+  <symbol id="iSpot" viewBox="0 0 200 200">
+    <g filter="url(#fDrop)">
+      <rect x="62" y="30" width="26" height="16" rx="3" fill="#e9f1ff" stroke="#33507a" stroke-width="3"/>
+      <path d="M56 46 L94 46 Q104 46 104 58 L104 166 Q104 176 94 176 L56 176 Q46 176 46 166 L46 58 Q46 46 56 46 Z" fill="url(#gPurple)" stroke="#2b0a5a" stroke-width="3"/>
+      <rect x="52" y="84" width="46" height="46" rx="5" fill="#fff" opacity=".92"/>
+      <path d="M60 96 L90 96 M60 106 L84 106 M60 116 L88 116" stroke="#7e22ce" stroke-width="4" stroke-linecap="round"/>
+      <path d="M70 140 l8 -6 l4 8 l7 -4" stroke="#ef2b2b" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="80" cy="140" r="17" fill="none" stroke="#ef2b2b" stroke-width="4" stroke-dasharray="6 4"/>
+      <circle cx="148" cy="62" r="30" fill="url(#gGreen)" stroke="#0f5a22" stroke-width="3"/>
+      <path d="M134 62 L144 73 L163 50" stroke="#fff" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="148" cy="140" r="30" fill="url(#gRed)" stroke="#5a0710" stroke-width="3"/>
+      <path d="M136 128 L160 152 M160 128 L136 152" stroke="#fff" stroke-width="9" stroke-linecap="round"/>
+      <g fill="#fff" filter="url(#fGlow)"><path d="M28 70 l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3 Z"/></g>
+    </g>
+  </symbol>
+  <symbol id="iMemory" viewBox="0 0 200 200">
+    <g filter="url(#fDrop)">
+      <path d="M22 70 L178 70 L170 168 L30 168 Z" fill="#d9a66a" stroke="#7a4a14" stroke-width="3"/>
+      <path d="M22 70 L178 70 L170 82 L30 82 Z" fill="#b98546"/>
+      <rect x="40" y="92" width="34" height="18" rx="2" fill="#7ad28b" stroke="#2f7a3c" stroke-width="2"/>
+      <rect x="80" y="92" width="34" height="18" rx="2" fill="#ff9e8a" stroke="#b0402c" stroke-width="2"/>
+      <rect x="120" y="92" width="34" height="18" rx="2" fill="#8ec5ff" stroke="#2c62b0" stroke-width="2"/>
+      <g>
+        <rect x="44" y="120" width="16" height="36" rx="5" fill="url(#gPurple)" stroke="#2b0a5a" stroke-width="2"/><rect x="48" y="114" width="8" height="8" rx="2" fill="#fff"/>
+        <rect x="72" y="128" width="18" height="28" rx="3" fill="url(#gSilver)" stroke="#33507a" stroke-width="2"/><rect x="72" y="136" width="18" height="10" fill="#1d4ed8"/>
+        <rect x="102" y="120" width="16" height="36" rx="5" fill="url(#gRed)" stroke="#5a0710" stroke-width="2"/><rect x="106" y="114" width="8" height="8" rx="2" fill="#fff"/>
+        <rect x="130" y="126" width="22" height="30" rx="3" fill="#ffe27a" stroke="#b9811c" stroke-width="2"/>
+      </g>
+      <g font-family="Orbitron" font-weight="900" font-size="11" fill="#5a3a0c" text-anchor="middle"><text x="52" y="166">1</text><text x="81" y="166">2</text><text x="110" y="166">3</text><text x="141" y="166">4</text></g>
+      <circle cx="150" cy="44" r="34" fill="url(#gGold)" stroke="#6b4708" stroke-width="3"/>
+      <circle cx="150" cy="44" r="34" fill="url(#gShine)" opacity=".6"/>
+      <text x="150" y="60" text-anchor="middle" font-family="Orbitron" font-weight="900" font-size="46" fill="#3a2400">?</text>
+      <g fill="#fff" filter="url(#fGlow)"><path d="M34 38 l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3 Z"/></g>
+    </g>
+  </symbol>
+  <symbol id="iSpark" viewBox="0 0 40 40"><path d="M20 0 L 24 16 L 40 20 L 24 24 L 20 40 L 16 24 L 0 20 L 16 16 Z" fill="#fff"/></symbol>
+</svg>
+
+<div class="poster" id="poster">
+  <div id="fx"></div>
+  <div class="floor"><div class="grid"></div></div>
+  <div class="rings" id="rings"></div>
+
+
+  <div class="prize left">
+    <div class="pile">
+      <svg class="g g1" viewBox="0 0 120 120" style="--box1:#e3263a;--box2:#ff4d5e;--box3:#6e0b16"><use href="#iGift"/></svg>
+      <svg class="g g2" viewBox="0 0 120 120" style="--box1:#7c3aed;--box2:#9b5cff;--box3:#2e0b6e"><use href="#iGift"/></svg>
+      <svg class="g g3" viewBox="0 0 120 120" style="--box1:#1d6fe0;--box2:#3d8dff;--box3:#0a2a66"><use href="#iGift"/></svg>
+      <svg class="sp s1" viewBox="0 0 40 40"><use href="#iSpark"/></svg><svg class="sp s2" viewBox="0 0 40 40"><use href="#iSpark"/></svg>
+    </div>
+    <div class="plabel"><b>PRIZES TO WIN!</b></div>
+  </div>
+  <div class="prize right">
+    <div class="pile">
+      <svg class="g g1" viewBox="0 0 120 120" style="--box1:#e8a317;--box2:#ffc93c;--box3:#6b4708"><use href="#iGift"/></svg>
+      <svg class="g g2" viewBox="0 0 120 120" style="--box1:#0ea5a4;--box2:#22d3c5;--box3:#064e4b"><use href="#iGift"/></svg>
+      <svg class="g g3" viewBox="0 0 120 120" style="--box1:#e3263a;--box2:#ff4d5e;--box3:#6e0b16"><use href="#iGift"/></svg>
+      <svg class="sp s3" viewBox="0 0 40 40"><use href="#iSpark"/></svg><svg class="sp s4" viewBox="0 0 40 40"><use href="#iSpark"/></svg>
+    </div>
+    <div class="plabel"><b>PRIZES TO WIN!</b></div>
+  </div>
+  <div class="content nz">
+    <div class="brand"><img src="logo.png" alt="Company logo"><span>WIPRO UNZA MALAYSIA</span></div>
+    <div class="title"><span class="chrome">QUALITY MONTH </span><span class="goldtxt">2026</span></div>
+    <div class="plate">- POWERING PERFORMANCE -</div>
+    <div class="hexban"><div><b class="chrome">QUALITY GAMES</b></div></div>
+
+    <!-- Subang physical games (owner, 24 Nov). -->
+    <div class="signrow psign"><svg class="team4" viewBox="0 0 260 170" aria-label="A team of 4"><use href="#iTeam"/></svg><div class="neon pink"><span>PHYSICAL</span><span>GAMES</span></div></div>
+    <div class="ogrid">
+      <div class="dyr og">
+        <div class="dyr-head">RECALL RUMBLE</div>
+        <div class="dyr-body">
+          <div class="icon" data-g="memory"></div>
+          <div class="dyr-text"><p>Look, remember, recall! How sharp is your memory?</p></div>
+        </div>
+      </div>
+      <div class="dyr og">
+        <div class="dyr-head">SPOT IT OR SCRAP IT</div>
+        <div class="dyr-body">
+          <div class="icon" data-g="spot"></div>
+          <div class="dyr-text"><p>Check it with quality eyes: good to go, or scrap it?</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="evh">EVENT DETAILS</div>
+    <div class="details">
+      <div class="info"><div><span class="ic">🗓️</span><span><small>Date</small><b>27 Nov 2026 (Fri)</b></span></div></div>
+      <div class="info"><div><span class="ic">🕓</span><span><small>Time</small><b>4.00 PM</b></span></div></div>
+      <div class="info"><div><span class="ic">📍</span><span><small>Venue</small><b>To be confirmed</b></span></div></div>
+    </div>
+    <div class="pic"><div class="p1">PIC</div><div class="p2"><span>Hashwini</span><i></i><span class="mail">✉ hashwini.bala@wipro-unza.com</span></div></div>
+    <div class="foot">Quality is everyone's game!</div>
+  </div>
+</div>
+
+<script>
+const opts = location.hash.slice(1).split(",");
+const land = opts.includes("land");
+if (land) document.body.classList.add("land");
+const pics = opts.includes("pics");
+if (pics) document.body.classList.add("pics");
+const ID = { snake: "iSnake", kart: "iKart", clash: "iClash", fish: "iFish", rope: "iRope", spin: "iSpin", memory: "iMemory", spot: "iSpot" };
+document.querySelectorAll(".icon[data-g]").forEach((el) => {
+  const g = el.dataset.g;
+  el.innerHTML = pics ? `<img src="g-${g}.jpg" alt="">` : `<svg viewBox="0 0 200 200"><use href="#${ID[g]}"/></svg>`;
+});
+const P = document.getElementById("poster");
+const W = land ? 1920 : 1240, H = land ? 1080 : 1754;
+const fx = document.getElementById("fx");
+const ns = "http://www.w3.org/2000/svg";
+// light streaks
+const streaks = land
+  ? [[0.02, 0.36, 520, -6], [0.66, 0.30, 600, 5], [0.05, 0.62, 420, 3], [0.72, 0.66, 480, -4], [0.3, 0.12, 300, 2]]
+  : [[-0.05, 0.30, 560, -8], [0.55, 0.24, 640, 7], [0.0, 0.53, 460, 4], [0.6, 0.57, 520, -5], [0.25, 0.10, 340, 2]];
+for (const [x, y, w, r] of streaks) {
+  const d = document.createElement("div");
+  d.className = "streak";
+  Object.assign(d.style, { left: x * W + "px", top: y * H + "px", width: w + "px", transform: `rotate(${r}deg)` });
+  fx.appendChild(d);
+}
+// skyline (left) with lit windows
+function skyline(x0, width, maxH, flip) {
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("class", "sky");
+  svg.setAttribute("width", width);
+  svg.setAttribute("height", maxH);
+  svg.style.left = x0 + "px";
+  svg.style.bottom = (land ? 0.30 : 0.31) * H + "px";
+  let x = 0, seed = flip ? 7 : 3;
+  const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+  while (x < width) {
+    const bw = 40 + rnd() * 60, bh = maxH * (0.35 + rnd() * 0.65);
+    const r = document.createElementNS(ns, "rect");
+    Object.assign(r, {});
+    r.setAttribute("x", x); r.setAttribute("y", maxH - bh); r.setAttribute("width", bw - 6); r.setAttribute("height", bh);
+    r.setAttribute("fill", "#0a2d78"); r.setAttribute("stroke", "#3d8de8"); r.setAttribute("stroke-width", "1.5");
+    svg.appendChild(r);
+    for (let wy = maxH - bh + 10; wy < maxH - 8; wy += 16)
+      for (let wx = x + 6; wx < x + bw - 14; wx += 12)
+        if (rnd() < 0.45) {
+          const w = document.createElementNS(ns, "rect");
+          w.setAttribute("x", wx); w.setAttribute("y", wy); w.setAttribute("width", 5); w.setAttribute("height", 7);
+          w.setAttribute("fill", rnd() < 0.8 ? "#7cc4ff" : "#ffd76a");
+          svg.appendChild(w);
+        }
+    x += bw;
+  }
+  fx.appendChild(svg);
+}
+skyline(0, land ? 380 : 300, land ? 330 : 420, false);
+// rising chart (right)
+(function chart() {
+  const svg = document.createElementNS(ns, "svg");
+  const cw = land ? 380 : 300, ch = land ? 380 : 460;
+  svg.setAttribute("class", "chart"); svg.setAttribute("width", cw); svg.setAttribute("height", ch);
+  svg.style.right = "10px"; svg.style.bottom = (land ? 0.30 : 0.31) * H + "px"; svg.style.opacity = ".75";
+  const n = 6, bw = cw / n;
+  for (let i = 0; i < n; i++) {
+    const h = ch * (0.18 + i * 0.11);
+    const r = document.createElementNS(ns, "rect");
+    r.setAttribute("x", i * bw + 8); r.setAttribute("y", ch - h); r.setAttribute("width", bw - 18); r.setAttribute("height", h);
+    r.setAttribute("fill", "rgba(40,130,255,.35)"); r.setAttribute("stroke", "#6cc0ff"); r.setAttribute("stroke-width", "2");
+    svg.appendChild(r);
+  }
+  const p = document.createElementNS(ns, "polyline");
+  const pts = Array.from({ length: n }, (_, i) => `${i * bw + bw / 2},${ch - ch * (0.25 + i * 0.12) - 30}`).join(" ");
+  p.setAttribute("points", pts); p.setAttribute("fill", "none"); p.setAttribute("stroke", "#fff"); p.setAttribute("stroke-width", "5");
+  p.setAttribute("style", "filter: drop-shadow(0 0 8px #3aa8ff)");
+  svg.appendChild(p);
+  fx.appendChild(svg);
+})();
+
+// Background fireworks and confetti (soft, behind the content).
+(function party() {
+  const FW = land
+    ? [[150, 150, 190, "#ffd54a", 0], [1770, 150, 200, "#7fd0ff", -1.2], [300, 470, 140, "#ff7ab6", -.6], [1640, 480, 150, "#ffd54a", -1.8], [90, 760, 120, "#7fd0ff", -.3], [1840, 760, 120, "#ff7ab6", -1.5]]
+    : [[130, 150, 190, "#ffd54a", 0], [1110, 150, 200, "#7fd0ff", -1.2], [110, 600, 150, "#ff7ab6", -.6], [1140, 590, 150, "#ffd54a", -1.8], [120, 1680, 140, "#7fd0ff", -.3], [1120, 1690, 140, "#ff7ab6", -1.5]];
+  for (const [x, y, r, col, delay] of FW) {
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("class", "fw");
+    svg.setAttribute("viewBox", "-100 -100 200 200");
+    Object.assign(svg.style, { left: x - r + "px", top: y - r + "px", width: r * 2 + "px", height: r * 2 + "px", animationDelay: delay + "s" });
+    let g = "";
+    const n = 22;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const c = Math.cos(a), sn = Math.sin(a);
+      g += `<line x1="${c * 28}" y1="${sn * 28}" x2="${c * 82}" y2="${sn * 82}" stroke="${col}" stroke-width="3" stroke-linecap="round"/>`;
+      g += `<circle cx="${c * 92}" cy="${sn * 92}" r="3.5" fill="#fff"/>`;
+      if (i % 2) g += `<circle cx="${c * 55}" cy="${sn * 55}" r="2.5" fill="${col}"/>`;
+    }
+    svg.innerHTML = `<g style="filter: drop-shadow(0 0 6px ${col})">${g}</g>`;
+    fx.appendChild(svg);
+  }
+  let seed = 11;
+  const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+  const cols = ["#ffd54a", "#ff7ab6", "#7fd0ff", "#ffffff", "#7affc8", "#c79bff"];
+  let made = 0;
+  for (let k = 0; k < 600 && made < (land ? 90 : 95); k++) {
+    const x = rnd() * W, y = rnd() * H;
+    const centre = x > W * 0.16 && x < W * 0.84 && y > H * 0.07;
+    if (centre && rnd() < 0.9) continue;
+    const d = document.createElement("i");
+    d.className = "cf";
+    const w = 6 + rnd() * 9, h = 3 + rnd() * 4;
+    Object.assign(d.style, { left: x + "px", top: y + "px", width: w + "px", height: h + "px", background: cols[Math.floor(rnd() * cols.length)], animationDelay: -(rnd() * 2.4) + "s" });
+    d.style.setProperty("--r", Math.round(rnd() * 360) + "deg");
+    fx.appendChild(d);
+    made++;
+  }
+})();
+// glowing rings on the floor
+const rings = document.getElementById("rings");
+const rw = land ? 1500 : 1100, ry = land ? 0.92 : 0.93;
+Object.assign(rings.style, { top: ry * H + "px", width: "0px", height: "0px" });
+[[1, 1], [0.72, 0.85], [0.46, 0.7]].forEach(([k, o]) => {
+  const i = document.createElement("i");
+  Object.assign(i.style, { width: rw * k + "px", height: rw * k * 0.2 + "px", opacity: o });
+  rings.appendChild(i);
+});
+</script>
+</body>
+</html>
