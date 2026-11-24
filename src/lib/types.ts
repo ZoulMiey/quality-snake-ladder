@@ -79,7 +79,7 @@ export type Game = {
   /** Boss Raid only: Time Attack or High Score. */
   bossMode?: "ta" | "hs";
   /** Which question set this game uses (missing = quality). */
-  qset?: "quality" | "world" | "logo" | "malaysia" | "general" | "manufacturing" | "mix";
+  qset?: "quality" | "world" | "logo" | "malaysia" | "general" | "manufacturing" | "qm" | "mix";
   engine: string | null;
   paused: boolean;
   pausedAt: number | null;

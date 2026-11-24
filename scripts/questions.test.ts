@@ -48,6 +48,9 @@ t("a game asks only switched-on questions from its set; Mix is every set except 
   const mfg = poolFor(bank, "manufacturing");
   assert.equal(mfg.length, 100);
   assert.ok(mfg.every((q) => q.set === "manufacturing"));
+  const qm = poolFor(bank, "qm");
+  assert.equal(qm.length, 200, "Quality + Manufacturing = both sets");
+  assert.ok(qm.every((q) => setOf(q) === "quality" || setOf(q) === "manufacturing"));
   assert.ok(poolFor(bank, null).every((q) => setOf(q) === "quality"), "no choice = Quality");
 });
 

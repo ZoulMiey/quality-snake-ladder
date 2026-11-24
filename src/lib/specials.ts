@@ -125,11 +125,13 @@ export const EVENTS: SpecialEvent[] = Object.values(EVENT_SETS).flat();
 /** Event boxes per game. */
 export const SPECIAL_COUNT = 16;
 
-/** The 16 events for a game: the chosen set's own, or for Mix 8 good and 8 bad from all sets except Quality. */
+/** The 16 events for a game: the chosen set's own; for Mix 8 good and 8 bad from the other sets;
+ * for Quality + Manufacturing 8 good and 8 bad from those two. */
 export function eventsFor(choice: QChoice | null | undefined, rand = Math.random): SpecialEvent[] {
-  if (choice && choice !== "mix") return EVENT_SETS[choice] ?? EVENT_SETS.quality;
   if (!choice) return EVENT_SETS.quality;
-  const others = (["world", "logo", "malaysia", "general"] as QSet[]).flatMap((k) => EVENT_SETS[k]);
+  if (choice !== "mix" && choice !== "qm") return EVENT_SETS[choice] ?? EVENT_SETS.quality;
+  const from: QSet[] = choice === "qm" ? ["quality", "manufacturing"] : ["world", "logo", "malaysia", "general"];
+  const others = from.flatMap((k) => EVENT_SETS[k]);
   const pick = (list: SpecialEvent[]) => [...list].sort(() => rand() - 0.5).slice(0, SPECIAL_COUNT / 2);
   return [...pick(others.filter((e) => e.move > 0)), ...pick(others.filter((e) => e.move < 0))];
 }

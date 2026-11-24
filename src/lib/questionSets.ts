@@ -3,7 +3,8 @@ import type { Question } from "./types.ts";
 
 export type QSet = "quality" | "world" | "logo" | "malaysia" | "general" | "manufacturing";
 /** "mix" = every set except Quality and Manufacturing (owner, 24 Nov 2026). */
-export type QChoice = QSet | "mix";
+/** "qm" = Quality and Manufacturing together (owner, 24 Nov 2026). */
+export type QChoice = QSet | "qm" | "mix";
 
 export const QSETS: { id: QChoice; en: string; ms: string; icon: string }[] = [
   { id: "quality", en: "Quality", ms: "Kualiti", icon: "✅" },
@@ -12,6 +13,7 @@ export const QSETS: { id: QChoice; en: string; ms: string; icon: string }[] = [
   { id: "malaysia", en: "Malaysia", ms: "Malaysia", icon: "🇲🇾" },
   { id: "general", en: "General Knowledge", ms: "Pengetahuan Am", icon: "💡" },
   { id: "manufacturing", en: "Manufacturing", ms: "Pembuatan", icon: "🏭" },
+  { id: "qm", en: "Quality + Manufacturing", ms: "Kualiti + Pembuatan", icon: "🔀" },
   { id: "mix", en: "Mix (all except Quality & Manufacturing)", ms: "Campuran (semua kecuali Kualiti & Pembuatan)", icon: "🎲" },
 ];
 export const SET_IDS: QSet[] = ["quality", "world", "logo", "malaysia", "general", "manufacturing"];
@@ -20,7 +22,8 @@ const NOT_IN_MIX: QSet[] = ["quality", "manufacturing"];
 
 /** Questions saved before sets existed belong to Quality. */
 export const setOf = (q: { set?: string }): QSet => (SET_IDS.includes(q.set as QSet) ? (q.set as QSet) : "quality");
-export const inChoice = (q: { set?: string }, choice: QChoice | undefined | null) => (choice === "mix" ? !NOT_IN_MIX.includes(setOf(q)) : setOf(q) === (choice || "quality"));
+export const inChoice = (q: { set?: string }, choice: QChoice | undefined | null) =>
+  choice === "mix" ? !NOT_IN_MIX.includes(setOf(q)) : choice === "qm" ? NOT_IN_MIX.includes(setOf(q)) : setOf(q) === (choice || "quality");
 export const choiceName = (choice: QChoice | undefined | null) => QSETS.find((s) => s.id === (choice || "quality"))!;
 
 /** The questions a game may ask: switched on and in the chosen set. */

@@ -113,7 +113,7 @@ t("a special box leading to another special box does nothing more", () => {
 });
 t("16 event boxes, placed away from snakes, ladders, start and finish, from the game's question set", () => {
   const ends = new Set([...Object.entries(SNAKES), ...Object.entries(LADDERS)].flat().map(Number));
-  for (const qset of ["quality", "world", "logo", "malaysia", "general", "manufacturing", "mix"] as const)
+  for (const qset of ["quality", "world", "logo", "malaysia", "general", "manufacturing", "qm", "mix"] as const)
     for (let k = 0; k < 300; k++) {
       const list = placeSpecials(qset);
       assert.equal(list.length, 16, `${qset}: ${list.length} boxes`);
@@ -123,11 +123,12 @@ t("16 event boxes, placed away from snakes, ladders, start and finish, from the 
         const ev = eventById(s.id)!;
         assert.ok(ev, s.id);
         if (qset === "mix") assert.ok(!EVENT_SETS.quality.includes(ev) && !EVENT_SETS.manufacturing.includes(ev), "Mix uses no Quality or Manufacturing events");
+        else if (qset === "qm") assert.ok(EVENT_SETS.quality.includes(ev) || EVENT_SETS.manufacturing.includes(ev), `${s.id} is not a Quality or Manufacturing event`);
         else assert.ok(EVENT_SETS[qset].includes(ev), `${s.id} is not a ${qset} event`);
       }
       assert.equal(new Set(list.map((s) => s.box)).size, 16);
       assert.equal(new Set(list.map((s) => s.id)).size, 16, "each event once");
-      if (qset === "mix") assert.equal(list.filter((s) => eventById(s.id)!.move > 0).length, 8, "Mix: 8 good, 8 bad");
+      if (qset === "mix" || qset === "qm") assert.equal(list.filter((s) => eventById(s.id)!.move > 0).length, 8, `${qset}: 8 good, 8 bad`);
     }
 });
 t("every set has 16 events, 8 good and 8 bad, roughly balanced, complete in both languages", () => {
