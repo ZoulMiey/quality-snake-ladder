@@ -169,7 +169,7 @@ t("a player's questions are remembered across games and sets; a team shares its 
   assert.ok(team.a.q9 && team.b.q9);
 });
 t("the game ends after one winner fewer than the players, at most 5", () => {
-  assert.deepEqual([1, 2, 3, 4, 5, 6, 7, 10, 20].map(winnersNeeded), [1, 1, 2, 3, 4, 5, 5, 5, 5]);
+  assert.deepEqual([1, 2, 3, 4, 5, 6, 7, 10, 20].map(winnersNeeded), [1, 1, 2, 3, 3, 3, 3, 3, 3]);
 });
 t("shuffling keeps track of the correct answer", () => {
   for (let i = 0; i < 50; i++) {

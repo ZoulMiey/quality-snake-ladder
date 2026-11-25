@@ -6,11 +6,11 @@ import { specialAt, type SpecialBox } from "./specials.ts";
 export const BONUS_STREAK = 5;
 
 /** Most winners a game can have. */
-export const MAX_WINNERS = 5;
+export const MAX_WINNERS = 3;
 
 /**
- * How many players must finish before the game ends: one less than the number playing, at most 5.
- * 2 players = 1 winner, 3 = 2, 4 = 3, 5 = 4, 6 or more = 5. A player on their own still plays to the finish.
+ * How many players must finish before the game ends: one less than the number playing, at most 3 (top 3; owner, 25 Nov 2026).
+ * 2 players = 1 winner, 3 = 2, 4 or more = 3. A player on their own still plays to the finish.
  */
 export function winnersNeeded(players: number): number {
   return Math.max(1, Math.min(MAX_WINNERS, players - 1));
