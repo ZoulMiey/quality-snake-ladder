@@ -688,6 +688,9 @@ function balanceQr(inner: HTMLElement) {
  * on a small one or with many players, so there is no empty space and no scrolling. Refits when players
  * join or leave and when the window changes size.
  */
+/** The zoom that fitted each game page last time, per screen size (kept while the projector page is open). */
+const FIT_ZOOMS = new Map<string, number>();
+
 function useFitZoom(key: unknown) {
   const el = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
@@ -707,14 +710,24 @@ function useFitZoom(key: unknown) {
       if (window.innerWidth < 1100) {
         inner.style.zoom = "1";
       } else {
-        let lo = 0.5;
-        let hi = 1.8;
-        for (let i = 0; i < 12; i++) {
-          const mid = (lo + hi) / 2;
-          if (fits(mid)) lo = mid;
-          else hi = mid;
+        // Every try lays out the whole page, which is slow on a laptop (27 tries took ~1 s when a game was
+        // picked, 25 Nov 2026). So: keep this page's last zoom if it still fits snugly (2–3 tries, also for the
+        // automatic second check right after), else search again with fewer steps.
+        const k = `${String(key)}|${window.innerWidth}x${window.innerHeight}`;
+        const z0 = FIT_ZOOMS.get(k);
+        if (z0 && fits(z0) && !fits(Math.min(1.8, z0 + 0.012))) fits(z0);
+        else {
+          // Search for the biggest zoom that fits (9 tries: within ~0.25%).
+          let lo = 0.5;
+          let hi = 1.8;
+          for (let i = 0; i < 9; i++) {
+            const mid = (lo + hi) / 2;
+            if (fits(mid)) lo = mid;
+            else hi = mid;
+          }
+          fits(lo);
+          FIT_ZOOMS.set(k, lo);
         }
-        fits(lo);
       }
       busy = false;
     };
