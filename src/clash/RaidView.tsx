@@ -22,10 +22,14 @@ export function RaidCanvas({ r, events, game, players, me, className }: { r: Rai
   live.current = { r, events, game, players, me };
   useEffect(() => {
     let raf = 0;
-    const loop = () => {
+    let lastDraw = 0;
+    const loop = (ms: number) => {
       const ctx = cv.current?.getContext("2d");
       const v = live.current;
-      if (ctx && v.r) {
+      // Raid over: once the results cover the arena, redraw it once a second, not 60 times (laptops lagged).
+      const idle = v.game.status === "ended" && !!v.game.endedAt && serverNow() - v.game.endedAt > DEFEAT_RESULTS_MS + 1000;
+      if (ctx && v.r && (!idle || ms - lastDraw >= 1000)) {
+        lastDraw = ms;
         const now = v.game.paused && v.game.pausedAt ? v.game.pausedAt : serverNow();
         const st = stage.current;
         try {

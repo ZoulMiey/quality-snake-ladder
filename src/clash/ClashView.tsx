@@ -101,10 +101,14 @@ export function ArenaCanvas({ b, events, game, players, tall = false, bottom = "
   live.current = { b, events, game, players, tall, bottom, me };
   useEffect(() => {
     let raf = 0;
-    const loop = () => {
+    let lastDraw = 0;
+    const loop = (ms: number) => {
       const ctx = cv.current?.getContext("2d");
-      if (ctx) {
-        const v = live.current;
+      const v = live.current;
+      // Battle over: the results cover the arena, so after the last faint redraw it once a second, not 60 times.
+      const idle = v.game.status === "ended" && !!v.game.endedAt && serverNow() - v.game.endedAt > 3000;
+      if (ctx && (!idle || ms - lastDraw >= 1000)) {
+        lastDraw = ms;
         Lay = v.tall ? TALL : WIDE;
         VW = Lay.VW;
         VH = Lay.VH;

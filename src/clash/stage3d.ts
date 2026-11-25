@@ -81,7 +81,7 @@ export class Stage3D {
   private plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   private rage: THREE.PointLight;
   private shakePx = 0;
-  private boom: { vel: Float32Array } | null = null;
+  private boom: { vel: Float32Array; settled: boolean } | null = null;
   readonly VW: number;
   readonly VH: number;
 
@@ -300,12 +300,19 @@ export class Stage3D {
           vel[i * 3 + 1] = 30 + seeded(i + 7) * 80;
           vel[i * 3 + 2] = (seeded(i + 13) - 0.5) * 70 + 20;
         }
-        this.boom = { vel };
+        this.boom = { vel, settled: false };
       }
+      a.shadow.visible = false;
+      // Every block has landed by ~2 s: after one last update nothing moves, so stop recalculating them
+      // (doing it every frame behind the results screen made laptops lag).
+      if (this.boom.settled) return;
       const t = look.boom;
+      if (t > 2.4) this.boom.settled = true;
       const m = new THREE.Matrix4();
       const q = new THREE.Quaternion();
       const e = new THREE.Euler();
+      const at = new THREE.Vector3();
+      const one = new THREE.Vector3(1, 1, 1);
       const vel = this.boom.vel;
       for (let i = 0; i < v.n; i++) {
         let y = v.pos[i * 3 + 1] + vel[i * 3 + 1] * t - 0.5 * 150 * t * t;
@@ -313,11 +320,10 @@ export class Stage3D {
         if (settle) y = 0.5;
         const k = settle ? Math.min(t, (vel[i * 3 + 1] + Math.sqrt(vel[i * 3 + 1] ** 2 + 300 * Math.max(0, v.pos[i * 3 + 1]))) / 150) : t;
         e.set(vel[i * 3] * k * 0.1, 0, vel[i * 3 + 2] * k * 0.1);
-        m.compose(new THREE.Vector3(v.pos[i * 3] + vel[i * 3] * k, y, vel[i * 3 + 2] * k), q.setFromEuler(e), new THREE.Vector3(1, 1, 1));
+        m.compose(at.set(v.pos[i * 3] + vel[i * 3] * k, y, vel[i * 3 + 2] * k), q.setFromEuler(e), one);
         a.mesh.setMatrixAt(i, m);
       }
       a.mesh.instanceMatrix.needsUpdate = true;
-      a.shadow.visible = false;
     } else if (this.boom) {
       // a new raid: put the Titan back together
       this.boom = null;
@@ -502,6 +508,8 @@ export class Stage3D {
       });
     });
     this.renderer.dispose();
+    // Give the browser its 3D drawing surface back now (it only allows a few at once, and each new game makes one).
+    this.renderer.forceContextLoss();
   }
 }
 

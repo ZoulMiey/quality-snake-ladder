@@ -513,6 +513,7 @@ function Kart3DView({ uid, players, steer, onFail }: { uid: string; players: Rec
       }
     } catch {
       renderer.dispose();
+      renderer.forceContextLoss(); // free the browser's 3D surface for the next game
       onFail();
       return;
     }
@@ -712,6 +713,7 @@ function Kart3DView({ uid, players, steer, onFail }: { uid: string; players: Rec
         (Array.isArray(mat) ? mat : mat ? [mat] : []).forEach((x) => x.dispose());
       });
       renderer.dispose();
+      renderer.forceContextLoss(); // free the browser's 3D surface for the next game
     };
   }, [uid, steer, onFail]);
 
@@ -910,6 +912,7 @@ function PodiumView({ top, onFail }: { top: PodiumKart[]; onFail: () => void }) 
         });
       });
       renderer.dispose();
+      renderer.forceContextLoss(); // free the browser's 3D surface for the next game
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [top.map((t) => t.rank + t.name + t.colour).join("|")]);
