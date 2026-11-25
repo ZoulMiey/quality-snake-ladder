@@ -1,0 +1,78 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Do You Remember? Letter Cards (sets 13-14)</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+/* Printable letter cards for "Do You Remember?" (owner, 24 Nov): 7 bottles, a random letter for each bottle put back
+   in the right place, the first team to solve its 7-letter word wins. One A4 page per word (7 cards shuffled + a set
+   card), then the host's answer sheet. Render: node cards.cjs "$PWD" */
+@page { size: A4; margin: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "Exo 2", sans-serif; color: #0b2a6b; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.page { width: 210mm; height: 297mm; padding: 9mm 10mm; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 18mm repeat(4, 1fr); gap: 0; page-break-after: always; }
+.page:last-child { page-break-after: auto; }
+.top { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; font-size: 11pt; font-weight: 600; color: #5b6b8c; padding-bottom: 3mm; }
+.top b { font-family: "Russo One"; font-weight: 400; font-size: 15pt; color: #0b2a6b; letter-spacing: .5px; }
+.cell { border: 0.4mm dashed #9aa6bd; padding: 3mm; }
+.card { position: relative; height: 100%; border-radius: 5mm; border: 1.6mm solid var(--c); background: radial-gradient(circle at 50% 38%, #ffffff 0, #fbf6e6 70%, #f3e6bf 100%); display: grid; place-items: center; overflow: hidden; }
+.card::before { content: ""; position: absolute; inset: 2.2mm; border-radius: 3mm; border: 0.6mm solid #d9a21e; }
+.card .L { margin-top: 1mm; font-family: "Russo One"; font-size: 92pt; line-height: 1; color: #0b2a6b; text-shadow: 0 1.2mm 0 #f2c94c; }
+.card .set { position: absolute; top: 4.5mm; left: 5mm; padding: 1mm 3.5mm; border-radius: 99px; background: var(--c); color: #fff; font-family: "Russo One"; font-size: 12pt; letter-spacing: .5px; }
+.card .ft { position: absolute; bottom: 4.5mm; left: 0; right: 0; text-align: center; font-weight: 800; font-size: 8.5pt; letter-spacing: 1.5px; color: #8a6a1a; }
+.card.info .L { display: none; }
+.card.info .mid { text-align: center; padding: 0 8mm; }
+.card.info .mid { margin-top: -2mm; }
+.card.info .mid b { display: block; font-family: "Russo One"; font-weight: 400; font-size: 17pt; color: #0b2a6b; }
+.card.info .mid p { margin-top: 2mm; font-weight: 600; font-size: 9.5pt; line-height: 1.35; color: #33456b; }
+.card.info .mid .big { font-family: "Russo One"; font-size: 26pt; color: var(--c); margin-top: 1mm; }
+.card.info .mid { padding-top: 6mm; }
+/* answer sheet */
+.ans { width: 210mm; height: 297mm; padding: 16mm 18mm; }
+.ans h1 { font-family: "Russo One"; font-weight: 400; font-size: 26pt; color: #0b2a6b; }
+.ans .sub { margin-top: 2mm; font-weight: 600; font-size: 12pt; color: #5b6b8c; }
+.ans .warn { margin-top: 5mm; padding: 3mm 5mm; border-radius: 3mm; background: #fff4d6; border: 0.5mm solid #d9a21e; font-weight: 800; font-size: 11pt; color: #7a5200; }
+.ans table { margin-top: 7mm; width: 100%; border-collapse: collapse; }
+.ans th { text-align: left; font-size: 11pt; color: #5b6b8c; padding: 2mm 3mm; border-bottom: 0.6mm solid #0b2a6b; }
+.ans td { padding: 3mm; border-bottom: 0.3mm solid #c9d2e3; font-size: 13pt; font-weight: 800; }
+.ans td .dot { display: inline-block; width: 5mm; height: 5mm; border-radius: 50%; background: var(--c); vertical-align: -0.8mm; margin-right: 3mm; }
+.ans td.w { font-family: "Russo One"; font-weight: 400; font-size: 19pt; letter-spacing: 3px; color: #0b2a6b; }
+.ans td.used { width: 40mm; color: #9aa6bd; font-weight: 600; font-size: 10pt; }
+.ans .rules { margin-top: 8mm; font-size: 11.5pt; line-height: 1.6; color: #33456b; }
+.ans .rules b { color: #0b2a6b; }
+</style></head><body>
+<div id="out"></div>
+<script>
+// 12 words, 7 letters each, no letter used twice in a word, and none can be rearranged into another common word
+// (STAINED → INSTEAD, BLISTER → BRISTLE, CERTIFY → RECTIFY were left out for that reason).
+const WORDS = ["INSPECT", "AUDITOR"];
+const START = 12; // extra sets, numbered on from the first 12
+const COLS = ["#0e7490", "#c2410c", "#e3263a", "#1d6fe0", "#16a34a", "#9333ea", "#ea8a00", "#0891b2", "#db2777", "#4d7c0f", "#b45309", "#4338ca", "#0f766e", "#be123c"];
+// Fixed shuffle (same PDF every time): the letters on the page are never in the word's order.
+let seed = 20261125;
+const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+function shuffled(a) {
+  for (;;) {
+    const b = [...a];
+    for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; }
+    if (b.join("") !== a.join("") && b.some((x, i) => x !== a[i]) && b.filter((x, i) => x === a[i]).length <= 1) return b;
+  }
+}
+const FT = "QUALITY MONTH 2026 · DO YOU REMEMBER?";
+let html = "";
+WORDS.forEach((w, k) => {
+  if (new Set(w).size !== 7 || w.length !== 7) throw new Error(w);
+  const n = START + k + 1, c = COLS[k];
+  const cards = shuffled([...w]).map((L) => `<div class="cell"><div class="card" style="--c:${c}"><span class="set">SET ${n}</span><span class="L">${L}</span><span class="ft">${FT}</span></div></div>`);
+  // The 8th card goes to the team with its set: tells them how many letters to collect (no word on it).
+  cards.push(`<div class="cell"><div class="card info" style="--c:${c}"><span class="set">SET ${n}</span><div class="mid"><b>DO YOU REMEMBER?</b><div class="big">7 LETTERS</div><p>Put a bottle back in the right place to win a letter. Solve the word first to win!</p></div><span class="ft">${FT}</span></div></div>`);
+  html += `<section class="page"><div class="top"><b>SET ${n}</b><span>Cut along the dashed lines · Keep this set together</span></div>${cards.join("")}</section>`;
+});
+html += `<section class="ans"><h1>Host answer sheet</h1><div class="sub">Do You Remember? · Quality Month 2026</div>
+<div class="warn">⚠ For the host only. Do not show this page to the teams.</div>
+<table><tr><th>Set</th><th>Word</th><th>Given to team</th></tr>
+${WORDS.map((w, k) => `<tr><td><span class="dot" style="--c:${COLS[k]}"></span>SET ${START + k + 1}</td><td class="w">${w}</td><td class="used">________________</td></tr>`).join("")}
+</table>
+<div class="rules"><b>How to play:</b> give each team one set (face down, shuffled). Each time a team puts a bottle back in the right place, they take <b>one random card</b> from their set. 7 bottles = 7 letters. <b>The first team to say their word correctly wins.</b> The answer must be the exact word on this sheet. Every letter in a word is different, and none of the words can be rearranged into another common word.</div>
+</section>`;
+document.getElementById("out").innerHTML = html;
+</script>
+</body></html>
