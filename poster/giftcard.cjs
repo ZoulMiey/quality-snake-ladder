@@ -1,5 +1,5 @@
 // Renders a gift card page to out/<OUT>.png (print quality) and .pdf (card size 170 x 100 mm).
-// FILE=giftcard.html OUT=giftcard-egames-no1 (default), or FILE=giftcard-dyr.html OUT=giftcard-do-you-remember
+// FILE=giftcard.html OUT=giftcard-egames-no1 (default), or FILE=giftcard-dyr.html OUT=giftcard-do-you-remember-no2
 const { chromium } = require("playwright");
 const dir = process.argv[2];
 (async () => {
