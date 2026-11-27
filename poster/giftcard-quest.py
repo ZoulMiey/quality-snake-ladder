@@ -1,10 +1,15 @@
-"""Quality Quest (E-Games) gift cards for places 1-5, from giftcard-quest.html.
+"""E-Games gift cards for places 1-5 (Quality Quest, or another game with GAME=...), from giftcard-quest.html.
 Trophy and big number: 1 gold, 2 silver, 3 bronze, 4-5 blue crystal.
-Writes out/giftcard-quality-quest-noN.png + .pdf and out/giftcard-quality-quest-no1-5.pdf.
-Run in poster/: python3 giftcard-quest.py"""
+Writes out/giftcard-<slug>-noN.png + .pdf and out/giftcard-<slug>-no1-5.pdf.
+Run in poster/: python3 giftcard-quest.py   or   GAME="Quality Word Search" python3 giftcard-quest.py"""
 import os, subprocess
 here = os.path.dirname(os.path.abspath(__file__)); os.chdir(here)
 base = open("giftcard-quest.html").read()
+GAME = os.environ.get("GAME", "Quality Quest")
+slug = GAME.lower().replace(" ", "-")
+if GAME != "Quality Quest":
+    base = base.replace(">QUALITY QUEST<", f">{GAME.upper()}<").replace("Quality Quest Gift Card", f"{GAME} Gift Card")
+    if len(GAME) > 14: base = base.replace("font-size:50px;letter-spacing:6px;color:#bfe3ff", "font-size:44px;letter-spacing:4px;color:#bfe3ff")
 # (light, mid, dark, deep), (H left, H mid, H right), outline, plate text, star fill, star line, glow rgb, text-gradient
 M = {
   "gold":   None,
@@ -15,8 +20,8 @@ M = {
   "blue":   (("#f0f9ff", "#8fd0ff", "#3a8ff0", "#123f9c"), ("#1d5fc0", "#cdeaff", "#2266c8"), "#0a2a66", "#cdeaff", "#ffffff", "#3a8ff0", "120,200,255",
              "linear-gradient(180deg,#ffffff 0%,#cdeaff 35%,#5aa8f5 52%,#1a4fae 58%,#9fd4ff 78%,#f0f9ff 100%)", "#08245c"),
 }
-PLACE = {1: ("gold", "Champion of Quality Quest!"), 2: ("silver", "2nd place in Quality Quest!"), 3: ("bronze", "3rd place in Quality Quest!"),
-         4: ("blue", "4th place in Quality Quest!"), 5: ("blue", "5th place in Quality Quest!")}
+PLACE = {1: ("gold", f"Champion of {GAME}!"), 2: ("silver", f"2nd place in {GAME}!"), 3: ("bronze", f"3rd place in {GAME}!"),
+         4: ("blue", f"4th place in {GAME}!"), 5: ("blue", f"5th place in {GAME}!")}
 pdfs = []
 for n, (metal, line) in PLACE.items():
     s = base.replace(">No.1</text>", f">No.{n}</text>").replace(">No. 1</div>", f">No. {n}</div>").replace(">Champion of Quality Quest!</div>", f">{line}</div>")
@@ -35,6 +40,6 @@ for n, (metal, line) in PLACE.items():
         s = s.replace("</style>", f".no1{{background-image:{tgrad}!important;-webkit-text-stroke:2px rgba(255,255,255,.55)!important;"
                       f"filter:drop-shadow(0 4px 0 {tshadow}) drop-shadow(0 8px 12px rgba(0,0,0,.7)) drop-shadow(0 0 20px rgba({glow},.45))!important}}</style>", 1)
     f = f"_quest-no{n}.html"; open(f, "w").write(s)
-    subprocess.run(["node", "giftcard.cjs", here], check=True, env={**os.environ, "FILE": f, "OUT": f"giftcard-quality-quest-no{n}"})
-    os.remove(f); pdfs.append(f"out/giftcard-quality-quest-no{n}.pdf")
-subprocess.run(["pdfunite", *pdfs, "out/giftcard-quality-quest-no1-5.pdf"], check=True)
+    subprocess.run(["node", "giftcard.cjs", here], check=True, env={**os.environ, "FILE": f, "OUT": f"giftcard-{slug}-no{n}"})
+    os.remove(f); pdfs.append(f"out/giftcard-{slug}-no{n}.pdf")
+subprocess.run(["pdfunite", *pdfs, f"out/giftcard-{slug}-no1-5.pdf"], check=True)
